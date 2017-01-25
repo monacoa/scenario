@@ -1,0 +1,12 @@
+<customUI xmlns="http://schemas.microsoft.com/office/2006/01/customui"
+            loadImage="pyxll.load_image">
+    <ribbon>
+        <tabs>
+			<tab id="AndreaTab" label="Scenario">                    
+                <group id="Tools2" label="Tools">                    
+                    <button id="textButton2" label="Bottone" image=".\fig\bottone_rosso.jpg" onAction="sc_elab.excel_hook.interfacce_base.button_example" />
+                </group>
+			</tab>
+        </tabs>
+    </ribbon>
+</customUI>
