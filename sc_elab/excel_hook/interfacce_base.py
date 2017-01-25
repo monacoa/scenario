@@ -45,6 +45,10 @@ def sommaro(a= 1, b = 2):
     return a + 2*b
 
 
+@xl_func
+def sommario(control):
+    xl = xl_app()
+    xl.Selection.Value = "Son Mario"
 
 #def on_text_button(a = 1):
     
