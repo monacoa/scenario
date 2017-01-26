@@ -93,6 +93,10 @@ def sommaro(a= 1, b = 2):
     """
 
 
+@xl_func
+def sommario(control):
+    xl = xl_app()
+    xl.Selection.Value = "Son Mario"
 
 # Connection example: Windows, without a DSN, using the Windows SQL Server driver
 # Connection example: Windows, without a DSN, using the Windows SQL Server driver
