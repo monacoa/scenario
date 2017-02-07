@@ -3,8 +3,8 @@
     <ribbon>
         <tabs>
 			<tab id="AndreaTab" label="Scenario">                    
-                <group id="Tools2" label="Tools">                    
-                    <button id="textButton2" label="Bottone" image=".\fig\bottone_rosso.jpg" onAction="sc_elab.excel_hook.interfacce_base.button_example" />
+                <group id="Swap_Curves" label="Swap Curves">
+                    <button id="load_swp_curve" label="Load" image=".\fig\bottone_rosso.jpg" onAction="sc_elab.excel_hook.interfacce_base.load_swap_curve_from_db" />
                 </group>
 			</tab>
         </tabs>
