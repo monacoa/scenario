@@ -3,6 +3,27 @@
 from pyxll import xl_func, xl_app, xl_menu, xl_macro, xlcAlert
 from msilib import Control
 
+
+
+
+import Tkinter
+import tkMessageBox
+
+
+
+@xl_menu("AAAA")
+def test_tk():
+    top = Tkinter.Tk()
+    
+    def helloCallBack():
+       tkMessageBox.showinfo( "Hello Python", "Hello World")
+    
+    B = Tkinter.Button(top, text ="Hello", command = helloCallBack)
+    
+    B.pack()
+    top.mainloop()
+
+
 #@xl_func
 #def hello(name):
 #    return "Hello, %s" % name
@@ -15,6 +36,17 @@ def win32com_menu_test(control):
     selection = xl_app().Selection
     selection.Value = "Hello!"
     xlcAlert("Some text has been written to the current cell")
+
+
+
+@xl_macro
+def checkbox_example():
+    xl = xl_app()
+    check_box = xl.ActiveSheet.CheckBoxes(xl.Caller)
+    if check_box.Value == 1:
+        xl.Range("checkbox_output").Value = "CHECKED"
+    else:
+        xl.Range("checkbox_output").Value = "Click the check box"
 
 
 """

@@ -87,3 +87,16 @@ ENV/
 
 # Rope project settings
 .ropeproject
+
+# Eclipse project 
+.project
+.pydevproject
+
+# File di test
+sc_elab/core/test_0.py
+sc_elab/core/test_1.py
+sc_elab/excel_hook/test_0.py
+
+
+
+
