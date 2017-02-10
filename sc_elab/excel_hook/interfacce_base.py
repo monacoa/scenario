@@ -1,17 +1,14 @@
 
 from pyxll import xl_func, xl_app, xl_menu, xl_macro, xlcAlert
-import win32api
-import win32con
-
+from connection import *
 from Tkinter import *
 import tkMessageBox
-import Tkinter
-import pyodbc
-import datetime
-import time
-from connection import *
+from db_qrys import getCurvesListFromDb
 
 
+@xl_func
+def popup_messagebox(msg):
+    xlcAlert(msg)
 
 
 def donothing():
@@ -20,7 +17,6 @@ def donothing():
     # button = Button(filewin, text="Do nothing button")
     # button.pack()
     # filewin.mainloop()
-
 
 
 def getDatesListFromDb():
@@ -41,7 +37,7 @@ def getDatesListFromDb():
     return date_list
 
 
-
+#-------------------
 class W_curveType (Frame):
     def __init__(self, master = None):
 
@@ -71,7 +67,7 @@ class W_curveType (Frame):
         self.destroy()
 
 
-
+#-------------
 class W_curveDate(LabelFrame):
 
     def __init__(self, parent = None):
@@ -117,56 +113,13 @@ class W_curveDate(LabelFrame):
     def selected_date(self):
         #recupero la data selezionata
         c_date = str((self.mylist.get(ACTIVE)))
-        print "====value", c_date
+
         self.date = c_date
         self.new_window = W_curveSelection (parent = self, curve_date=self.date)
 
 
 
-def getCurvesListFromDb(curve_date):
-    c_date_qry = str(curve_date).replace("-", "")
-    con = Connection()
-    qry = '''
-          select distinct BloombergTicker FROM alm.DProTS_master where BloombergTicker in
-          ( select distinct BloombergTicker from alm.DProCurve
-            where TipoDato in ('CDepositi', 'CSwap', 'CLibor', 'CFuture')
-          )and Data = '%s'
-          ''' % c_date_qry
-    print qry
-    c_data = con.db_data()
-    c_data.execute(qry)
-    tickers = c_data.fetchall()
-    tkrs = ""
-    sep  = ""
-    for tic in tickers:
-        tkrs += sep + "'" + tic[0] + "'"
-        sep = ","
-    #================
-    c_anag = con.db_anag()
-    qry = '''
-          SELECT DISTINCT description, ID_object FROM AnagMktObject WHERE ID_object in
-          ( SELECT DISTINCT ID_object FROM AnagMktObject_D WHERE ticker IN
-            (%s
-            )
-          )ORDER BY description
-          ''' % tkrs
-    print "qry:", qry
-    c_anag.execute(qry)
-    res = c_anag.fetchall()
-    print res
-    ll = []
-    for c in res:
-        print "c", c
-        curva = str(c[0])
-        id    = int(c[1])
-        a =[curva,id]
-        ll.append(a)
-        print "ll", ll
-    con.close()
-    return ll
-    # -----------
-
-
+#----------------
 class W_curveSelection (LabelFrame):
     def __init__(self, parent = None, curve_date =None):
         c_date = None
@@ -211,124 +164,27 @@ class W_curveSelection (LabelFrame):
 from sc_elab.core.SwpCurve import *
 
 
-def loadCurvedataFromDB(crv):
-
-    con = Connection()
-    c_a = con.db_anag()
-    qry = "SELECT DISTINCT  ID_object, Tipo, rating FROM AnagMktObject WHERE description = '%s' "%(crv.description)
-    print qry
-    c_a.execute(qry)
-    res = c_a.fetchall()
-    print qry
-    if len(res)!= 1:
-        aaaaaaaaaaaaaaaaaaaaaaa
-    crv.rating = res[0][2]
-    crv.type = res[0][1]
-    #----
-
-    qry = '''
-            SELECT ticker FROM AnagMktObject_D where ID_object ='%s'
-            '''%res[0][0]
-    print qry
-
-    c_a.execute(qry)
-
-    res = c_a.fetchall()
-    blm_tckrs_lst_str  = ""
-    sep = ""
-
-    for record in res:
-        blm_tckrs_lst_str+= sep+ "'" + record[0] +"'"
-        sep = ","
-
-    #---------
-    # RECUPERO CURRENCY E NUMERO/TIPOLOGIA DI SEGMENTI
-    #---------
-
-    c_d = con.db_data()
-
-    qry = '''
-         SELECT DISTINCT currency, TipoDato FROM alm.DProCurve where BloombergTicker IN
-         (
-            SELECT DISTINCT BLOOMBERGTICKER FROM alm.DProTS_master WHERE
-            BLOOMBERGTICKER IN (%s) AND
-             DATA = '%s'
-            )
-        '''%(blm_tckrs_lst_str, str(crv.ref_date).replace("-", "") )
-
-    print qry
-
-    c_d.execute(qry)
-    res = c_d.fetchall()
-    print "********************************************************"
-    print qry
-    print res
-    print "********************************************************"
-
-    crv.curr = record[0][0]
-    if   crv.curr == "EUR" : crv.floater_tenor = "6M"
-    elif crv.curr == "USD" : crv.floater_tenor = "3M"
-
-    if   crv.quotation == "MID": quotazione = "valoremid"
-    elif crv.quotation == "ASK": quotazione = "valoreask"
-    elif crv.quotation == "BID": quotazione = "valorebid"
-    else: mmmmmmmmmmmmmmmm
-
-    for record in res:
-        segm = record[1]
-        qry = ""
-        if ((segm == "CDepositi") or (segm == "CSwap") or (segm == 'CLibor')):
-
-            qry = '''
-                    SELECT      alm.DProCurve.maturityInt, alm.DProTS_master.%s
-                    FROM        alm.DProCurve
-                    INNER JOIN  alm.DProTS_master
-                    ON          alm.DProCurve.BloombergTicker = alm.DProTS_master.BloombergTicker
-                    WHERE       alm.DProTS_master.data='%s'
-                    AND         alm.DProCurve.TipoDato = '%s'
-                    AND         alm.DProCurve.BloombergTicker in (%s)
-                    ORDER BY    alm.DProCurve.maturityInt
-                    '''%(quotazione,str(crv.ref_date).replace("-", ""), segm, blm_tckrs_lst_str)
-        elif segm == "CFuture":
-            qry = '''
-                    SELECT      alm.DProTS_master.ScadenzaFuture, alm.DProTS_master.%s
-                    FROM        alm.DProCurve
-                    INNER JOIN  alm.DProTS_master
-                    ON          alm.DProCurve.BloombergTicker = alm.DProTS_master.BloombergTicker
-                    WHERE       alm.DProTS_master.data= '%s'
-                    AND         alm.DProCurve.TipoDato ='%s'
-                    AND         alm.DProCurve.BloombergTicker in (%s)
-                    ORDER BY    alm.DProTS_master.ScadenzaFuture
-                    '''%(quotazione,str(crv.ref_date).replace("-", ""), segm, blm_tckrs_lst_str)
-
-        else: xxxxxxxxxxxxxxxxxxxxxxxx
-
-        print qry
-        c_d.execute(qry)
-        res = c_d.fetchall()
-        print "segm:", segm, "RES:", res
-        for record in res:
-            l = [record[0], record[1]]
-            (crv.raw_data[dict_segm[segm]]).append(l)
-
-        print "DIZIONARIO:", crv.raw_data
-
-    con.close()
-
 
 
 def findRigthPlaceBootCurveSeg(xla, r, distCurve, dir="O"):
     rOut = None
-    if dir == "V" :
-        while (r.Value != None):
-            righe = r.Offset(1, 0).Rows.count()
-            r = r.Offset(righe + distCurve, 0)
-        rOut = r
-    else:
-        while (r.Value != None):
-                col= r.Offset(1, 0).Columns.count()
-                r = r.Offset(-1, col + distCurve)
-        rOut = r
+    #if dir == "V" :
+    #     while (r.Value != None):
+    #         righe = r.Offset(1, 0).Rows.count()
+    #         r = r.Offset(righe + distCurve, 0)
+    #     rOut = r
+    # else:
+
+    while (r.Value != None):
+        print "r.Value----------", r.Value
+        nCols = r.Columns.Count
+        row =r.Row
+        col =r.Column
+        print nCols, row, col, distCurve
+        r = xla.Range(xla.Cells(row, col + distCurve), xla.Cells(row, col + (nCols-1) + distCurve))
+
+
+    rOut = r
     #-----
     if (rOut == None):
         msg = "Unable to compute the output range for your curve"
@@ -342,13 +198,13 @@ def findRigthPlaceBootCurveSeg(xla, r, distCurve, dir="O"):
 import win32com.client
 from win32com.client import constants as const
 
-def drawBox(xla, r , spessore , rTopLeft = 0, cTopLeft = 0,rBottomRight=0,cBottomRight=0, Colore=0):
-    print "----------------------------------------------"
+def drawBox(xla, spessore , rTopLeft = 0, cTopLeft = 0,rBottomRight=0,cBottomRight=0, Colore=0):
+
     if (rTopLeft <= 0) or(cTopLeft <= 0) or (rBottomRight <= 0)or (cBottomRight <= 0):
         msg = "Le coordinate del box devono essere maggiori di zero"
         popup_messagebox(msg)
         sys.exit()
-    print ":::::::::::::::::::::::::::::::::::::::::::"
+
 
     RR = xla.Range(xla.Cells(rTopLeft, cTopLeft), xla.Cells(rBottomRight, cBottomRight))
     RR.Borders(const.xlDiagonalDown).LineStyle = const.xlNone
@@ -361,7 +217,7 @@ def drawBox(xla, r , spessore , rTopLeft = 0, cTopLeft = 0,rBottomRight=0,cBotto
     RR.Borders(const.xlEdgeTop).LineStyle = const.xlContinuous
     RR.Borders(const.xlEdgeTop).Weight = spessore
     RR.Borders(const.xlEdgeTop).ColorIndex = Colore
-    print ";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;", "FQ!"
+
 
     RR.Borders(const.xlEdgeBottom).LineStyle = const.xlContinuous
     RR.Borders(const.xlEdgeBottom).Weight = spessore
@@ -406,18 +262,18 @@ def intestazioneSwapCurveSegmenti( xla, sheet, rng,  attributi,nCols = 2):
     #disegno il box con intestazione
     #addS = rng.Address
     #addE = sheet.Cells(topLeftRow + nRows, topLeftCol+nCols).Address
-    #print "addS, addE:", addS,addE
+
 
     #rng_intest = sheet.Range(rng.Address+":")
     #exit()
 
-    drawBox            (xla, rng,3,topLeftRow, topLeftCol,topLeftRow + nRows, topLeftCol + nCols - 1, 0)
+    drawBox            (xla, 3,topLeftRow, topLeftCol,topLeftRow + nRows, topLeftCol + nCols - 1, 0)
     formatTestataCurva (xla, topLeftRow, topLeftCol, nCols, attributi["Description"])
     # '
     # ' Scrivo contenuto Intestazione
     # '
     # With
-    print topLeftRow, topLeftCol
+
     #rtemp = xla.Range(xla.Cells(topLeftRow + 1, topLeftCol), xla.Cells(topLeftRow + 1, topLeftCol))
 
 
@@ -427,18 +283,33 @@ def intestazioneSwapCurveSegmenti( xla, sheet, rng,  attributi,nCols = 2):
 
     i = 0
     for k in kk:
-        print "i:", i
+
         a= xla.Cells(topLeftRow + 1+ i, topLeftCol)
-        print "a:", a.Address
+
         a.Value = k
         b = xla.Cells(topLeftRow + 1+ i, topLeftCol+1)
-        print "b:", b.Address
+
         b.Value = attributi[k]
         b.HorizontalAlignment = const.xlCenter
         i+=1
 
     rangeStart = xla.Cells(topLeftRow + nRows + 2, topLeftCol).Address
     return rangeStart
+
+
+def drawLine (xla, rTopLeft, cTopLeft, rBottomRight, cBottomRight, hor, spessore):
+
+    (xla.Range(xla.Cells(rTopLeft, cTopLeft), xla.Cells(rBottomRight, cBottomRight))).Select()
+
+    if (hor =="o"):
+        xla.Selection.Borders(const.xlEdgeBottom).LineStyle = const.xlContinuous
+        xla.Selection.Borders(const.xlEdgeBottom).Weight = spessore
+        xla.Selection.Borders(const.xlEdgeBottom).ColorIndex = const.xlAutomatic
+
+    else:
+        xla.Selection.Borders(const.xlEdgeRight).LineStyle = const.xlContinuous
+        xla.Selection.Borders(const.xlEdgeRight).Weight = spessore
+        xla.Selection.Borders(const.xlEdgeRight).ColorIndex = const.xlAutomatic
 
 
 def displayHWParamSwCurve (xla, rangeStart, attributi):
@@ -451,14 +322,9 @@ def displayHWParamSwCurve (xla, rangeStart, attributi):
 
 
     # box parametri
-    drawBox(xla, xla.Range(rangeStart), const.xlMedium, topLeftRow, topLeftCol, topLeftRow + nRows, topLeftCol + nCols - 1, 0)
-    #     #DrawLine
-    #     rTopLeft:=topLeftRow + 1, _
-    #     cTopLeft:=topLeftCol + 1, _
-    #     rBottomRight:=topLeftRow + nRows, _
-    # cBottomRight:=topLeftCol + 1, _
-    # Vertical:=True
-    # '
+    drawBox(xla, const.xlMedium, topLeftRow, topLeftCol, topLeftRow + nRows, topLeftCol + nCols - 1, 0)
+    drawLine(xla, topLeftRow + 1,topLeftCol + 1, topLeftRow + nRows, topLeftCol + 1, "v", const.xlThin)
+
     # ' intestazione
     formatTestataCurva(xla, topLeftRow, topLeftCol, nCols, nomeBox)
     # Scirttura descrizione e parametri
@@ -468,103 +334,81 @@ def displayHWParamSwCurve (xla, rangeStart, attributi):
     xla.Cells(topLeftRow + 1, topLeftCol+2).Value = "volatility"
     xla.Cells(topLeftRow + 1, topLeftCol+3).Value = "0.0"
 
-    rangeStartN = xla.Cells(topLeftRow + 2, topLeftCol).Address
-    print "rangeStartN", rangeStartN
+    rangeStartN = xla.Cells(topLeftRow + 3, topLeftCol).Address
     return rangeStartN
 
 
-'''
-def segmentoSwapCurve(xla, code,rangeSN, griglia, dateQuot, dateDefault nodiQuot  = Empty):
-    rangeStart = rangeSN
-
+def segmentoSwapCurve(xla, rangeS, code, segm):
+    rangeStart = rangeS
+    print "rangeStart", rangeStart
     topLeftRow = xla.Range(rangeStart).Row
-    topLeftCol = Range(rangeStart).Column
-    nNodi = len (dateQuot)
+    topLeftCol = xla.Range(rangeStart).Column
+    nNodi = len(segm.dates)
     nRows = nNodi + 1
     nCols = 4
-    '
-    If IsEmpty(nodiQuot) Then ReDim nodiQuot(0 To nNodi - 1) As String
-    '
-    ' box intestazione
-    '
-    DrawBox rTopLeft:=topLeftRow, _
-            cTopLeft:=topLeftCol, _
-            rBottomRight:=topLeftRow + nRows, _
-            cBottomRight:=topLeftCol + nCols - 1, _
-            spessore:=xlMedium
-    '
-    ' Formatto zona codice curva
-    '
-    Select Case code
-        Case "G"
-            nomeSegmento = "0. Short term swap"
-        Case "D"
-            nomeSegmento = "1. Depositi"
-        Case "L"
-            nomeSegmento = "2. Libor"
-        Case "F"
-            nomeSegmento = "3. Futures"
-        Case "S"
-            nomeSegmento = "4. Swap Rate"
-        Case Else
-            nomeSegmento = code
-    End Select
-    '
-    FormatTestataCurva topLeftRow, topLeftCol, nCols, nomeSegmento
-    SegmentoSwapCurve = False
-    '
-    ' Linea orizzontale di separazione
-    '
-    DrawLine rTopLeft:=topLeftRow + 1, _
-            cTopLeft:=topLeftCol, _
-            rBottomRight:=topLeftRow + 1, _
-            cBottomRight:=topLeftCol + nCols - 1
-    '
-    ' Linea verticale di separazione
-    '
-    DrawLine rTopLeft:=topLeftRow + 1, _
-            cTopLeft:=topLeftCol + nCols - 2, _
-            rBottomRight:=topLeftRow + nRows, _
-            cBottomRight:=topLeftCol + nCols - 2, _
-            Vertical:=True
-    '
-    ' scrittura dati
-    '
-    With Range(rangeStart).Offset(1, 0)
-        '
-        ' intestazione campi
-        '
-        .value = "Nodo"
-        .Offset(0, 1).value = "Data scadenza"
-        .Offset(0, 2).value = "Valori"
-        .Offset(0, 3).value = "Usa Nodo"
-        '
-        ' scrittura nodi
-        '
-        For i = 1 To nNodi
-            .Offset(i, 0).value = griglia(i - 1)
-            .Offset(i, 1).value = CDate(dateQuot(i - 1)): .Offset(i, 1).NumberFormat = "dd-mm-yyyy"
-            .Offset(i, 2).value = nodiQuot(i - 1):
-            .Offset(i, 2).NumberFormat = "0.00%": If code = "F" Then .Offset(i, 2).NumberFormat = "0.00"
-            .Offset(i, 3).value = dateDefault(i - 1)
-        Next
-        '
-        .CurrentRegion.HorizontalAlignment = xlCenter
-        '
-    End With
-    '
-    ' aggiorno rangeStart
-    '
-    rangeStartNew = Range(rangeStartNew).Offset(nRows + 2, 0).Address
-    SegmentoSwapCurve = True
-    Exit Function
 
-'''
+    #box intestazione
+    drawBox(xla, const.xlMedium, topLeftRow, topLeftCol, topLeftRow + nRows, topLeftCol + nCols - 1)
+    isFut = False
+    #Formatto zona codice curva
+    if  code == "G":
+            nomeSegmento = "0. Short term swap"
+    elif code == "D":
+            nomeSegmento = "1. Depositi"
+    elif code == "L":
+            nomeSegmento = "2. Libor"
+    elif code =="F":
+            nomeSegmento = "3. Futures"
+            isFut = True
+    elif code == "S":
+            nomeSegmento = "4. Swap Rate"
+    else:
+            nomeSegmento = code
+
+    formatTestataCurva(xla, topLeftRow, topLeftCol, nCols, nomeSegmento)
+    #Linea orizzontale di separazione
+    drawLine(xla, topLeftRow + 1, topLeftCol, topLeftRow + 1, topLeftCol + nCols - 1, "o", const.xlThin)
+    drawLine(xla, topLeftRow + 1, topLeftCol+nCols - 2, topLeftRow + nRows, topLeftCol + nCols - 2, "v", const.xlThin)
+
+    xla.Cells(topLeftRow + 1, topLeftCol + 0).Value = "Node"
+    xla.Cells(topLeftRow + 1, topLeftCol + 0).HorizontalAlignment = const.xlCenter
+    xla.Cells(topLeftRow + 1, topLeftCol + 1).Value = "Maturity"
+    xla.Cells(topLeftRow + 1, topLeftCol + 1).HorizontalAlignment = const.xlCenter
+    xla.Cells(topLeftRow + 1, topLeftCol + 2).Value = "Value"
+    xla.Cells(topLeftRow + 1, topLeftCol + 2).HorizontalAlignment = const.xlCenter
+    xla.Cells(topLeftRow + 1, topLeftCol + 3).Value = "Usage"
+    xla.Cells(topLeftRow + 1, topLeftCol + 3).HorizontalAlignment = const.xlCenter
+
+    f = 1
+    i = 1
+    for tag,date,value in zip(segm.tags, segm.dates, segm.values):
+        ll = [tag, date, value]
+        for j in range(3):
+            a = xla.Cells(topLeftRow + 1 + i, topLeftCol+j)
+            if (j == 0) and (isFut):
+                a.Value = f
+                a.NumberFormat = "0"
+                f += 1
+            else :
+                a.Value = ll[j]
+                if (type(ll[j]) == datetime.date) or (type(ll[j]) == datetime.datetime): a.NumberFormat = "dd-mm-yyyy"
+                if (type(ll[j]) == float)         : a.NumberFormat = "0.00"
+            a.HorizontalAlignment = const.xlCenter
+            j +=1
+
+        b = xla.Cells(topLeftRow + 1+ i, topLeftCol+3)
+        b.Value = "Y"
+        b.HorizontalAlignment = const.xlCenter
+        i+=1
+
+    rangeStart = xla.Cells(topLeftRow + nRows + 2, topLeftCol).Address
+    return rangeStart
+
+
 #=======================================================================================================================
 def writeCurveOnXls(crv, nameSheet, xla):
-    print "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ ECCOMI!!!!!!!!!!"
     rangeStart = "B2"
-    distCurve  = 3
+    distCurve  = 5
     #Individuo posizione in cui scrivere
     sheet = xla.ActiveWorkbook.Sheets(nameSheet)
     r = sheet.Range(rangeStart)
@@ -581,48 +425,41 @@ def writeCurveOnXls(crv, nameSheet, xla):
                      , "Source": crv.source
                      , "Tenor Floater Rate":crv.floater_tenor}
 
-    print "::::::::::::::::::::::::::::::::::::::::"
-
-
     rangeStartNew = intestazioneSwapCurveSegmenti ( xla, sheet , rOut, Attributi)
-
     # Genero il blocco per i parametri di Hull e White
-
-    displayHWParamSwCurve (xla, rangeStartNew, Attributi)
-
+    rangeStartNew = displayHWParamSwCurve (xla, rangeStartNew, Attributi)
     # ' Genero i blocchi dei segmenti della curva
-    # codes = "DLGFS"
-
+    # codes = "DLGFS"; D = dep, L = libor, F = futures, G=swap sotto 1y, S = swap >=1Y
     cd = "DLGFS"
     for j in  range (len(cd)):
         code =cd[j]
-        for s in crv.raw_data.keys():
+        for s in crv.segms.keys():
             if code == s[0]:
                 # visualizzo segmento
+                print "*" * 120
                 print "segmento:", s
                 print "code:", code
-                N = len(crv.raw_data[s])
-                listaYes = ["Y" for n in range(N)]
-                print "listaY", listaYes
-                #segmentoSwapCurve (code, rangeStartNew, s("MATURITY"), s("DATE"), vettoreYes, nodiQuot:=s("NODI"))
+                print "chiamo la funzione dei segmenti!"
+                rangeStartNew = segmentoSwapCurve (xla, rangeStartNew, code, crv.segms[s])
 
     # '
     # rOut.CurrentRegion.Columns.AutoFit
     # DisplaySwapCurve = True
     # Exit Function
 
+
 #=======================================================================================================================
-#=======================================================================================================================
-
-
-
+# punto di ingresso per load curve
+# =======================================================================================================================
 
 @xl_func
+
 def load_swap_curve_from_db(control):
     nameSheet = "Curvette"
     xla = xl_app()
     book = xla.ActiveWorkbook
-    #--- creo foglio Curvette se non esiste
+    #-----
+    #creo foglio Curvette se non esiste
     try:
         s = book.Sheets(nameSheet)
     except:
@@ -635,27 +472,18 @@ def load_swap_curve_from_db(control):
     app = W_curveType(root)
     root.mainloop()
 
-
     curve_des = app.new_window.new_window.curve
     curve_date= app.new_window.date
-
-
-    print "------------FQ ----------------------------------------:", curve_des, curve_date
 
     cc = Curve()
     cc.ref_date = curve_date
     cc.description= curve_des
-    loadCurvedataFromDB(cc)
-    print "CURVA CARICATA!"
-    print "calcolo le date!"
+    cc.loadDataFromDB()
+    cc.init_finalize()
 
-    print "ora richiamo la scrittura!!!!!!!!!!!!!!!!!!!!!!!!"
     writeCurveOnXls(cc, nameSheet, xla)
 
 
 
 
 
-@xl_func
-def popup_messagebox(msg):
-    xlcAlert(msg)
