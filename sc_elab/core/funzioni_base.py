@@ -52,23 +52,6 @@ def compute_rates(df_in, time_df_in, regime_output):
 
 
 
-def fun_test_0():
-
-    aa = 123
-    bb = 126
-
-    bb = 12312313126
-    bb = 126
-    
-    
-    AA = 'Modifica non esistente'
-    
-    'Speriamo si generi un conflitto!!'
-    
-
-    return 100
-
-<<<<<<< HEAD
 
 def purge_data(data_out, ref_field, val_not_allowed):
     
