@@ -5,6 +5,7 @@
 			<tab id="AndreaTab" label="Scenario">                    
                 <group id="Swap_Curves" label="Swap Curves">
                     <button id="load_swp_curve" label="Load" image=".\fig\bottone_rosso.jpg" onAction="sc_elab.excel_hook.interfacce_base.load_swap_curve_from_db" />
+                    <button id="bootstrap" label="Bootstrap" image=".\fig\bottone_rosso.jpg" onAction="sc_elab.excel_hook.interfacce_base.bootstrap_from_xls" />
                 </group>
 			</tab>
         </tabs>

@@ -4,7 +4,8 @@ from connection import *
 from Tkinter import *
 import tkMessageBox
 from db_qrys import getCurvesListFromDb
-
+from sc_elab.core.SwpCurve import *
+from win32com.client import constants as const
 
 @xl_func
 def popup_messagebox(msg):
@@ -54,7 +55,7 @@ class W_curveType (Frame):
         filemenu.add_separator()
         filemenu.add_command(label="Exit", command=donothing)
 
-        self.menubar.add_cascade(label="select Curve Type", menu=filemenu)
+        self.menubar.add_cascade(label="Click & Select Curve Type", menu=filemenu)
         self.master.config(menu=self.menubar)
         self.canvas = Canvas(self, bg="grey", width=200, height=200,
                              bd=0, highlightthickness=0)
@@ -76,9 +77,8 @@ class W_curveDate(LabelFrame):
             self.master = parent.master
             parent.close_window()
         # create labelframe
-        #self.master.geometry("360x480")
         LabelFrame.__init__(self, self.master)
-        self.config(text = "Select reference date:")#, bg="white", width=400, height=400 )
+        self.config(text = "Select reference date:")
         self.pack(fill="both", expand="yes")
 
         # create scrollbar
@@ -121,25 +121,29 @@ class W_curveDate(LabelFrame):
 
 #----------------
 class W_curveSelection (LabelFrame):
-    def __init__(self, parent = None, curve_date =None):
+    def __init__(self, parent = None, curve_date = None):
         c_date = None
         if parent:
             self.master = parent.master
             parent.close_window()
         LabelFrame.__init__(self, self.master)
+        #self.geometry("800x600")
+        #self.master.geometry("400x500")
         self.config(text="Available curves for the selected date:")
         self.pack(fill="both", expand="yes")
         # create scrollbar
         self.bar = Scrollbar(self)
+
         # create mylist
         self.mylist = Listbox(self, yscrollcommand=self.bar.set)
         dl = getCurvesListFromDb(curve_date)
         for l in dl:
             crv = l[0]
             self.mylist.insert(END, crv)
-
+        self.mylist.config(width=50)
         self.mylist.pack(side=LEFT, fill='y')
-        self.bar.pack(side=LEFT, fill='y')
+
+        self.bar.pack   (side=LEFT, fill='y')
         self.mylist.config(yscrollcommand=self.bar.set)
         self.bar.config(command=self.mylist.yview)
         # -----------
@@ -152,16 +156,13 @@ class W_curveSelection (LabelFrame):
 
     def close_window(self):
         self.destroy()
+        self.master.destroy()
 
     def selected_curve(self):
         #recupero la data selezionata
         curve_des = str((self.mylist.get(ACTIVE)))
         self.curve = curve_des
-        #self.close_window()
-
-
-
-from sc_elab.core.SwpCurve import *
+        self.close_window()
 
 
 
@@ -195,8 +196,7 @@ def findRigthPlaceBootCurveSeg(xla, r, distCurve, dir="O"):
 
 
 
-import win32com.client
-from win32com.client import constants as const
+
 
 def drawBox(xla, spessore , rTopLeft = 0, cTopLeft = 0,rBottomRight=0,cBottomRight=0, Colore=0):
 
@@ -259,40 +259,24 @@ def intestazioneSwapCurveSegmenti( xla, sheet, rng,  attributi,nCols = 2):
     nRows = len(attributi.keys())
     topLeftRow = rng.Row
     topLeftCol = rng.Column
-    #disegno il box con intestazione
-    #addS = rng.Address
-    #addE = sheet.Cells(topLeftRow + nRows, topLeftCol+nCols).Address
-
-
-    #rng_intest = sheet.Range(rng.Address+":")
-    #exit()
 
     drawBox            (xla, 3,topLeftRow, topLeftCol,topLeftRow + nRows, topLeftCol + nCols - 1, 0)
     formatTestataCurva (xla, topLeftRow, topLeftCol, nCols, attributi["Description"])
-    # '
-    # ' Scrivo contenuto Intestazione
-    # '
-    # With
-
-    #rtemp = xla.Range(xla.Cells(topLeftRow + 1, topLeftCol), xla.Cells(topLeftRow + 1, topLeftCol))
-
 
     kk = (attributi.keys())
     kk.sort()
-
-
     i = 0
     for k in kk:
-
         a= xla.Cells(topLeftRow + 1+ i, topLeftCol)
-
         a.Value = k
+
         b = xla.Cells(topLeftRow + 1+ i, topLeftCol+1)
 
         b.Value = attributi[k]
+        print a, b.Value, type(attributi[k])
+        if (type(attributi[k]) == datetime.datetime) or (type(attributi[k]) == datetime.date): b.NumberFormat = "dd-mm-yyyy"
         b.HorizontalAlignment = const.xlCenter
         i+=1
-
     rangeStart = xla.Cells(topLeftRow + nRows + 2, topLeftCol).Address
     return rangeStart
 
@@ -340,7 +324,6 @@ def displayHWParamSwCurve (xla, rangeStart, attributi):
 
 def segmentoSwapCurve(xla, rangeS, code, segm):
     rangeStart = rangeS
-    print "rangeStart", rangeStart
     topLeftRow = xla.Range(rangeStart).Row
     topLeftCol = xla.Range(rangeStart).Column
     nNodi = len(segm.dates)
@@ -381,6 +364,12 @@ def segmentoSwapCurve(xla, rangeS, code, segm):
 
     f = 1
     i = 1
+
+    #recupero linguaggio xls per formato date
+    #lngCode = xla.LanguageSettings.LanguageID(const.msoLanguageIDExeMode)
+    #print lngCode,lngCode,lngCode,lngCode
+
+
     for tag,date,value in zip(segm.tags, segm.dates, segm.values):
         ll = [tag, date, value]
         for j in range(3):
@@ -447,13 +436,133 @@ def writeCurveOnXls(crv, nameSheet, xla):
     # DisplaySwapCurve = True
     # Exit Function
 
+def readCurvesNames(xla, s, rangeStart, direzione, distanza):
+    r = xla.Range(rangeStart)
+    print "sono qui!"
+    if direzione.lower() == "o":
+        curveL = []
+        while (r.Value != None):
+            print r
+            print "r.Value----------", r.Value
+            nomeCurva = r.Value
+            curveL.append(nomeCurva)
+
+            nCols = r.Columns.Count
+            row   = r.Row
+            col   = r.Column
+            r = xla.Range(xla.Cells(row, col + distanza), xla.Cells(row, col + (nCols - 1) + distanza))
+    return curveL
+
+
+
+class W_bootstrapSelection (LabelFrame):
+
+    def __init__(self, master = None, curveL = []):
+        c_date = None
+        LabelFrame.__init__(self, master)
+        self.master = master
+        #self.geometry("800x600")
+        #self.master.geometry("400x500")
+        self.config(text="Available curves for bootstrapping:")
+        self.pack(fill="both", expand="yes")
+        # create scrollbar
+        self.bar = Scrollbar(self)
+
+        # create mylist
+        self.mylist = Listbox(self, yscrollcommand=self.bar.set)
+
+        for l in curveL:
+            crv = l
+            self.mylist.insert(END, crv)
+        self.mylist.config(width=50)
+        self.mylist.pack(side=LEFT, fill='y')
+
+        self.bar.pack   (side=LEFT, fill='y')
+        self.mylist.config(yscrollcommand=self.bar.set)
+        self.bar.config(command=self.mylist.yview)
+        # -----------
+        # cretae button
+        self.btn2 = Button(self, text="Cancel", command=self.close_window)
+        self.btn2.pack(side=BOTTOM, fill='x')
+        # cretae button
+        self.btn1 = Button(self, text="Select", command=self.selected_curve)
+        self.btn1.pack(side=BOTTOM, fill='x')
+        print "SONO QUIIIIIII"
+
+    def close_window(self):
+        self.destroy()
+        #self.master.destroy()
+
+    def selected_curve(self):
+        #recupero la data selezionata
+        curve_des = str((self.mylist.get(ACTIVE)))
+        self.curve = curve_des
+        self.new_window = W_boot_opt(parent=self)
+
+class  W_boot_opt(LabelFrame):
+    def sel(self):
+        self.close_window()
+
+    def close_window(self):
+        self.destroy()
+        self.master.destroy()
+
+    def __init__ (self,  parent = None):
+        if parent:
+            self.master = parent.master
+            parent.close_window()
+
+        LabelFrame.__init__(self, self.master)
+
+        self.config(text="Set Bootstrap Options:", width=400, height=200)
+
+        #--- Boot swaps rates
+        #self.master.grid_rowconfigure(0, weight=1)
+        #self.master.grid_columnconfigure(0, weight=1)
+        T1 = Label(self,height=1, width=30, text = "Swaps:").grid(row=0, sticky = "e")
+        self.variable1 = StringVar(self)
+        self.variable1.set("Costant Fwd Rate")  # default value
+        w1 = OptionMenu(self, self.variable1, "Costant Fwd Swap Rate", "Linear Swap Rate")
+        w1.grid(row=0, column=1)
+        w1.config(width=30)
+
+        T2 = Label(self, height=1, width=30, text="Futures' Gap:").grid(row=1, sticky="e")
+        self.variable2 = StringVar(self)
+        self.variable2.set("Previous Spot Rate")
+        w2 = OptionMenu(self, self.variable2, "Previous Spot Rate", "Next Forward Rate")
+        w2.grid(row=1, column=1)
+        w2.config(width=30)
+
+        T3 = Label(self, height=1, width=30, text="Futures' Convexity Adj.:").grid(row=2, sticky="e")
+        self.variable3 = StringVar(self)
+        self.variable3.set("No Adj.")
+        w3 = OptionMenu(self, self.variable3, "No Adj", "H&W/HoLee Model")
+        w3.grid(row=2, column=1)
+        w3.config(width=30)
+
+        T4 = Label(self, height=1, width=30, text="Outpur IR Capitalization:").grid(row=3, sticky="e")
+        self.variable4 = StringVar(self)
+        self.variable4.set("Continuous")
+        w4 = OptionMenu(self, self.variable4, "Continuous", "Compounded", "Simple")
+        w4.grid(row=3, column=1)
+        w4.config(width=30)
+
+        #self.pack(fill="both", expand="yes")
+
+        B1 = Button(self, text="Select",  width=20, command=self.sel).grid(row=4, column=1, sticky ='e')
+        B2 = Button(self, text="Cancel",  width=20, command=self.close_window).grid(row=5, column=1, sticky ='e')
+
+        self.pack(fill="both", expand="yes")
+
+
+
+
 
 #=======================================================================================================================
 # punto di ingresso per load curve
 # =======================================================================================================================
 
 @xl_func
-
 def load_swap_curve_from_db(control):
     nameSheet = "Curvette"
     xla = xl_app()
@@ -467,16 +576,14 @@ def load_swap_curve_from_db(control):
         s.Name = nameSheet
    #------------------
     root = Tk()
-
-
-    app = W_curveType(root)
+    app  = W_curveType(root)
     root.mainloop()
 
     curve_des = app.new_window.new_window.curve
     curve_date= app.new_window.date
 
     cc = Curve()
-    cc.ref_date = curve_date
+    cc.ref_date = datetime.date(day=int(curve_date[-2:]), month=int(curve_date[5:7]), year=int(curve_date[:4]))
     cc.description= curve_des
     cc.loadDataFromDB()
     cc.init_finalize()
@@ -484,6 +591,48 @@ def load_swap_curve_from_db(control):
     writeCurveOnXls(cc, nameSheet, xla)
 
 
+import ctypes
+
+@xl_func
+def bootstrap_from_xls(control):
+    nameSheet = "Curvette"
+    xla = xl_app()
+    book = xla.ActiveWorkbook
 
 
+    try:
+        s = book.Sheets(nameSheet)
+    except:
+        root = Tk()
+        msg = "Missing input sheet 'Curvette' in your workbook... \nNothing to do for me!"
+        tkMessageBox.showinfo("Warning!", msg)
+        root.destroy()
+        return
+
+    rangeStart = "B2"
+    distance = 5
+
+    curveL = readCurvesNames(xla,s,rangeStart,"o", distance)
+    root = Tk()
+    #root.wm_withdraw()
+    W = W_bootstrapSelection(root, curveL)
+    root.mainloop()
+
+    curveDes = W.curve
+
+    print "descrizione curva selezionata:", curveDes
+    print "opzione1:", str(W.new_window.variable1.get())
+    print "opzione2:",str(W.new_window.variable2.get())
+    print "opzione3:", str(W.new_window.variable3.get())
+    print "opzione4:", str(W.new_window.variable4.get())
+
+    #---leggo la curva dal foglio xls
+
+
+
+
+
+
+
+    root.destroy()
 
