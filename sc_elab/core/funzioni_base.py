@@ -68,6 +68,7 @@ def fun_test_0():
 
     return 100
 
+<<<<<<< HEAD
 
 def purge_data(data_out, ref_field, val_not_allowed):
     
@@ -179,7 +180,7 @@ def df_cont(spot_rate, time_ref):
 
 
 
-def boot3s_elab(data_opt, data_raw):
+def boot3s_elab_n(data_opt, data_raw):
     
     
     ref_field       = 'UsaNodo'
@@ -455,7 +456,7 @@ if __name__ == "__main__":
     
     
     
-    data_elab_out = boot3s_elab(data_opt, data_raw)
+    data_elab_out = boot3s_elab_n(data_opt, data_raw)
 
 
     # -------- STRUTTURA DATA INPUT --------------------
@@ -477,5 +478,4 @@ if __name__ == "__main__":
 
     
     #FQ(332)
-
 
