@@ -15,7 +15,14 @@ dict_segm =\
     , "CSwap"   : "Swp" \
     }
 
-
+dict_segm2 =\
+    {\
+      "D"   : "Dep"     \
+    , "L"   : "Libor"   \
+    , "F"   : "Fut"     \
+    , "S"   : "Swp"     \
+    , "G"   : "ST_Swp"  \
+    }
 
 
 
@@ -49,6 +56,19 @@ class Segm:
         self.mats   = []
         self.dates  = []
         self.values = []
+        self.usage  = []
+
+
+    def show(self):
+        print "ANAG:"
+        print self.anag
+        print "....."
+
+        print "TAGS  :", self.tags
+        print "MATS  :", self.mats
+        print "dates :", self.dates
+        print "values:", self.values
+        print "usage :", self.usage
 
 
 
@@ -72,13 +92,39 @@ class Curve:
         self.type           = 'Swap'
         self.floater_tenor  = ''
         self.cal            = ''
+        #---------
+        self.HWparms          = {}
         #----------
         #segmenti (dict of classes
         #----------
         self.segms          = {}
 
 
+    def show(self):
+        print "self.description"    , self.description
+        print "self.curr"           , self.curr
+        print "self.ref_date"       , self.ref_date
+        print "self.type"           , self.type
+        print "self.source"         , self.source
+        print "self.quotation"      , self.quotation
+        print "self.rating"         , self.rating
+        print "self.settore"        , self.settore
+        print "self.seniority"      , self.seniority
+        print "print self.type"     , self.type
+        print "self.floater_tenor"  , self.floater_tenor
+        print "self.cal"            , self.cal
+        print "self.download_type"  , self.download_type
+        print "self.emittente"      , self.emittente
 
+        for k in self.HWparms.keys():
+            print "HWparms [",k,"]: ", self.HWparms[k]
+
+        print "===== Begin segms ======"
+        for k in self.segms.keys():
+            print "------------>Segmento:", k
+            self.segms[k].show()
+            print "<------------Fine segmento"
+        print "==== End  segms ===="
 
     def computeTags(self):
         con = Connection()
