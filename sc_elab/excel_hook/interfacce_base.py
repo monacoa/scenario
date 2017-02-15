@@ -169,21 +169,19 @@ class W_curveSelection (LabelFrame):
 
 def findRigthPlaceBootCurveSeg(xla, r, distCurve, dir="O"):
     rOut = None
-    print "range iniziale:", r.Address
+
     if dir == "v" :
         if (r.Value == None): return r
         nCols = r.Columns.Count
-        row = r.Row
-        col = r.Column
-        print ".......", nCols, row, col
-        j = 1
+        row   = r.Row
+        col   = r.Column
+        j = 0
         while (r.Value != None):
-            r = xla.Range(xla.Cells(row + j, col), xla.Cells(row + j, col))
             j += 1
-            print "r.Address", r.Address, "j", j
-
-        r = xla.Range(xla.Cells(row+j+distCurve, col), xla.Cells(row+j+distCurve, col))
-        print "range finale", r.Address
+            r = xla.Range(xla.Cells(row + j, col), xla.Cells(row + j, col))
+            #porto avanti ancora per controllare
+            if (r.Value == None):  r = xla.Range(xla.Cells(row + j + distCurve , col), xla.Cells(row + j+distCurve, col))
+        r = xla.Range(xla.Cells(row + j + distCurve, col), xla.Cells(row+j+distCurve, col))
     else:
         while (r.Value != None):
             print "r.Value----------", r.Value
@@ -191,6 +189,7 @@ def findRigthPlaceBootCurveSeg(xla, r, distCurve, dir="O"):
             row =r.Row
             col =r.Column
             r = xla.Range(xla.Cells(row, col + distCurve), xla.Cells(row, col + (nCols-1) + distCurve))
+
     rOut = r
     #-----
     if (rOut == None):
@@ -206,6 +205,10 @@ def findRigthPlaceBootCurveSeg(xla, r, distCurve, dir="O"):
 
 def drawBox(xla, spessore , rTopLeft = 0, cTopLeft = 0,rBottomRight=0,cBottomRight=0, Colore=0):
 
+    """
+
+    :rtype: object
+    """
     if (rTopLeft <= 0) or(cTopLeft <= 0) or (rBottomRight <= 0)or (cBottomRight <= 0):
         msg = "Le coordinate del box devono essere maggiori di zero"
         popup_messagebox(msg)
@@ -468,28 +471,70 @@ def writeBootstrapResOnXls (crv,xla, str_boot_opt, res):
                   , "Segms"        : str_segms
                     }
 
-    ra = intestazioneSwapCurveSegmenti(xla, s, r, Attributi_1, nCols = 2 )
+    Attributi_2 =   { "Date Ref": crv.ref_date
+                    , "Description": crv.description
+                    , "Currency": crv.curr
+                    , "Download Type": crv.download_type
+                    , "Quotation": crv.quotation
+                    , "Source": crv.source
+                    , "CurveType": crv.type
+                    , "Return": "-"
+                    , "Node Type": "Discount Factors"
+                    , "Boot Optons": str_boot_opt
+                    , "Segms": str_segms
+                    }
 
+
+    r2 = s.Range(xla.Cells(r.Row, r.Column+3),xla.Cells(r.Row, r.Column+3))
+
+    ra = intestazioneSwapCurveSegmenti(xla, s, r, Attributi_1, nCols = 2 )
+    rb = intestazioneSwapCurveSegmenti(xla, s, r2, Attributi_2, nCols = 2 )
     r=s.Range(ra)
 
-    print "r.Address", r.Address
     print "############################################"
 
-    drawLine(xla, topLeftRow + 1, topLeftCol, topLeftRow + 1, topLeftCol + nCols - 1, "o", const.xlThin)
-    drawLine(xla, topLeftRow + 1, topLeftCol + nCols - 2, topLeftRow + nRows, topLeftCol + nCols - 2, "v", const.xlThin)
-
-    xla.Cells(topLeftRow + 1, topLeftCol + 0).Value = "Node"
-    xla.Cells(topLeftRow + 1, topLeftCol + 0).HorizontalAlignment = const.xlCenter
-    xla.Cells(topLeftRow + 1, topLeftCol + 1).Value = "Maturity"
-    xla.Cells(topLeftRow + 1, topLeftCol + 1).HorizontalAlignment = const.xlCenter
-    xla.Cells(topLeftRow + 1, topLeftCol + 2).Value = "Value"
-    xla.Cells(topLeftRow + 1, topLeftCol + 2).HorizontalAlignment = const.xlCenter
-    xla.Cells(topLeftRow + 1, topLeftCol + 3).Value = "Usage"
-    xla.Cells(topLeftRow + 1, topLeftCol + 3).HorizontalAlignment = const.xlCenter
-
-    print "intestazione disegnata"
+    topLeftRow = r.Row
+    topLeftCol = r.Column
 
 
+    print "topLeftRow",topLeftRow,"topLeftCol",topLeftCol
+
+
+    xla.Cells(topLeftRow-1, topLeftCol  ).Value               = "Date"
+    xla.Cells(topLeftRow-1, topLeftCol  ).HorizontalAlignment = const.xlCenter
+    xla.Cells(topLeftRow-1, topLeftCol+1).Value               = "Value"
+    xla.Cells(topLeftRow-1, topLeftCol+1).HorizontalAlignment = const.xlCenter
+
+    xla.Cells(topLeftRow - 1, topLeftCol+3).Value = "Date"
+    xla.Cells(topLeftRow - 1, topLeftCol+3).HorizontalAlignment = const.xlCenter
+    xla.Cells(topLeftRow - 1, topLeftCol + 4).Value = "Value"
+    xla.Cells(topLeftRow - 1, topLeftCol + 4).HorizontalAlignment = const.xlCenter
+
+    nRows = len(res['DiscountFactors'])
+
+    drawBox (xla, const.xlMedium, topLeftRow-1, topLeftCol  , topLeftRow+nRows-1, topLeftCol+1)
+    drawLine(xla, topLeftRow-1  , topLeftCol  , topLeftRow-1, topLeftCol + 1    , "o", const.xlThin)
+
+    drawBox(xla, const.xlMedium, topLeftRow - 1, topLeftCol+3, topLeftRow + nRows - 1, topLeftCol + 4)
+    drawLine(xla, topLeftRow - 1, topLeftCol+3, topLeftRow - 1, topLeftCol + 4, "o", const.xlThin)
+    for i in range(nRows):
+        date  = res['DateScadenza'][i]
+        value = res['DiscountFactors'][i]
+        rate  = res ['Nodi']
+        xla.Cells(topLeftRow + i, topLeftCol).Value = date
+        xla.Cells(topLeftRow + i, topLeftCol).NumberFormat = "dd-mm-yyyy"
+        xla.Cells(topLeftRow + i, topLeftCol).HorizontalAlignment = const.xlCenter
+        xla.Cells(topLeftRow + i, topLeftCol + 1).Value = value
+        xla.Cells(topLeftRow + i, topLeftCol + 1).NumberFormat = "0.000000"
+        xla.Cells(topLeftRow + i, topLeftCol + 1).HorizontalAlignment = const.xlCenter
+
+        xla.Cells(topLeftRow + i, topLeftCol+3).Value = date
+        xla.Cells(topLeftRow + i, topLeftCol+3).NumberFormat = "dd-mm-yyyy"
+        xla.Cells(topLeftRow + i, topLeftCol+3).HorizontalAlignment = const.xlCenter
+
+        xla.Cells(topLeftRow + i, topLeftCol + 4).Value = rate
+        xla.Cells(topLeftRow + i, topLeftCol + 4).NumberFormat = "0.00"
+        xla.Cells(topLeftRow + i, topLeftCol + 4).HorizontalAlignment = const.xlCenter
 
 
 def readIntestazione(xla , r , cc):
