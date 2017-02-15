@@ -6,6 +6,7 @@ import sc_elab.core.mdates.holidays as holy
 import sc_elab.core.mdates.dateutils as dateutils
 import datetime
 from dateutil.relativedelta import relativedelta
+import sc_elab.core.funzioni_base as fb
 
 dict_segm =\
     {\
@@ -70,8 +71,17 @@ class Segm:
         print "values:", self.values
         print "usage :", self.usage
 
+    def getDayCount(self):
+        try : return self.anag['DAY COUNT CONV.']
+        except: zzzzzzzzzzzz
+    def getAdj(self):
+        try: return self.anag['DATE ADJ.']
+        except: zzzzzzzzzzzz
 
-
+    def getCapitalization(self):
+        if(self.name == "Dep") or (self.name == "Libor") or (self.name =="Fut"):
+            return self.anag['REGIME CAPIT.']
+        else: return ""
 class Curve:
 
     def __init__(self):
@@ -98,6 +108,20 @@ class Curve:
         #segmenti (dict of classes
         #----------
         self.segms          = {}
+
+
+    def getStrSegms(self):
+        sep = ""
+        res = ""
+        for k in dict_segm2.keys():
+            try:
+                tmp = self.segms[dict_segm2[k]]
+                res += sep + k
+                sep = ","
+            except:
+                pass
+
+        return res
 
 
     def show(self):
@@ -138,14 +162,14 @@ class Curve:
         cn.close()
 
     def fillAnagSegm(self):
-        #data = self.raw_data
-        #dd = []
+
         con = Connection()
         cn = con.db_anag()
 
         for k in self.segms.keys():
 
             seg = self.segms[k]
+            seg.name = k
             ts = ((revDict(dict_segm)[k][1:])+" libor") if ((revDict(dict_segm)[k][1:]) == "Future") else  (revDict(dict_segm)[k][1:])
             qry = '''
             SELECT NOME_ATTRIBUTO, VALORE_ATTRIBUTO FROM MKT_Segmentazione_D_N WHERE CODICE_SEGMENTAZIONE IN
@@ -178,7 +202,6 @@ class Curve:
             ds = busD.rolldate_from_db(ds, calendar, adj)
             tmp = tmp - 1
         return ds
-
 
 
 
@@ -351,3 +374,53 @@ class Curve:
             self.segms[s.name] = s
 
         con.close()
+
+    def bootstrap(self, data_opt):
+
+
+
+        data_opt['Basis'  ]    = {}
+        data_opt['BusConv']    = {}
+        data_opt['RegimeRate'] = {}
+
+        for sn in self.segms.keys():
+            name = sn
+            code = revDict(dict_segm2) [name]
+            print "NAME:", name
+            print "CODE:", code
+            s = self.segms[name]
+            data_opt['Basis'][code]   = s.getDayCount()
+            data_opt['BusConv'][code] = s.getAdj()
+            data_opt['RegimeRate'][code]=s.getCapitalization()
+        #---
+        data_opt['TenorSwap'] = self.floater_tenor
+        data_opt['MKT']       = self.cal
+        #---
+        data_opt['ParConvexity'] = {}
+        data_opt['ParConvexity']['A'] = self.HWparms['meanRS']
+        data_opt['ParConvexity']['B'] = self.HWparms['sigma']
+
+        data_opt['RefDate'] = self.ref_date
+
+        print "DATA OPT:"
+        print data_opt
+
+        #==========
+        raw_data = {}
+        raw_data ['UsaNodo']     = []
+        raw_data['Nodo']         = []
+        raw_data['ValoreNodo']   = []
+        raw_data['TipoSegmento'] = []
+        raw_data['MatDate']      = []
+
+        for name in self.segms.keys():
+            code = revDict(dict_segm2) [name]
+            for u,t,v,d in zip(s.usage, s.tags, s.values, s.dates):
+                raw_data['UsaNodo'].append(u)
+                raw_data['Nodo'].append(t)
+                raw_data['ValoreNodo'].append(v)
+                raw_data['TipoSegmento'].append(code)
+                raw_data['MatDate'].append(d)
+
+        res = fb.boot3s_elab_n(data_opt, raw_data)
+        return res

@@ -164,8 +164,7 @@ def df_cont(spot_rate, time_ref):
 
 
 def boot3s_elab_n(data_opt, data_raw):
-    
-    
+
     ref_field       = 'UsaNodo'
     val_not_allowed = 'N'
 

@@ -169,22 +169,28 @@ class W_curveSelection (LabelFrame):
 
 def findRigthPlaceBootCurveSeg(xla, r, distCurve, dir="O"):
     rOut = None
-    #if dir == "V" :
-    #     while (r.Value != None):
-    #         righe = r.Offset(1, 0).Rows.count()
-    #         r = r.Offset(righe + distCurve, 0)
-    #     rOut = r
-    # else:
-
-    while (r.Value != None):
-        print "r.Value----------", r.Value
+    print "range iniziale:", r.Address
+    if dir == "v" :
+        if (r.Value == None): return r
         nCols = r.Columns.Count
-        row =r.Row
-        col =r.Column
-        print nCols, row, col, distCurve
-        r = xla.Range(xla.Cells(row, col + distCurve), xla.Cells(row, col + (nCols-1) + distCurve))
+        row = r.Row
+        col = r.Column
+        print ".......", nCols, row, col
+        j = 1
+        while (r.Value != None):
+            r = xla.Range(xla.Cells(row + j, col), xla.Cells(row + j, col))
+            j += 1
+            print "r.Address", r.Address, "j", j
 
-
+        r = xla.Range(xla.Cells(row+j+distCurve, col), xla.Cells(row+j+distCurve, col))
+        print "range finale", r.Address
+    else:
+        while (r.Value != None):
+            print "r.Value----------", r.Value
+            nCols = r.Columns.Count
+            row =r.Row
+            col =r.Column
+            r = xla.Range(xla.Cells(row, col + distCurve), xla.Cells(row, col + (nCols-1) + distCurve))
     rOut = r
     #-----
     if (rOut == None):
@@ -433,6 +439,58 @@ def writeCurveOnXls(crv, nameSheet, xla):
 
 
 
+def writeBootstrapResOnXls (crv,xla, str_boot_opt, res):
+    nameSheet = "ElabCurveSwapSegmenti"
+
+    try:
+        s = xla.ActiveWorkbook.Sheets(nameSheet)
+    except:
+        s = xla.ActiveWorkbook.Sheets.Add()
+        s.Name = nameSheet
+
+    s.Activate()
+    rangeStart = "B2"
+    distCurve  = 1
+    r    = s.Range(rangeStart)
+    r    = findRigthPlaceBootCurveSeg( xla, r, distCurve, "v")
+    str_segms = crv.getStrSegms()
+    #-----
+    Attributi_1 = { "Date Ref"     : crv.ref_date
+                  , "Description"  : crv.description
+                  , "Currency"     : crv.curr
+                  , "Download Type": crv.download_type
+                  , "Quotation"    : crv.quotation
+                  , "Source"       : crv.source
+                  , "CurveType"    : crv.type
+                  , "Return"       : "Zero Coupon"
+                  , "Node Type"    : "Spot"
+                  , "Boot Optons"  : str_boot_opt
+                  , "Segms"        : str_segms
+                    }
+
+    ra = intestazioneSwapCurveSegmenti(xla, s, r, Attributi_1, nCols = 2 )
+
+    r=s.Range(ra)
+
+    print "r.Address", r.Address
+    print "############################################"
+
+    drawLine(xla, topLeftRow + 1, topLeftCol, topLeftRow + 1, topLeftCol + nCols - 1, "o", const.xlThin)
+    drawLine(xla, topLeftRow + 1, topLeftCol + nCols - 2, topLeftRow + nRows, topLeftCol + nCols - 2, "v", const.xlThin)
+
+    xla.Cells(topLeftRow + 1, topLeftCol + 0).Value = "Node"
+    xla.Cells(topLeftRow + 1, topLeftCol + 0).HorizontalAlignment = const.xlCenter
+    xla.Cells(topLeftRow + 1, topLeftCol + 1).Value = "Maturity"
+    xla.Cells(topLeftRow + 1, topLeftCol + 1).HorizontalAlignment = const.xlCenter
+    xla.Cells(topLeftRow + 1, topLeftCol + 2).Value = "Value"
+    xla.Cells(topLeftRow + 1, topLeftCol + 2).HorizontalAlignment = const.xlCenter
+    xla.Cells(topLeftRow + 1, topLeftCol + 3).Value = "Usage"
+    xla.Cells(topLeftRow + 1, topLeftCol + 3).HorizontalAlignment = const.xlCenter
+
+    print "intestazione disegnata"
+
+
+
 
 def readIntestazione(xla , r , cc):
     row     = r.Row
@@ -440,11 +498,25 @@ def readIntestazione(xla , r , cc):
     cc.description   = xla.Range(xla.Cells(row , col   ), xla.Cells(row , col   )).Value
     cc.curr          = xla.Range(xla.Cells(row + 1, col + 1), xla.Cells(row + 1, col + 1)).Value
     dd = xla.Range(xla.Cells(row + 2, col + 1), xla.Cells(row + 2, col + 1)).Value
+    print "dd", dd, type(dd)
     cc.ref_date      = datetime.date(year = dd.year, month = dd.month, day = dd.day)
     cc.download_type = xla.Range(xla.Cells(row + 4, col + 1), xla.Cells(row + 4, col + 1)).Value
     cc.quotation     = xla.Range(xla.Cells(row + 5, col + 1), xla.Cells(row + 5, col + 1)).Value
     cc.source        = xla.Range(xla.Cells(row + 6, col + 1), xla.Cells(row + 6, col + 1)).Value
     cc.floater_tenor = xla.Range(xla.Cells(row + 7, col + 1), xla.Cells(row + 7, col + 1)).Value
+
+    #imposto il mercato
+    if cc.curr == "EUR":
+        cc.cal = "de.eurex"
+    elif cc.curr == "USD":
+        cc.cal = 'us'
+    elif cc.curr == 'GBP':
+        cc.cal = 'uk'
+    elif cc.curr == 'CAD':
+        cc.cal = 'ca'
+    else:
+        cc.cal = 'us'
+
     r =  xla.Range(xla.Cells(row + 9, col), xla.Cells(row + 9, col))
     return r
 
@@ -514,7 +586,7 @@ def readCurveFromXls(xla, des, pos, nameSheet):
     r = readParametriHW(xla,r,cc)
     r = readSegms(xla,r,cc)
 
-
+    return cc
 
 
 
@@ -608,31 +680,31 @@ class  W_boot_opt(LabelFrame):
 
         #--- Boot swaps rates
 
-        T1 = Label(self,height=1, width=30, text = "Swaps:").grid(row=0, sticky = "e")
+        T1 = Label(self,height=1, width=30, text = "Filling Swaps:").grid(row=0, sticky = "e")
         self.variable1 = StringVar(self)
-        self.variable1.set("Costant Fwd Rate")  # default value
-        w1 = OptionMenu(self, self.variable1, "Costant Fwd Swap Rate", "Linear Swap Rate")
+        self.variable1.set("(0) Costant Fwd Rate")  # default value
+        w1 = OptionMenu(self, self.variable1, "(0) Costant Fwd Swap Rate", "(1) Linear Swap Rate")
         w1.grid(row=0, column=1)
         w1.config(width=30)
 
         T2 = Label(self, height=1, width=30, text="Futures' Gap:").grid(row=1, sticky="e")
         self.variable2 = StringVar(self)
-        self.variable2.set("Previous Spot Rate")
-        w2 = OptionMenu(self, self.variable2, "Previous Spot Rate", "Next Forward Rate")
+        self.variable2.set("(1) Previous Spot Rate")
+        w2 = OptionMenu(self, self.variable2, "(1) Previous Spot Rate", "(0) Next Forward Rate")
         w2.grid(row=1, column=1)
         w2.config(width=30)
 
         T3 = Label(self, height=1, width=30, text="Futures' Convexity Adj.:").grid(row=2, sticky="e")
         self.variable3 = StringVar(self)
-        self.variable3.set("No Adj.")
-        w3 = OptionMenu(self, self.variable3, "No Adj", "H&W/HoLee Model")
+        self.variable3.set("(1) H&W/HoLee Model")
+        w3 = OptionMenu(self, self.variable3, "(0) No Adj", "(1) H&W/HoLee Model")
         w3.grid(row=2, column=1)
         w3.config(width=30)
 
         T4 = Label(self, height=1, width=30, text="Outpur IR Capitalization:").grid(row=3, sticky="e")
         self.variable4 = StringVar(self)
-        self.variable4.set("Continuous")
-        w4 = OptionMenu(self, self.variable4, "Continuous", "Compounded", "Simple")
+        self.variable4.set("(2) Continuos")
+        w4 = OptionMenu(self, self.variable4, "(0) Simple", "(1) Compounded", "(2) Continuous")
         w4.grid(row=3, column=1)
         w4.config(width=30)
 
@@ -642,8 +714,6 @@ class  W_boot_opt(LabelFrame):
         B2 = Button(self, text="Cancel",  width=20, command=self.close_window).grid(row=5, column=1, sticky ='e')
 
         self.pack(fill="both", expand="yes")
-
-
 
 
 
@@ -687,10 +757,9 @@ def bootstrap_from_xls(control):
     nameSheet = "Curvette"
     xla = xl_app()
     book = xla.ActiveWorkbook
-
-
     try:
         s = book.Sheets(nameSheet)
+        s.Activate()
     except:
         root = Tk()
         msg = "Missing input sheet 'Curvette' in your workbook... \nNothing to do for me!"
@@ -712,20 +781,36 @@ def bootstrap_from_xls(control):
 
     print "descrizione curva selezionata:", curveDes
     print "posizione curva selezionata:", curvePos
-    print "opzione1:", str(W.new_window.variable1.get())
-    print "opzione2:",str(W.new_window.variable2.get())
-    print "opzione3:", str(W.new_window.variable3.get())
-    print "opzione4:", str(W.new_window.variable4.get())
 
-    curve = readCurveFromXls(xla, curveDes, curvePos, nameSheet)
+    #swaps_
 
+    opt_swaps     = (str(W.new_window.variable1.get()).strip(""))[1]
+    opt_fut_gap   = (str(W.new_window.variable2.get()).strip(""))[1]
+    opt_conv_adj  = (str(W.new_window.variable3.get()).strip(""))[1]
+    opt_out_cap   = (str(W.new_window.variable4.get()).strip(""))[1]
 
-
-
-
+    str_boot_opt = opt_swaps+","+opt_fut_gap + "," + opt_conv_adj + "," + opt_out_cap
 
 
 
+    data_opt                    = {}
 
-    root.destroy()
+    data_opt['GapFutures']      = opt_fut_gap
+    data_opt['SwapGapMethod']   = opt_swaps
+    data_opt['RegimeOutput']    = opt_out_cap
+    data_opt['Convexity']       = opt_conv_adj
+    data_opt['MakeGraph']       = True
+    data_opt['SaveGraph']       = True
+    data_opt['FutureTenor']     = 90
+
+    curve    = readCurveFromXls(xla, curveDes, curvePos, nameSheet)
+    boot_out = curve.bootstrap(data_opt)
+
+    print "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+    print"HO FINITO IL BOOTSTRAP!!!!!!!!!!!!!"
+    print "res:", boot_out
+
+    writeBootstrapResOnXls(curve, xla, str_boot_opt,boot_out)
+
+
 
