@@ -509,14 +509,16 @@ def writeBootstrapResOnXls (crv,xla, str_boot_opt, res):
     xla.Cells(topLeftRow - 1, topLeftCol+3).HorizontalAlignment = const.xlCenter
     xla.Cells(topLeftRow - 1, topLeftCol + 4).Value = "Value"
     xla.Cells(topLeftRow - 1, topLeftCol + 4).HorizontalAlignment = const.xlCenter
+    xla.Cells(topLeftRow - 1, topLeftCol + 5).Value = "Usage"
+    xla.Cells(topLeftRow - 1, topLeftCol + 5).HorizontalAlignment = const.xlCenter
 
     nRows = len(res['DiscountFactors'])
 
     drawBox (xla, const.xlMedium, topLeftRow-1, topLeftCol  , topLeftRow+nRows-1, topLeftCol+1)
     drawLine(xla, topLeftRow-1  , topLeftCol  , topLeftRow-1, topLeftCol + 1    , "o", const.xlThin)
 
-    drawBox(xla, const.xlMedium, topLeftRow - 1, topLeftCol+3, topLeftRow + nRows - 1, topLeftCol + 4)
-    drawLine(xla, topLeftRow - 1, topLeftCol+3, topLeftRow - 1, topLeftCol + 4, "o", const.xlThin)
+    drawBox(xla, const.xlMedium, topLeftRow - 1, topLeftCol+3, topLeftRow + nRows - 1, topLeftCol + 5)
+    drawLine(xla, topLeftRow - 1, topLeftCol+3, topLeftRow - 1, topLeftCol + 5, "o", const.xlThin)
     for i in range(nRows):
         date  = res['DateScadenza'][i]
         value = res['DiscountFactors'][i]
@@ -531,10 +533,11 @@ def writeBootstrapResOnXls (crv,xla, str_boot_opt, res):
         xla.Cells(topLeftRow + i, topLeftCol+3).Value = date
         xla.Cells(topLeftRow + i, topLeftCol+3).NumberFormat = "dd-mm-yyyy"
         xla.Cells(topLeftRow + i, topLeftCol+3).HorizontalAlignment = const.xlCenter
-
         xla.Cells(topLeftRow + i, topLeftCol + 4).Value = rate
         xla.Cells(topLeftRow + i, topLeftCol + 4).NumberFormat = "0.00"
         xla.Cells(topLeftRow + i, topLeftCol + 4).HorizontalAlignment = const.xlCenter
+        xla.Cells(topLeftRow + i, topLeftCol + 5).Value = "Y"
+        xla.Cells(topLeftRow + i, topLeftCol + 5).HorizontalAlignment = const.xlCenter
 
 
 def readIntestazione(xla , r , cc):
