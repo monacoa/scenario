@@ -184,7 +184,7 @@ def findRigthPlaceBootCurveSeg(xla, r, distCurve, dir="O"):
         r = xla.Range(xla.Cells(row + j + distCurve, col), xla.Cells(row+j+distCurve, col))
     else:
         while (r.Value != None):
-            print "r.Value----------", r.Value
+
             nCols = r.Columns.Count
             row =r.Row
             col =r.Column
@@ -282,7 +282,7 @@ def intestazioneSwapCurveSegmenti( xla, sheet, rng,  attributi,nCols = 2):
         b = xla.Cells(topLeftRow + 1+ i, topLeftCol+1)
 
         b.Value = attributi[k]
-        print a, b.Value, type(attributi[k])
+
         if (type(attributi[k]) == datetime.datetime) or (type(attributi[k]) == datetime.date): b.NumberFormat = "dd-mm-yyyy"
         b.HorizontalAlignment = const.xlCenter
         i+=1
@@ -434,10 +434,6 @@ def writeCurveOnXls(crv, nameSheet, xla):
         for s in crv.segms.keys():
             if code == s[0]:
                 # visualizzo segmento
-                print "*" * 120
-                print "segmento:", s
-                print "code:", code
-                print "chiamo la funzione dei segmenti!"
                 rangeStartNew = segmentoSwapCurve (xla, rangeStartNew, code, crv.segms[s])
 
 
@@ -491,14 +487,8 @@ def writeBootstrapResOnXls (crv,xla, str_boot_opt, res):
     rb = intestazioneSwapCurveSegmenti(xla, s, r2, Attributi_2, nCols = 2 )
     r=s.Range(ra)
 
-    print "############################################"
-
     topLeftRow = r.Row
     topLeftCol = r.Column
-
-
-    print "topLeftRow",topLeftRow,"topLeftCol",topLeftCol
-
 
     xla.Cells(topLeftRow-1, topLeftCol  ).Value               = "Date"
     xla.Cells(topLeftRow-1, topLeftCol  ).HorizontalAlignment = const.xlCenter
@@ -546,7 +536,7 @@ def readIntestazione(xla , r , cc):
     cc.description   = xla.Range(xla.Cells(row , col   ), xla.Cells(row , col   )).Value
     cc.curr          = xla.Range(xla.Cells(row + 1, col + 1), xla.Cells(row + 1, col + 1)).Value
     dd = xla.Range(xla.Cells(row + 2, col + 1), xla.Cells(row + 2, col + 1)).Value
-    print "dd", dd, type(dd)
+
     cc.ref_date      = datetime.date(year = dd.year, month = dd.month, day = dd.day)
     cc.download_type = xla.Range(xla.Cells(row + 4, col + 1), xla.Cells(row + 4, col + 1)).Value
     cc.quotation     = xla.Range(xla.Cells(row + 5, col + 1), xla.Cells(row + 5, col + 1)).Value
@@ -578,7 +568,7 @@ def readParametriHW(xla,r,cc):
     return r
 
 def readSegms(xla, r, cc):
-    print "incipit:", r.Value
+
     while (r.Value != None):
         row  = r.Row
         col  = r.Column
@@ -589,18 +579,18 @@ def readSegms(xla, r, cc):
         elif name == "3. Futures"       : code = "F"
         elif name == "4. Swap Rate"     : code = "S"
         else                            : code = name
-        print "nome:", r.Value, "code:", code
+
         cc.segms [dict_segm2[code]] = Segm()
         ss = cc.segms [dict_segm2[code]]
         i = 2
         r = xla.Range(xla.Cells(row + 2, col), xla.Cells(row + 2, col))
         while (r.Value != None):
-            print "indirizzo cella:", r.Address
+
             tag   = r.Value
             date  = xla.Range(xla.Cells(row + i, col + 1), xla.Cells(row + i, col + 1)).Value
             value = xla.Range(xla.Cells(row + i, col + 2), xla.Cells(row + i, col + 2)).Value
             use   = xla.Range(xla.Cells(row + i, col + 3), xla.Cells(row + i, col + 3)).Value
-            print "letto riga:", tag, date,value,use
+
             ss.tags.append(tag)
             ss.dates.append(datetime.date(year = date.year, month = date.month, day = date.day))
             ss.values.append(value)
@@ -608,11 +598,11 @@ def readSegms(xla, r, cc):
             i += 1
             r = xla.Range(xla.Cells(row + i, col), xla.Cells(row + i, col))
             #---
-        print "sono uscita dal loop interno e sono in:", r.Address
-        r = xla.Range(xla.Cells(row + i + 1, col), xla.Cells(row + i + 1, col))
-        print "mi sono riposizionata in: ", r.Address
 
-    print "sono uscita dal loop estreno!"
+        r = xla.Range(xla.Cells(row + i + 1, col), xla.Cells(row + i + 1, col))
+
+
+
     cc.fillAnagSegm()
     cc.show()
     return r
@@ -626,7 +616,7 @@ def readCurveFromXls(xla, des, pos, nameSheet):
     nCols = r.Columns.Count
     row = r.Row
     col = r.Column
-    print nCols, row, col, distCurve
+
     r = xla.Range(xla.Cells(row, col + distCurve*(pos-1)), xla.Cells(row, col + (nCols-1) + distCurve*(pos-1)))
 
     cc = Curve()
@@ -640,15 +630,13 @@ def readCurveFromXls(xla, des, pos, nameSheet):
 
 def readCurvesNames(xla, s, rangeStart, direzione, distanza):
     r = xla.Range(rangeStart)
-    print "sono qui!"
+
     if direzione.lower() == "o":
         curveL = []
         i = 0
         while (r.Value != None):
             i += 1
-            print r
-            print "r.Value----------", r.Value
-            print "r Position:", i
+
             nomeCurva = r.Value
             curveL.append((nomeCurva,i))
 
@@ -749,17 +737,27 @@ class  W_boot_opt(LabelFrame):
         w3.grid(row=2, column=1)
         w3.config(width=30)
 
-        T4 = Label(self, height=1, width=30, text="Outpur IR Capitalization:").grid(row=3, sticky="e")
+        T4 = Label(self, height=1, width=30, text="Output IR Capitalization:").grid(row=3, sticky="e")
         self.variable4 = StringVar(self)
         self.variable4.set("(2) Continuos")
         w4 = OptionMenu(self, self.variable4, "(0) Simple", "(1) Compounded", "(2) Continuous")
         w4.grid(row=3, column=1)
         w4.config(width=30)
 
-        #self.pack(fill="both", expand="yes")
+        T5 = Label(self, height=1, width=30, text="Graphs location (save):").grid(row=4, sticky="e")
+        self.variable5 = StringVar(self)
+        self.variable5.set("C://")
+        w5 = Entry(self, textvariable=self.variable5)
+        w5.grid(row=4, column=1)
+        w5.config(width=30)
 
-        B1 = Button(self, text="Select",  width=20, command=self.sel).grid(row=4, column=1, sticky ='e')
-        B2 = Button(self, text="Cancel",  width=20, command=self.close_window).grid(row=5, column=1, sticky ='e')
+        self.pack(fill="both", expand="yes")
+
+        #questa istruzione va messa dopo il pack altrimenti non vienne intercettato il valore dal .get() successivo
+        self.variable5.set("C://")
+
+        B1 = Button(self, text="Select",  width=20, command=self.sel).grid(row=5, column=1, sticky ='e')
+        B2 = Button(self, text="Cancel",  width=20, command=self.close_window).grid(row=6, column=1, sticky ='e')
 
         self.pack(fill="both", expand="yes")
 
@@ -827,19 +825,14 @@ def bootstrap_from_xls(control):
     curveDes = W.curve
     curvePos = W.pos
 
-    print "descrizione curva selezionata:", curveDes
-    print "posizione curva selezionata:", curvePos
-
-    #swaps_
-
+    #opt
     opt_swaps     = (str(W.new_window.variable1.get()).strip(""))[1]
     opt_fut_gap   = (str(W.new_window.variable2.get()).strip(""))[1]
     opt_conv_adj  = (str(W.new_window.variable3.get()).strip(""))[1]
     opt_out_cap   = (str(W.new_window.variable4.get()).strip(""))[1]
+    opt_path_graph=  W.new_window.variable5.get()
 
     str_boot_opt = opt_swaps+","+opt_fut_gap + "," + opt_conv_adj + "," + opt_out_cap
-
-
 
     data_opt                    = {}
 
@@ -850,15 +843,17 @@ def bootstrap_from_xls(control):
     data_opt['MakeGraph']       = True
     data_opt['SaveGraph']       = True
     data_opt['FutureTenor']     = 90
+    data_opt['Path']            = opt_path_graph
 
     curve    = readCurveFromXls(xla, curveDes, curvePos, nameSheet)
     boot_out = curve.bootstrap(data_opt)
 
-    print "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-    print"HO FINITO IL BOOTSTRAP!!!!!!!!!!!!!"
-    print "res:", boot_out
-
     writeBootstrapResOnXls(curve, xla, str_boot_opt,boot_out)
 
+@xl_func
+def fitting_from_xls(control):
+    nameSheet = "Fitting"
+    xla = xl_app()
+    book = xla.ActiveWorkbook
 
 

@@ -386,8 +386,7 @@ class Curve:
         for sn in self.segms.keys():
             name = sn
             code = revDict(dict_segm2) [name]
-            print "NAME:", name
-            print "CODE:", code
+
             s = self.segms[name]
             data_opt['Basis'][code]   = s.getDayCount()
             data_opt['BusConv'][code] = s.getAdj()
@@ -402,8 +401,7 @@ class Curve:
 
         data_opt['RefDate'] = self.ref_date
 
-        print "DATA OPT:"
-        print data_opt
+
 
         #==========
         raw_data = {}
