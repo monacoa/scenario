@@ -7,7 +7,7 @@ from db_qrys import getCurvesListFromDb
 from sc_elab.core.SwpCurve import *
 from win32com.client import constants as const
 
-FORMAT = "dd/mm/yyyy"
+FORMAT = "gg/mm/aaaa"
 
 @xl_func
 def popup_messagebox(msg):
@@ -519,15 +519,15 @@ def writeBootstrapResOnXls (crv,xla, str_boot_opt, res):
         xla.Cells(topLeftRow + i, topLeftCol).Value = date
         xla.Cells(topLeftRow + i, topLeftCol).NumberFormat = FORMAT
         xla.Cells(topLeftRow + i, topLeftCol).HorizontalAlignment = const.xlCenter
-        xla.Cells(topLeftRow + i, topLeftCol + 1).Value = value
-        xla.Cells(topLeftRow + i, topLeftCol + 1).NumberFormat = "0.000000"
+        xla.Cells(topLeftRow + i, topLeftCol + 1).Value = rate
+        xla.Cells(topLeftRow + i, topLeftCol + 1).NumberFormat = "0.00"
         xla.Cells(topLeftRow + i, topLeftCol + 1).HorizontalAlignment = const.xlCenter
 
         xla.Cells(topLeftRow + i, topLeftCol+3).Value = date
         xla.Cells(topLeftRow + i, topLeftCol+3).NumberFormat = FORMAT
         xla.Cells(topLeftRow + i, topLeftCol+3).HorizontalAlignment = const.xlCenter
-        xla.Cells(topLeftRow + i, topLeftCol + 4).Value = rate
-        xla.Cells(topLeftRow + i, topLeftCol + 4).NumberFormat = "0.00"
+        xla.Cells(topLeftRow + i, topLeftCol + 4).Value = value
+        xla.Cells(topLeftRow + i, topLeftCol + 4).NumberFormat = "0.00000"
         xla.Cells(topLeftRow + i, topLeftCol + 4).HorizontalAlignment = const.xlCenter
         xla.Cells(topLeftRow + i, topLeftCol + 5).Value = "Y"
         xla.Cells(topLeftRow + i, topLeftCol + 5).HorizontalAlignment = const.xlCenter

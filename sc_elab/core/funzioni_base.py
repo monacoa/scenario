@@ -8,9 +8,9 @@ import math
 import numpy as np
 
 #from sc_elab import numpy as np
-from mdates import holidays
-from mdates import daycount
-from mdates import busdayrule
+from sc_elab.core.mdates import holidays
+from sc_elab.core.mdates import daycount
+from sc_elab.core.mdates import busdayrule
 
 from scipy import optimize
 from scipy.optimize import minimize
@@ -1856,6 +1856,8 @@ def boot3s_elab_v2(data_opt, data_raw):
     on_date_next = on_date + datetime.timedelta(days = 1)
     tn_date = busdayrule.rolldate(on_date_next, mkt_ref, day_conv_tn) 
     
+    
+    
     fix_date1      = tn_date
     fix_time1      = daycount.yearfrac(ref_date, fix_date1, basis_fix)
 
@@ -2430,8 +2432,7 @@ def boot3s_elab_v2(data_opt, data_raw):
 
 
 
-"""
-def boot3s_elab_n(data_opt, data_raw_p):
+def boot3s_elab_n(data_opt, data_raw):
     
     
     ref_field = 'UsaNodo'
@@ -2465,7 +2466,7 @@ def boot3s_elab_n(data_opt, data_raw_p):
     regime_output   = data_opt['RegimeOutput']
     
     if (len(dates1s)>0): dates1s.insert(0, refDate)
-    if (len(rate1s)>0): rate1s.insert(0, rate1s[0])
+    if (len(rate1s)>0): np.insert(rate1s, 0, rate1s[0])
     if (len(dates2s)>0): dates2s.insert(0, refDate)
     if (len(dates3s)>0): dates3s.insert(0, refDate)
     
@@ -2476,6 +2477,9 @@ def boot3s_elab_n(data_opt, data_raw_p):
     if (len(times2s)>0): times2s = times2s[1:]
     if (len(times3s)>0): times3s = times3s[1:]
 
+    
+    
+    times1s = times1s[1:]
     
     df1s = df_cont(rate1s, times1s)
     df2s = df_cont(rate2s, times2s)
@@ -2501,6 +2505,18 @@ def boot3s_elab_n(data_opt, data_raw_p):
     merge_nodi  = []
     merge_df    = []
 
+    rates1s = np.insert(rates1s, 0, rates1s[0])
+    times1s = np.insert(times1s, 0, times1s[0])
+    df1s = np.insert(df1s, 0, df1s[0])
+    nodo1s = np.insert(nodo1s, 0, nodo1s[0])
+    
+    print 'len(nodo1s): ', len(nodo1s)
+    print 'len(dates1s): ', len(dates1s)
+    print 'len(df1s): ', len(df1s)
+    print 'len(times1s): ', len(times1s)
+    print 'len(dates1s): ', len(dates1s)
+    
+    
 
     if (len(rates1s)>0):
         for i in range(0, len(dates1s)):
@@ -2565,7 +2581,7 @@ def boot3s_elab_n(data_opt, data_raw_p):
     #FQ(223)
     
     return data_elab_out
-"""
+
 
 
 def convert_basis(basis_to_convert):
@@ -2602,20 +2618,4 @@ def fun_test(x, par_1):
     
     return f
 
-if __name__ == "__main__":
- 
-    
-    #inputCurveFile = r"input_test\raw_swap_curves_flat.txt"
-    inputCurveFile = r"input_test\raw_swap_curves.txt"
-
-    
-    data_opt = set_data_opt()    
-    data_raw = load_data_fromFile(inputCurveFile)
-    
-
-    data_elab_out = boot3s_elab_v2(data_opt, data_raw)
-
-
-    #print 'data_elab_out: ', data_elab_out
-    FQ(888)
 
