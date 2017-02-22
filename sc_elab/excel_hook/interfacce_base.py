@@ -439,7 +439,7 @@ def writeCurveOnXls(crv, nameSheet, xla):
 
 
 def writeBootstrapResOnXls (crv,xla, str_boot_opt, res):
-    nameSheet = "ElabCurveSwapSegmenti"
+    nameSheet = "BootstrapSwapCurve"
 
     try:
         s = xla.ActiveWorkbook.Sheets(nameSheet)
@@ -573,12 +573,18 @@ def readSegms(xla, r, cc):
         row  = r.Row
         col  = r.Column
         name = r.Value
-        if   name== "0. Short term swap": code = "G"
+        if   name == "0. Short term swap": code = "G"
         elif name == "1. Depositi"      : code = "D"
         elif name == "2. Libor"         : code = "L"
         elif name == "3. Futures"       : code = "F"
         elif name == "4. Swap Rate"     : code = "S"
         else                            : code = name
+
+        if code == 'G':
+            add = cc.floater_tenor[0]
+            print add
+            code += add
+            print "newCODE:::::::::::::::::::", code
 
         cc.segms [dict_segm2[code]] = Segm()
         ss = cc.segms [dict_segm2[code]]
@@ -852,8 +858,16 @@ def bootstrap_from_xls(control):
 
 @xl_func
 def fitting_from_xls(control):
-    nameSheet = "Fitting"
+    nameSheet = "FittingSwapCurve"
     xla = xl_app()
     book = xla.ActiveWorkbook
-
+    try:
+        s = book.Sheets(nameSheet)
+        s.Activate()
+    except:
+        root = Tk()
+        msg = "Missing input sheet  'Curvette' in your workbook... \nNothing to do for me!"
+        tkMessageBox.showinfo("Warning!", msg)
+        root.destroy()
+        return
 

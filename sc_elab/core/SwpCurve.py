@@ -14,6 +14,8 @@ dict_segm =\
     , "CLibor"  : "Libor"\
     , "CFuture" : "Fut" \
     , "CSwap"   : "Swp" \
+    , "CSwap1M" : "GSwp1M"\
+    , "CSwap3M" : "GSwp3M"\
     }
 
 dict_segm2 =\
@@ -22,7 +24,8 @@ dict_segm2 =\
     , "L"   : "Libor"   \
     , "F"   : "Fut"     \
     , "S"   : "Swp"     \
-    , "G"   : "ST_Swp"  \
+    , "G1"  : "GSwp1M"  \
+    , "G3"  : "GSwp3M"  \
     }
 
 
@@ -159,6 +162,7 @@ class Curve:
 
                 seg.tags.append(computeMaturityString(self,cn, self, k, mat))
                 val = val / 100.0
+
         cn.close()
 
     def fillAnagSegm(self):
@@ -170,15 +174,20 @@ class Curve:
 
             seg = self.segms[k]
             seg.name = k
-            ts = ((revDict(dict_segm)[k][1:])+" libor") if ((revDict(dict_segm)[k][1:]) == "Future") else  (revDict(dict_segm)[k][1:])
+            if (k == 'GSwp1M') or (k == 'GSwp3M'):
+                ts = 'LIBOR'
+
+            else:
+                ts = ((revDict(dict_segm)[k][1:])+" libor") if ((revDict(dict_segm)[k][1:]) == "Future") else  (revDict(dict_segm)[k][1:])
+
             qry = '''
-            SELECT NOME_ATTRIBUTO, VALORE_ATTRIBUTO FROM MKT_Segmentazione_D_N WHERE CODICE_SEGMENTAZIONE IN
-            (
-                SELECT CODICE_SEGMENTAZIONE FROM MKT_Curve
-                WHERE  TIPO_CURVA = 'SWAP'
-                AND    VALUTA     = '%s'
-                AND TIPO_SEGMENTO = '%s'
-            )
+                SELECT NOME_ATTRIBUTO, VALORE_ATTRIBUTO FROM MKT_Segmentazione_D_N WHERE CODICE_SEGMENTAZIONE IN
+                (
+                    SELECT CODICE_SEGMENTAZIONE FROM MKT_Curve
+                    WHERE  TIPO_CURVA = 'SWAP'
+                    AND    VALUTA     = '%s'
+                    AND TIPO_SEGMENTO = '%s'
+                )
             ''' % (self.curr, ts)
 
             cn.execute(qry)
@@ -189,7 +198,6 @@ class Curve:
                 name  = record[0]
                 value = record[1]
                 seg.anag[name]= value
-
         cn.close()
 
 
@@ -225,7 +233,7 @@ class Curve:
                     self.segms[s].dates.append(ds)
                     self.segms[s].tags.append(str(i))
             else:
-                # case s[0] == 'D','L','S', 'G'
+                # case s[0] == 'D','L','S', 'G1', 'G3'
                 rdate = dateutils.asdatetime(self.ref_date)
                 for mat,tag in zip (self.segms[s].mats, self.segms[s].tags):
                     if   tag == "O/N" : date = self.addWorkingDays(rdate , 1, adj)
@@ -251,6 +259,7 @@ class Curve:
 
 
     def init_finalize(self):
+        print "SONO IN INIT FINALIZE!!!"
         #compute output strings
         self.computeTags()
         #compute anag segms
@@ -357,22 +366,57 @@ class Curve:
                         ''' % (quotazione, str(self.ref_date).replace("-", ""), segm, blm_tckrs_lst_str)
 
             else:
-                xxxxxxxxxxxxxxxxxxxxxxxx
+                #CSwap1M, CSwap3M, CSwap6M
+                print "segmento:", segm
+                self.floater_tenor = segm[-2:]
+                print "floater tenor:", self.floater_tenor
+
+                qry = '''
+                        SELECT      alm.DProCurve.maturityInt, alm.DProTS_master.%s
+                        FROM        alm.DProCurve
+                        INNER JOIN  alm.DProTS_master
+                        ON          alm.DProCurve.BloombergTicker = alm.DProTS_master.BloombergTicker
+                        WHERE       alm.DProTS_master.data='%s'
+                        AND         alm.DProCurve.TipoDato = '%s'
+                        AND         alm.DProCurve.BloombergTicker in (%s)
+                        ORDER BY    alm.DProCurve.maturityInt
+                        ''' % (quotazione, str(self.ref_date).replace("-", ""), segm, blm_tckrs_lst_str)
 
 
             c_d.execute(qry)
             res = c_d.fetchall()
+            print "*"*120
+            print qry
+            print res
+            print "*" * 120
+            if ((segm == "CDepositi") or (segm == "CSwap") or (segm == 'CLibor')or (segm == 'CFuture')):
+                s = Segm()
+                s.name = dict_segm[segm]
+                for record in res:
+                    mat = record[0]
+                    val = record[1]
+                    s.mats.append(mat)
+                    s.values.append(val)
+                    self.segms[s.name] = s
+            else:
+                #spezzo i segmenti in due, gli swap a breve e gli altri
+                s1= Segm()
+                s1.name = dict_segm[segm]
+                s2 = Segm()
+                s2.name = 'Swp'
+                for record in res:
+                    mat = record[0]
+                    val = record[1]
+                    if (int(mat)<360):
+                        s1.mats.append(mat)
+                        s1.values.append(val)
+                    else:
+                        s2.mats.append(mat)
+                        s2.values.append(val)
+                    self.segms[s1.name] = s1
+                    self.segms[s2.name] = s2
 
-            s = Segm()
-            s.name = dict_segm[segm]
-            for record in res:
-                mat = record[0]
-                val = record[1]
-                s.mats.append(mat)
-                s.values.append(val)
-
-            self.segms[s.name] = s
-
+        print self.segms
         con.close()
 
     def bootstrap(self, data_opt):
