@@ -587,7 +587,7 @@ def readSegms(xla, r, cc):
             add = cc.floater_tenor[0]
             print add
             code += add
-            print "newCODE:::::::::::::::::::", code
+            print "new CODE:::::::::::::::::::", code
 
         cc.segms [dict_segm2[code]] = Segm()
         ss = cc.segms [dict_segm2[code]]
