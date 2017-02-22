@@ -72,7 +72,6 @@ def rolldate(dt, calendar, convention):
 
     convention = convention.lower()
     dt = dateutils.asdatetime(dt)
-    print dt
     rolled = dt
     if convention == "follow":
         rolled = _roll_forward(dt, calendar)
