@@ -68,7 +68,6 @@ def fun_test_0():
 
     return 100
 
-<<<<<<< HEAD
 
 def purge_data(data_out, ref_field, val_not_allowed):
     
@@ -322,18 +321,23 @@ def load_data_fromFile(inputRetFile):
 
     fin = open(inputRetFile, 'r')
     listInput = fin.readlines()
+    
+    
 
-    nodoVec = []
-    matVec = []
-    valVec = []
-    usaNodoVec = []
-    tipoSegmentoVec = []
+    nodoList = []
+    matList = []
+    valList = []
+    usaNodoList = []
+    tipoSegmentoList = []
     
     data_out = {}
+
     
     for i in range(1, len(listInput)):
     
-        line_splittedTmp = listInput[i].split("\t")        
+
+        line_splittedTmp = listInput[i].split("\t") 
+        
 
         nodoTmp         = str(line_splittedTmp[0])
         valTmp          = float(line_splittedTmp[2])
@@ -359,18 +363,18 @@ def load_data_fromFile(inputRetFile):
         """
 
         
-        nodoVec.append(nodoTmp)
-        matVec.append(dateTmp)
-        valVec.append(valTmp)
-        usaNodoVec.append(usaNodoTmp)
-        tipoSegmentoVec.append(tipoSegmentoTmp)
+        nodoList.append(nodoTmp)
+        matList.append(dateTmp)
+        valList.append(valTmp)
+        usaNodoList.append(usaNodoTmp)
+        tipoSegmentoList.append(tipoSegmentoTmp)
 
         
-    data_out['Nodo'] = nodoVec
-    data_out['MatDate'] = matVec
-    data_out['ValoreNodo'] = valVec
-    data_out['UsaNodo'] = usaNodoVec
-    data_out['TipoSegmento'] = tipoSegmentoVec
+    data_out['Nodo'] = nodoList
+    data_out['MatDate'] = matList
+    data_out['ValoreNodo'] = valList
+    data_out['UsaNodo'] = usaNodoList
+    data_out['TipoSegmento'] = tipoSegmentoList
         
     return data_out
 
@@ -381,8 +385,8 @@ def set_data_opt():
     data_opt = {}
     
     data_opt['Basis'] = {}
-    data_opt['Basis']['D']  = 'ACT/360'
-    data_opt['Basis']['L']  = 'ACT/360'
+    data_opt['Basis']['D']  = '30/360'
+    data_opt['Basis']['L']  = '30/360'
     data_opt['Basis']['S']  = 'ACT/360'
     data_opt['Basis']['F']  = 'ACT/360'
     data_opt['Basis']['TN'] = 'ACT/360'
@@ -428,9 +432,6 @@ def set_data_opt():
 
 if __name__ == "__main__":
 
-    
-    data_opt = {}
-    data_raw = {}
     
     data_opt = set_data_opt()    
        
