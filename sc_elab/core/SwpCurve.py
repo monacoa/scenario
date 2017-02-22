@@ -85,6 +85,8 @@ class Segm:
         if(self.name == "Dep") or (self.name == "Libor") or (self.name =="Fut"):
             return self.anag['REGIME CAPIT.']
         else: return ""
+
+
 class Curve:
 
     def __init__(self):
@@ -201,7 +203,6 @@ class Curve:
         cn.close()
 
 
-
     def addWorkingDays(self, ds, days, adj):
         calendar = holy.get_calendar(self.cal)
         tmp = int(days)
@@ -240,18 +241,21 @@ class Curve:
                     elif tag == "T/N" : date = self.addWorkingDays(rdate, 2, adj)
                     elif tag[-1]=="D" :
                         nday = int(tag[:-1])
-                        date = self.addWorkingDays(rdate, 2, adj)
+                        date = self.addWorkingDays(rdate, nday, adj)
                     elif tag[-1] == "W":
-                        date = rdate + datetime.timedelta(weeks=(int(tag[:-1])))
+                        date = self.addWorkingDays(rdate, fix_days, adj)
+                        date = date + datetime.timedelta(weeks=(int(tag[:-1])))
                         calendar = holy.get_calendar(self.cal)
                         date = busD.rolldate_from_db(date, calendar, adj)
                     elif tag[-1] == "M":
                         calendar = holy.get_calendar(self.cal)
-                        date = rdate + relativedelta(months=(int(tag[:-1])))
+                        date = self.addWorkingDays(rdate, fix_days, adj)
+                        date = date + relativedelta(months=(int(tag[:-1])))
                         date = busD.rolldate_from_db(date, calendar, adj)
                     elif tag[-1] == "Y":
                         calendar = holy.get_calendar(self.cal)
-                        date = rdate + relativedelta(years=(int(tag[:-1])))
+                        date = self.addWorkingDays(rdate, fix_days, adj)
+                        date = date + relativedelta(years=(int(tag[:-1])))
                         date = busD.rolldate_from_db(date, calendar, adj)
                     else: qqqqqqqqqqqqqqqqqqqqqqqq
                     self.segms[s].dates.append(date)

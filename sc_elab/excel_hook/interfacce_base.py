@@ -7,6 +7,8 @@ from db_qrys import getCurvesListFromDb
 from sc_elab.core.SwpCurve import *
 from win32com.client import constants as const
 
+FORMAT = "dd/mm/yyyy"
+
 @xl_func
 def popup_messagebox(msg):
     xlcAlert(msg)
@@ -283,7 +285,8 @@ def intestazioneSwapCurveSegmenti( xla, sheet, rng,  attributi,nCols = 2):
 
         b.Value = attributi[k]
 
-        if (type(attributi[k]) == datetime.datetime) or (type(attributi[k]) == datetime.date): b.NumberFormat = "dd-mm-yyyy"
+        if (type(attributi[k]) == datetime.datetime) or (type(attributi[k]) == datetime.date):
+            b.NumberFormat = FORMAT
         b.HorizontalAlignment = const.xlCenter
         i+=1
     rangeStart = xla.Cells(topLeftRow + nRows + 2, topLeftCol).Address
@@ -389,7 +392,7 @@ def segmentoSwapCurve(xla, rangeS, code, segm):
                 f += 1
             else :
                 a.Value = ll[j]
-                if (type(ll[j]) == datetime.date) or (type(ll[j]) == datetime.datetime): a.NumberFormat = "dd-mm-yyyy"
+                if (type(ll[j]) == datetime.date) or (type(ll[j]) == datetime.datetime): a.NumberFormat = FORMAT
                 if (type(ll[j]) == float)         : a.NumberFormat = "0.00"
             a.HorizontalAlignment = const.xlCenter
             j +=1
@@ -514,14 +517,14 @@ def writeBootstrapResOnXls (crv,xla, str_boot_opt, res):
         value = res['DiscountFactors'][i]
         rate  = res ['Nodi']
         xla.Cells(topLeftRow + i, topLeftCol).Value = date
-        xla.Cells(topLeftRow + i, topLeftCol).NumberFormat = "dd-mm-yyyy"
+        xla.Cells(topLeftRow + i, topLeftCol).NumberFormat = FORMAT
         xla.Cells(topLeftRow + i, topLeftCol).HorizontalAlignment = const.xlCenter
         xla.Cells(topLeftRow + i, topLeftCol + 1).Value = value
         xla.Cells(topLeftRow + i, topLeftCol + 1).NumberFormat = "0.000000"
         xla.Cells(topLeftRow + i, topLeftCol + 1).HorizontalAlignment = const.xlCenter
 
         xla.Cells(topLeftRow + i, topLeftCol+3).Value = date
-        xla.Cells(topLeftRow + i, topLeftCol+3).NumberFormat = "dd-mm-yyyy"
+        xla.Cells(topLeftRow + i, topLeftCol+3).NumberFormat = FORMAT
         xla.Cells(topLeftRow + i, topLeftCol+3).HorizontalAlignment = const.xlCenter
         xla.Cells(topLeftRow + i, topLeftCol + 4).Value = rate
         xla.Cells(topLeftRow + i, topLeftCol + 4).NumberFormat = "0.00"
@@ -866,7 +869,7 @@ def fitting_from_xls(control):
         s.Activate()
     except:
         root = Tk()
-        msg = "Missing input sheet  'Curvette' in your workbook... \nNothing to do for me!"
+        msg = "Missing sheet  'FittingSwapCurve' in your workbook... \nNothing to do for me!"
         tkMessageBox.showinfo("Warning!", msg)
         root.destroy()
         return
