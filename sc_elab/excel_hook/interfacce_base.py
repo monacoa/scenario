@@ -8,11 +8,11 @@ from sc_elab.core.SwpCurve import *
 from win32com.client import constants as const
 
 FORMAT = "gg/mm/aaaa"
-
+"""
 @xl_func
 def popup_messagebox(msg):
     xlcAlert(msg)
-
+"""
 
 def donothing():
     tkMessageBox.showinfo("Nothing To do", "bye bye")
