@@ -36,7 +36,8 @@ def convertNodeToMnth(nodeRef):
     dict_N2T['6M'] = 6
     dict_N2T['1Y'] = 1
     
-    timeNode = dict_N2T[nodeRef]
+    #timeNode = dict_N2T[nodeRef]
+    timeNode = 6
 
     return timeNode
 
@@ -598,27 +599,29 @@ def compute_convexity(par_convexity, futures_start_tx, futures_end_tx):
 
 def compute_rates(df_in, time_df_in, regime_output):
     
-    
-    n_dmerge = len(df_in)
+    n_dmerge      = len(df_in)
+    regime_output = int(regime_output)
     out_rates = np.zeros(n_dmerge)
     
     if (regime_output == 1):     #% regime composto
         #regime = 'composto';
         for i in range(0, n_dmerge):
             out_r_tmp    = ( (1.0/df_in[i])**(1.0/time_df_in[i]) - 1.0) #% regime composto
-            out_rates[i]= out_r_tmp
+            out_rates[i] = out_r_tmp
 
     elif (regime_output == 0): #% regime semplice
         #regime = 'semplice';
         for i in range(0, n_dmerge):
             out_r_tmp    = ( (1.0/df_in[i]) - 1.0 )/time_df_in[i] #% semplice
-            out_rates[i]= out_r_tmp
+            out_rates[i] = out_r_tmp
 
     elif (regime_output == 2): #% regime continuo
         #regime = 'continuo';
         for i in range(0, n_dmerge):
             out_r_tmp    = - np.log(df_in[i])/time_df_in[i] #% semplice
-            out_rates[i]= out_r_tmp
+            out_rates[i] = out_r_tmp
+    
+    out_rates = 100.0*out_rates
     
     return out_rates 
 
@@ -949,6 +952,7 @@ def set_data_default():
     data_default['RegimeRate'] ={}
     data_default['RegimeRate']['D'] = 0 # 0 = Semplice, 1 = Composto, 2 = Continuo
     data_default['RegimeRate']['L'] = 0
+    data_default['RegimeRate']['S'] = 0
     
     data_default['InterpLinFutures'] = 1
     
@@ -1734,12 +1738,16 @@ def boot3s_elab_v2(data_opt, data_raw):
 
     seg1_dates  = dict1s['MatDate']
     seg1_values = dict1s['ValoreNodo']
+    
+    seg1_values = seg1_values/100.0
 
     futures_start_dates = dict_f['MatDate']
     futures_values      = dict_f['ValoreNodo']
     
     swap_dates          = dict_s['MatDate']
     swap_val            = dict_s['ValoreNodo']
+
+    swap_val = swap_val/100.0
 
     n1s  = len(seg1_dates)
     nf   = len(futures_start_dates)

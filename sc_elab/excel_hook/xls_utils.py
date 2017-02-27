@@ -347,9 +347,11 @@ def writeBootstrapResOnXls (crv,xla, str_boot_opt, res):
     drawBox(xla, const.xlMedium, topLeftRow - 1, topLeftCol+3, topLeftRow + nRows - 1, topLeftCol + 5)
     drawLine(xla, topLeftRow - 1, topLeftCol+3, topLeftRow - 1, topLeftCol + 5, "o", const.xlThin)
     for i in range(nRows):
+
+        value = res['DiscountFactors'][i]        
         date  = res['DateScadenza'][i]
-        value = res['DiscountFactors'][i]
-        rate  = res ['Nodi']
+        rate  = res ['TassiZC'][i]
+        
         xla.Cells(topLeftRow + i, topLeftCol).Value = date
         xla.Cells(topLeftRow + i, topLeftCol).NumberFormat = FORMAT
         xla.Cells(topLeftRow + i, topLeftCol).HorizontalAlignment = const.xlCenter
