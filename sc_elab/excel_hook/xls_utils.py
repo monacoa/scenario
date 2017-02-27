@@ -5,7 +5,8 @@ from win32com.client import constants as const
 from Tkinter import *
 from sc_elab.core.SwpCurve import dict_segm2, Segm, Curve
 
-FORMAT = "dd/mm/yyyy"
+#FORMAT = "dd/mm/yyyy"
+FORMAT = "gg/mm/aaaa"
 
 def popup_messagebox(msg):
     xlcAlert(msg)

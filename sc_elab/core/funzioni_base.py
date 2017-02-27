@@ -28,6 +28,18 @@ def FQ(label):
 
 
 
+def convertNodeToMnth(nodeRef):
+
+    dict_N2T = {} 
+    dict_N2T['1M'] = 1 
+    dict_N2T['3M'] = 3
+    dict_N2T['6M'] = 6
+    dict_N2T['1Y'] = 1
+    
+    timeNode = dict_N2T[nodeRef]
+
+    return timeNode
+
 def convertTimeToNode(time_ref):
     
 
@@ -926,6 +938,8 @@ def purge_data(data_out, ref_field, val_not_allowed):
 def set_data_default():
     
     data_default = {}
+    
+    data_default['BusConv'] = {}
 
     data_default['SaveGraph'] = 0
     
@@ -935,6 +949,13 @@ def set_data_default():
     data_default['RegimeRate'] ={}
     data_default['RegimeRate']['D'] = 0 # 0 = Semplice, 1 = Composto, 2 = Continuo
     data_default['RegimeRate']['L'] = 0
+    
+    data_default['InterpLinFutures'] = 1
+    
+    data_default['BusConv']['O/N'] = 'follow'
+    data_default['BusConv']['TN']  = 'follow'
+
+    
 
     return data_default
 
@@ -1708,7 +1729,7 @@ def boot3s_elab_v2(data_opt, data_raw):
     
     dict1s, dict_f, dict_s = select_segments(data_raw_p)
     
-    print 'dict1s: ', dict1s
+    #print 'dict1s: ', dict1s
     
 
     seg1_dates  = dict1s['MatDate']
@@ -1738,11 +1759,17 @@ def boot3s_elab_v2(data_opt, data_raw):
 
     par_convexity    = [par_a, par_b]
 
-    tenor_swap       = data_opt['TenorSwap']
+    tenor_swap       = data_opt['TenorSwap']    
+    tenor_swap       = convertNodeToMnth(tenor_swap)
+
+    print '---------------------------------'
+    print 'tenor_swap: ', tenor_swap
+
+    
     flag_convexity   = data_opt['Convexity']
     flag_futures_gap = data_opt['GapFutures']
     flag_method_swap = data_opt['SwapGapMethod']
-    flag_interp1     = data_opt['InterpLinFutures']
+    flag_interp1     = setting_default['InterpLinFutures']
 
     flag_make_graph = data_opt['MakeGraph']
     flag_save_graph = setting_default['SaveGraph']
@@ -1760,10 +1787,15 @@ def boot3s_elab_v2(data_opt, data_raw):
     basis_f = convert_basis(basis_f)
     basis_s = convert_basis(basis_s)
 
-    day_conv_f = data_opt['BusConv']['F']
-    day_conv_s = data_opt['BusConv']['S']
-    day_conv_tn = data_opt['BusConv']['TN']
-    day_conv_on = data_opt['BusConv']['O/N']
+
+    
+    
+    day_conv_f = busdayrule.translateCodeFromDB(data_opt['BusConv']['F'])
+    day_conv_s = busdayrule.translateCodeFromDB(data_opt['BusConv']['S'])
+    day_conv_tn = busdayrule.translateCodeFromDB(setting_default['BusConv']['TN'])
+    day_conv_on = busdayrule.translateCodeFromDB(setting_default['BusConv']['O/N'])
+    
+    
 
     tipo_s1        = dict1s['TipoSegmento'][0] 
     
@@ -2090,6 +2122,8 @@ def boot3s_elab_v2(data_opt, data_raw):
         else:
             index_irregular = np.append(index_irregular, index_irregular[ln_irr-1] + 1) # viene aggiunto un indice in piu'
 
+        
+                                                                 
         n_new_swap       = int(round(swap_times_x[len(swap_times_x)-1]/(tenor_swap/12.0)))
 
         
@@ -2344,7 +2378,11 @@ def boot3s_elab_v2(data_opt, data_raw):
             
             #indxTmp = find_indx_n(swap_times_adj[i], times_swap_[1:])
             indxTmp = find_indx_n(swap_times_adj[i], times_swap_[1:])            
-            swap_discount_factor[i] = z_out[indxTmp+1]
+            #swap_discount_factor[i] = z_out[indxTmp+1]
+            try:
+                swap_discount_factor[i] = z_out[indxTmp + 1]
+            except:
+                swap_discount_factor[i] = z_out[indxTmp]
         
         swap_rates_out = compute_rates(swap_discount_factor, swap_times_adj, regime_output)
 
@@ -2372,6 +2410,8 @@ def boot3s_elab_v2(data_opt, data_raw):
     merge_df    = data_merge['Df']
 
     
+    flag_make_graph = 0
+    
     if (flag_make_graph == 1):
 
     
@@ -2381,6 +2421,8 @@ def boot3s_elab_v2(data_opt, data_raw):
 
         '--------------- save graph ------------------------------------------------------------'
 
+    
+    flag_save_graph = 0
     
     if (flag_save_graph == 1):
     
@@ -2588,14 +2630,5 @@ def convert_basis(basis_to_convert):
         converted_basis = basis_to_convert
 
     return converted_basis
-
-
-def fun_test(x, par_1):
-    
-    
-    f = par_1 - x
-    
-    
-    return f
 
 

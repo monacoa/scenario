@@ -469,5 +469,21 @@ class Curve:
                 raw_data['TipoSegmento'].append(code)
                 raw_data['MatDate'].append(d)
 
-        res = fb.boot3s_elab_n(data_opt, raw_data)
+        print 'DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD'
+        print 'raw_data[UsaNodo]: ', raw_data['UsaNodo']
+        print 'raw_data[TipoSegmento]: ', raw_data['TipoSegmento']
+        print 'raw_data[ValoreNodo]: ', raw_data['ValoreNodo']
+        print 'raw_data[MatDate]: ', raw_data['MatDate']
+
+        res = fb.boot3s_elab_v2(data_opt, raw_data)
+        
+        print 'res[DateScadenza]: ', res['DateScadenza']           
+        print 'res[DiscountFactors]: ', res['DiscountFactors']
+        print 'res[TassiZC]: ', res['TassiZC']        
+        print 'res[Tempi]: ',  res['Tempi']         
+        print 'res[Nodi]: ', res['Nodi']            
+
+        
+        
+        #res = fb.boot3s_elab_n(data_opt, raw_data)
         return res
