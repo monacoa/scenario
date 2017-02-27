@@ -10,12 +10,12 @@ import sc_elab.core.funzioni_base as fb
 
 dict_segm =\
     {\
-      "CDepositi": "Dep" \
-    , "CLibor"  : "Libor"\
-    , "CFuture" : "Fut" \
-    , "CSwap"   : "Swp" \
-    , "CSwap1M" : "GSwp1M"\
-    , "CSwap3M" : "GSwp3M"\
+      "CDepositi": "Dep"    \
+    , "CLibor"  : "Libor"   \
+    , "CFuture" : "Fut"     \
+    , "CSwap"   : "Swp"     \
+    , "CSwap1M" : "GSwp1M"  \
+    , "CSwap3M" : "GSwp3M"  \
     }
 
 dict_segm2 =\
@@ -461,6 +461,7 @@ class Curve:
 
         for name in self.segms.keys():
             code = revDict(dict_segm2) [name]
+            s = self.segms[name]
             for u,t,v,d in zip(s.usage, s.tags, s.values, s.dates):
                 raw_data['UsaNodo'].append(u)
                 raw_data['Nodo'].append(t)
