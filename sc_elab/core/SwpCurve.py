@@ -461,6 +461,7 @@ class Curve:
 
         for name in self.segms.keys():
             code = revDict(dict_segm2) [name]
+            s = self.segms[name]
             for u,t,v,d in zip(s.usage, s.tags, s.values, s.dates):
                 raw_data['UsaNodo'].append(u)
                 raw_data['Nodo'].append(t)
