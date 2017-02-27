@@ -1694,8 +1694,6 @@ def boot3s_elab(data_opt, data_raw):
 """
 
 
-
-
 def boot3s_elab_v2(data_opt, data_raw):
 
     #%--------------------------------------------------------------------------
@@ -1709,6 +1707,9 @@ def boot3s_elab_v2(data_opt, data_raw):
     data_raw_p = purge_data(data_raw, ref_field, val_not_allowed)
     
     dict1s, dict_f, dict_s = select_segments(data_raw_p)
+    
+    print 'dict1s: ', dict1s
+    
 
     seg1_dates  = dict1s['MatDate']
     seg1_values = dict1s['ValoreNodo']
@@ -1721,7 +1722,7 @@ def boot3s_elab_v2(data_opt, data_raw):
 
     n1s  = len(seg1_dates)
     nf   = len(futures_start_dates)
-    nsw = len(swap_dates)
+    nsw  = len(swap_dates)
     
 
     #%--------------------------------------------------------------------------
@@ -1855,8 +1856,6 @@ def boot3s_elab_v2(data_opt, data_raw):
 
     on_date_next = on_date + datetime.timedelta(days = 1)
     tn_date = busdayrule.rolldate(on_date_next, mkt_ref, day_conv_tn) 
-    
-    
     
     fix_date1      = tn_date
     fix_time1      = daycount.yearfrac(ref_date, fix_date1, basis_fix)
@@ -2200,7 +2199,6 @@ def boot3s_elab_v2(data_opt, data_raw):
         
         
         z_all        = np.concatenate((df_tmp1s, np.zeros(nsw2s)))
-        z_swap2s     = np.zeros(nsw2s) #% fattori di sconto a partire dal primo tasso swap
     
         #%-------------------------------------------------------------------------------------
         #%--------------- Generazione dei fattori di sconto alle date dei tassi swap ----------
@@ -2224,7 +2222,6 @@ def boot3s_elab_v2(data_opt, data_raw):
         
         elif (flag_method_swap == 0) and (ln_irr > 1): # Considero il metodo "Constant fwd rate" 'CFR'
             
-            n_irr = len(index_irregular) # %n. date irregolari
             index_irregular_first = int(np.round(swap_times_x[index_irregular[0]]/(tenor_swap/12.0))) # % indice prima data irregolare
             index_irregular_last  = int(np.round(swap_times_x[index_irregular[len(index_irregular)-1]]/(tenor_swap/12.0))) #; % indice ultima data irregolare
 
@@ -2235,7 +2232,6 @@ def boot3s_elab_v2(data_opt, data_raw):
             z_out = np.zeros(max(1, index_irregular_last + 1))
                 
             z_out[:index_irregular_0] = z_all[: index_irregular_0]
-            #z_out = z_all
 
             times_swap_       = np.round(times_swap_x_new/(tenor_swap/12.0))*(tenor_swap/12.0)
              
@@ -2248,11 +2244,6 @@ def boot3s_elab_v2(data_opt, data_raw):
             
                 t_ref = times_swap_[i]
 
-                #for i in range(indx_0, len(swap_times)):     #% ciclo su tutte le date irregolari
-               
-               
-               
-                #t_ref = times_swap_tmp2s[i]
                 if (t_ref  in  end_irregular_time):
                 
                     #n_i = idx_start_irregular[k]  #% indice inizio data irregolare
@@ -2264,30 +2255,26 @@ def boot3s_elab_v2(data_opt, data_raw):
                     #t_swt_n = np.round(swap_times_n)   #% n. anni dell'n-ma data "irregolare"
                     #t_swt_m = np.round(swap_times_m)   #% m. anni dell'm-ma data "irregolare"
                     
-                    #print 'CFR'
-    
                     t_swt_n = start_irregular_time[k]
                     t_swt_m = end_irregular_time[k]
 
-                    #dt_ref = []
-                    #swp_tmp =  swap_val_new[i-nsw1s]
                     swp_tmp =  swap_val[m_i-1]
+
                     """
                     print 't_swt_n: ', t_swt_n
                     print 't_swt_m: ', t_swt_m
                     print 'swp_tmp: ', swp_tmp
                     """
+                    
                     z_out = compute_z_from_cfr(z_out, tenors, swp_tmp, times_swap_new, t_swt_n, t_swt_m, times_swap_, df_fix_swap)
 
+                    
                     """
                     dt_ref.append(t_swt_n)  
                     dt_ref.append(t_swt_m)  
-
                     dt_ref = np.asarray(dt_ref)
                     dz_ref = z_out[m_i-1:m_i+1]
-
                     r_out = compute_rates(dz_ref, dt_ref, regime_output)
-                    
                     print 'r_out: ', r_out[0] 
                     print 't_n: ', t_n
                     print '-----------------------------------'
@@ -2296,10 +2283,8 @@ def boot3s_elab_v2(data_opt, data_raw):
                     k = k + 1
                 else:
 
-                    #t_swt_n = np.round(swap_times[i])
                     
                     t_swt_n = t_ref
-                    #print 'LEN'
                     
                     nz  = find_indx_n(t_swt_n, times_swap_) #% indice del vettore times_out corrispondente a n anni
 
@@ -2317,6 +2302,7 @@ def boot3s_elab_v2(data_opt, data_raw):
 
                     z_out[nz] = compute_z_from_swap_rate(z_out_n, df_fix_swap, tenors_n, swp_tmp, tenors[i])
 
+                    
                     """
                     dt_ref = []
                     
@@ -2330,11 +2316,11 @@ def boot3s_elab_v2(data_opt, data_raw):
                     dz_ref = z_out[nz-1:nz+1]
 
                     r_out = compute_rates(dz_ref, dt_ref, regime_output)
+                    
+                    print 'r_out: ', r_out[0] 
+                    print 't_n: ', t_n
+                    print '-----------------------------------'
                     """
-                    #print 'r_out: ', r_out[0] 
-                    #print 't_n: ', t_n
-                    #print '-----------------------------------'
-        
         else:
             
             
@@ -2346,9 +2332,7 @@ def boot3s_elab_v2(data_opt, data_raw):
         #%---------------------------------------------------------------------
         #%------------------ set swap output ----------------------------------
         #%---------------------------------------------------------------------
-        #z_out = z_all[1:]
 
-        #times_swap_       =  times_swap_[1:]           
         times_swap_       = np.round(times_swap_x_new/(tenor_swap/12.0))*(tenor_swap/12.0)            
 
         swp__ = np.round(swap_times_x/(tenor_swap/12.0), 0)
@@ -2356,21 +2340,11 @@ def boot3s_elab_v2(data_opt, data_raw):
         
         if (swap_times_adj[0] == 0): swap_times_adj = swap_times_adj[1:]
         
-        #print 'times_swap_: ', times_swap_
-        
-        #print 'nsw: ', nsw
-        
         for i in range(0, nsw):
             
             #indxTmp = find_indx_n(swap_times_adj[i], times_swap_[1:])
-            indxTmp = find_indx_n(swap_times_adj[i], times_swap_[1:])
-            
-            #print 'len(times_swap_): ', len(times_swap_)
-            #print 'len(z_out): ',len(z_out)
-
-            #FQ(999)
-            swap_discount_factor[i] = z_out[indxTmp]
-            
+            indxTmp = find_indx_n(swap_times_adj[i], times_swap_[1:])            
+            swap_discount_factor[i] = z_out[indxTmp+1]
         
         swap_rates_out = compute_rates(swap_discount_factor, swap_times_adj, regime_output)
 
@@ -2431,6 +2405,12 @@ def boot3s_elab_v2(data_opt, data_raw):
     return data_elab_out
 
 
+
+
+
+
+
+  
 
 def boot3s_elab_n(data_opt, data_raw):
     
