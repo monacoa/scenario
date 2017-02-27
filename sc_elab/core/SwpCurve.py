@@ -10,12 +10,12 @@ import sc_elab.core.funzioni_base as fb
 
 dict_segm =\
     {\
-      "CDepositi": "Dep" \
-    , "CLibor"  : "Libor"\
-    , "CFuture" : "Fut" \
-    , "CSwap"   : "Swp" \
-    , "CSwap1M" : "GSwp1M"\
-    , "CSwap3M" : "GSwp3M"\
+      "CDepositi": "Dep"    \
+    , "CLibor"  : "Libor"   \
+    , "CFuture" : "Fut"     \
+    , "CSwap"   : "Swp"     \
+    , "CSwap1M" : "GSwp1M"  \
+    , "CSwap3M" : "GSwp3M"  \
     }
 
 dict_segm2 =\

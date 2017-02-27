@@ -43,3 +43,21 @@ def getCurvesListFromDb(curve_date):
     con.close()
     return ll
     # -----------
+
+
+def getDatesListFromDb():
+    cn  = Connection()
+    cur = cn.db_data()
+    qry = '''
+                     select distinct Data from alm.DProTS_master where BloombergTicker in
+                     ( select distinct BloombergTicker from alm.DProCurve where TipoDato in
+                         ('CDepositi', 'CSwap', 'CLibor', 'CFuture')
+                      )
+                     order by Data desc
+                    '''
+    cur.execute(qry)
+    res         = cur.fetchall()
+    date_list   = []
+    for record in res:
+        date_list.append(record[0])
+    return date_list
