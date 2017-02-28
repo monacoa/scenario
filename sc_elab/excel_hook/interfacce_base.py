@@ -89,7 +89,6 @@ class W_curveDate(LabelFrame):
         self.new_window = W_curveSelection (parent = self, curve_date=self.date)
 
 #----------------
-
 class W_curveSelection (LabelFrame):
     def __init__(self, parent = None, curve_date = None):
         c_date = None
@@ -137,7 +136,6 @@ class W_curveSelection (LabelFrame):
 
 
 class W_bootstrapSelection (LabelFrame):
-
     def __init__(self, master = None, curveL = []):
         c_date = None
         LabelFrame.__init__(self, master)
@@ -250,6 +248,106 @@ class  W_boot_opt(LabelFrame):
         self.pack(fill="both", expand="yes")
 
 
+class W_fittingSelection(LabelFrame):
+    def __init__(self, master=None, curveL=[]):
+        c_date = None
+        LabelFrame.__init__(self, master)
+        self.master = master
+        # self.geometry("800x600")
+        # self.master.geometry("400x500")
+        self.config(text="Available bootstraped curves for fitting:")
+        self.pack(fill="both", expand="yes")
+        # create scrollbar
+        self.bar = Scrollbar(self)
+
+        # create mylist
+        self.mylist = Listbox(self, yscrollcommand=self.bar.set)
+
+        for l in curveL:
+            crv = l[0]
+            pos = l[1]
+            crv = "(" + str(pos) + ") " + crv
+            self.mylist.insert(END, crv)
+
+        self.mylist.config(width=50)
+        self.mylist.pack(side=LEFT, fill='y')
+        # ----------.
+        self.bar.pack(side=LEFT, fill='y')
+        self.mylist.config(yscrollcommand=self.bar.set)
+        self.bar.config(command=self.mylist.yview)
+        # -----------
+        # cretae button
+        self.btn2 = Button(self, text="Cancel", command=self.close_window)
+        self.btn2.pack(side=BOTTOM, fill='x')
+        # cretae button
+        self.btn1 = Button(self, text="Select", command=self.selected_fit_curve)
+        self.btn1.pack(side=BOTTOM, fill='x')
+
+    def close_window(self):
+        self.destroy()
+
+    def selected_fit_curve(self):
+        # recupero la data selezionata
+        curve = str((self.mylist.get(ACTIVE)))
+        curve = curve.replace("(", "")
+        tmp = curve.split(") ")
+        self.curve = tmp[1]
+
+        self.pos = int(tmp[0])
+        self.new_window = W_fit_opt(parent=self)
+
+class W_fit_opt(LabelFrame):
+    def sel(self):
+        self.close_window()
+
+    def close_window(self):
+        self.destroy()
+        self.master.destroy()
+
+    def __init__(self, parent=None):
+        if parent:
+            self.master = parent.master
+            parent.close_window()
+
+        LabelFrame.__init__(self, self.master)
+
+        self.config(text="Set Fitting Options:", width=400, height=200)
+
+        # --- Interpolation Type
+
+        T1 = Label(self, height=1, width=30, text="Interpolation Type:").grid(row=0, sticky="e")
+        self.variable1 = StringVar(self)
+        self.variable1.set("(0) Linear")  # default value
+        w1 = OptionMenu(self, self.variable1, "(LIN) Linear", "(AVD) Adam Van Deventer", "(SVE) Svensson")
+        w1.grid(row=0, column=1)
+        w1.config(width=30)
+
+        T2 = Label(self, height=1, width=30, text="Tenor Fwd Rates (Graphs):").grid(row=1, sticky="e")
+        self.variable2 = StringVar(self)
+        self.variable2.set("(1) 1M")
+        w2 = OptionMenu(self, self.variable2, "1M", "3M", "6M", "12M")
+        w2.grid(row=1, column=1)
+        w2.config(width=30)
+
+
+
+        T3 = Label(self, height=1, width=30, text="Graphs location (save):").grid(row=2, sticky="e")
+        self.variable5 = StringVar(self)
+        self.variable5.set("C://")
+        w5 = Entry(self, textvariable=self.variable5)
+        w5.grid(row=2, column=1)
+        w5.config(width=30)
+
+        self.pack(fill="both", expand="yes")
+
+        # questa istruzione va messa dopo il pack altrimenti non vienne intercettato il valore dal .get() successivo
+        self.variable5.set("C://")
+
+        B1 = Button(self, text="Select", width=20, command=self.sel).grid(row=3, column=1, sticky='e')
+        B2 = Button(self, text="Cancel", width=20, command=self.close_window).grid(row=4, column=1, sticky='e')
+
+        self.pack(fill="both", expand="yes")
+
 
 #=======================================================================================================================
 # punto di ingresso per load curve
@@ -286,7 +384,6 @@ def load_swap_curve_from_db(control):
 
 
 import ctypes
-
 @xl_func
 def bootstrap_from_xls(control):
     nameSheet = "Curvette"
@@ -336,12 +433,12 @@ def bootstrap_from_xls(control):
 
     curve    = readCurveFromXls(xla, curveDes, curvePos, nameSheet)
     boot_out = curve.bootstrap(data_opt)
-
     writeBootstrapResOnXls(curve, xla, str_boot_opt,boot_out)
+
 
 @xl_func
 def fitting_from_xls(control):
-    nameSheet = "FittingSwapCurve"
+    nameSheet = "ElabSwapCurve"
     xla = xl_app()
     book = xla.ActiveWorkbook
     try:
@@ -349,8 +446,34 @@ def fitting_from_xls(control):
         s.Activate()
     except:
         root = Tk()
-        msg = "Missing sheet  'FittingSwapCurve' in your workbook... \nNothing to do for me!"
+        msg = "Missing sheet  'ElabSwapCurve' in your workbook... \nNothing to do for me!"
         tkMessageBox.showinfo("Warning!", msg)
         root.destroy()
         return
 
+    rangeStart = "B2"
+    distance = 2
+
+    curveL = readCurvesNames(xla, s, rangeStart, "v", distance)
+    print curveL
+
+    root = Tk()
+    # root.wm_withdraw()
+    W = W_fittingSelection(root, curveL)
+    root.mainloop()
+
+    curveDes = W.curve
+    curvePos = W.pos
+
+    print "des:", curveDes
+    print "pos:", curvePos
+
+    opt_dict = {}
+    opt_dict['interp']          = (str(W.new_window.variable1.get()).strip(""))[1]
+    opt_dict['opt_fwd_tenor']   = (str(W.new_window.variable2.get()).strip(""))[1]
+    opt_dict['opt_path_graph']  =  W.new_window.variable5.get()
+
+    print "options:", opt_dict
+    Bcurve = readBootstrappedCurveFromXls(xla, curveDes, curvePos, nameSheet)
+    res = Bcurve.fitting(opt_dict)
+    writeFittingResOnXls(Bcurve, xla, opt_dict, res, curvePos)
