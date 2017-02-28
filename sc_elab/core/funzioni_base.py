@@ -1,7 +1,3 @@
-
-
-
-
 import sys
 import datetime as dtime
 import math
@@ -26,6 +22,10 @@ def FQ(label):
     print ('------------- FIN QUI TUTTO OK  %s ----------' %(label))
     sys.exit()
 
+
+
+def fitting():
+    return True
 
 
 def convertNodeToMnth(nodeRef):

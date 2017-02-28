@@ -3,10 +3,10 @@ import sys
 import datetime
 from win32com.client import constants as const
 from Tkinter import *
-from sc_elab.core.SwpCurve import dict_segm2, Segm, Curve
+from sc_elab.core.SwpCurve import dict_segm2, Segm, Curve, BootstrappedCurve
 
-#FORMAT = "dd/mm/yyyy"
-FORMAT = "gg/mm/aaaa"
+FORMAT = "dd/mm/yyyy"
+#FORMAT = "gg/mm/aaaa"
 
 def popup_messagebox(msg):
     xlcAlert(msg)
@@ -43,13 +43,13 @@ def findRigthPlaceBootCurveSeg(xla, r, distCurve, dir="O"):
         sys.exit()
 
     return rOut
+
 #----
 def drawBox(xla, spessore , rTopLeft = 0, cTopLeft = 0,rBottomRight=0,cBottomRight=0, Colore=0):
     if (rTopLeft <= 0) or(cTopLeft <= 0) or (rBottomRight <= 0)or (cBottomRight <= 0):
         msg = "Le coordinate del box devono essere maggiori di zero"
         popup_messagebox(msg)
         sys.exit()
-
 
     RR = xla.Range(xla.Cells(rTopLeft, cTopLeft), xla.Cells(rBottomRight, cBottomRight))
     RR.Borders(const.xlDiagonalDown).LineStyle = const.xlNone
@@ -58,11 +58,9 @@ def drawBox(xla, spessore , rTopLeft = 0, cTopLeft = 0,rBottomRight=0,cBottomRig
     RR.Borders(const.xlEdgeLeft).Weight = spessore
     RR.Borders(const.xlEdgeLeft).ColorIndex = Colore
 
-
     RR.Borders(const.xlEdgeTop).LineStyle = const.xlContinuous
     RR.Borders(const.xlEdgeTop).Weight = spessore
     RR.Borders(const.xlEdgeTop).ColorIndex = Colore
-
 
     RR.Borders(const.xlEdgeBottom).LineStyle = const.xlContinuous
     RR.Borders(const.xlEdgeBottom).Weight = spessore
@@ -276,7 +274,7 @@ def writeCurveOnXls(crv, nameSheet, xla):
 
 
 def writeBootstrapResOnXls (crv,xla, str_boot_opt, res):
-    nameSheet = "BootstrapSwapCurve"
+    nameSheet = "ElabSwapCurve"
 
     try:
         s = xla.ActiveWorkbook.Sheets(nameSheet)
@@ -369,6 +367,137 @@ def writeBootstrapResOnXls (crv,xla, str_boot_opt, res):
         xla.Cells(topLeftRow + i, topLeftCol + 5).HorizontalAlignment = const.xlCenter
 
 
+def writeFittingResOnXls(Bcurve, xla, opt_dict, res, pos):
+    nameSheet = "ElabSwapCurve"
+    try:
+        s = xla.ActiveWorkbook.Sheets(nameSheet)
+    except:
+        s = xla.ActiveWorkbook.Sheets.Add()
+        s.Name = nameSheet
+    s.Activate()
+
+    r = findBootstrappedCurveFromPos(xla, nameSheet,pos)
+
+
+    # -----
+
+
+    Attributi_1 = {"Date Ref": crv.ref_date
+        , "Description": crv.description
+        , "Currency": crv.curr
+        , "Download Type": crv.download_type
+        , "Quotation": crv.quotation
+        , "Source": crv.source
+        , "CurveType": crv.type
+        , "Return": "Zero Coupon"
+        , "Node Type": "Spot"
+        , "Boot Optons": str_boot_opt
+        , "Segms": str_segms
+                   }
+
+    ################################################################################
+    ################################################################################
+    ################################################################################
+
+    # r2 = s.Range(xla.Cells(r.Row, r.Column + 3), xla.Cells(r.Row, r.Column + 3))
+    #
+    # ra = intestazioneSwapCurveSegmenti(xla, s, r, Attributi_1, nCols=2)
+    # rb = intestazioneSwapCurveSegmenti(xla, s, r2, Attributi_2, nCols=2)
+    # r = s.Range(ra)
+    #
+    # topLeftRow = r.Row
+    # topLeftCol = r.Column
+    #
+    # xla.Cells(topLeftRow - 1, topLeftCol).Value = "Date"
+    # xla.Cells(topLeftRow - 1, topLeftCol).HorizontalAlignment = const.xlCenter
+    # xla.Cells(topLeftRow - 1, topLeftCol + 1).Value = "Value"
+    # xla.Cells(topLeftRow - 1, topLeftCol + 1).HorizontalAlignment = const.xlCenter
+    #
+    # xla.Cells(topLeftRow - 1, topLeftCol + 3).Value = "Date"
+    # xla.Cells(topLeftRow - 1, topLeftCol + 3).HorizontalAlignment = const.xlCenter
+    # xla.Cells(topLeftRow - 1, topLeftCol + 4).Value = "Value"
+    # xla.Cells(topLeftRow - 1, topLeftCol + 4).HorizontalAlignment = const.xlCenter
+    # xla.Cells(topLeftRow - 1, topLeftCol + 5).Value = "Usage"
+    # xla.Cells(topLeftRow - 1, topLeftCol + 5).HorizontalAlignment = const.xlCenter
+    #
+    # nRows = len(res['DiscountFactors'])
+    #
+    # drawBox(xla, const.xlMedium, topLeftRow - 1, topLeftCol, topLeftRow + nRows - 1, topLeftCol + 1)
+    # drawLine(xla, topLeftRow - 1, topLeftCol, topLeftRow - 1, topLeftCol + 1, "o", const.xlThin)
+    #
+    # drawBox(xla, const.xlMedium, topLeftRow - 1, topLeftCol + 3, topLeftRow + nRows - 1, topLeftCol + 5)
+    # drawLine(xla, topLeftRow - 1, topLeftCol + 3, topLeftRow - 1, topLeftCol + 5, "o", const.xlThin)
+    # for i in range(nRows):
+    #     value = res['DiscountFactors'][i]
+    #     date = res['DateScadenza'][i]
+    #     rate = res['TassiZC'][i]
+    #
+    #     xla.Cells(topLeftRow + i, topLeftCol).Value = date
+    #     xla.Cells(topLeftRow + i, topLeftCol).NumberFormat = FORMAT
+    #     xla.Cells(topLeftRow + i, topLeftCol).HorizontalAlignment = const.xlCenter
+    #     xla.Cells(topLeftRow + i, topLeftCol + 1).Value = rate
+    #     xla.Cells(topLeftRow + i, topLeftCol + 1).NumberFormat = "0.00"
+    #     xla.Cells(topLeftRow + i, topLeftCol + 1).HorizontalAlignment = const.xlCenter
+    #
+    #     xla.Cells(topLeftRow + i, topLeftCol + 3).Value = date
+    #     xla.Cells(topLeftRow + i, topLeftCol + 3).NumberFormat = FORMAT
+    #     xla.Cells(topLeftRow + i, topLeftCol + 3).HorizontalAlignment = const.xlCenter
+    #     xla.Cells(topLeftRow + i, topLeftCol + 4).Value = value
+    #     xla.Cells(topLeftRow + i, topLeftCol + 4).NumberFormat = "0.00000"
+    #     xla.Cells(topLeftRow + i, topLeftCol + 4).HorizontalAlignment = const.xlCenter
+    #     xla.Cells(topLeftRow + i, topLeftCol + 5).Value = "Y"
+    #     xla.Cells(topLeftRow + i, topLeftCol + 5).HorizontalAlignment = const.xlCenter
+
+def readIntestazioneBootstrap(xla , r , cc):
+    row              = r.Row
+    col              = r.Column
+
+    cc.curr          = xla.Range(xla.Cells(row + 2, col + 1), xla.Cells(row + 2, col + 1)).Value
+    cc.type          = xla.Range(xla.Cells(row + 3, col + 1), xla.Cells(row + 3, col + 1)).Value
+
+    dd = xla.Range(xla.Cells(row + 4, col + 1), xla.Cells(row + 4, col + 1)).Value
+    cc.ref_date      = datetime.date(year = dd.year, month = dd.month, day = dd.day)
+
+    cc.description   = xla.Range(xla.Cells(row + 5, col+1), xla.Cells(row+5, col+1)).Value
+    cc.download_type = xla.Range(xla.Cells(row + 6, col + 1), xla.Cells(row + 6, col + 1)).Value
+    cc.quotation     = xla.Range(xla.Cells(row + 5, col + 1), xla.Cells(row + 8, col + 1)).Value
+    cc.source        = xla.Range(xla.Cells(row + 6, col + 1), xla.Cells(row + 11, col + 1)).Value
+
+
+    #imposto il mercato
+    if cc.curr == "EUR":
+        cc.cal = "de.eurex"
+    elif cc.curr == "USD":
+        cc.cal = 'us'
+    elif cc.curr == 'GBP':
+        cc.cal = 'uk'
+    elif cc.curr == 'CAD':
+        cc.cal = 'ca'
+    else:
+        cc.cal = 'us'
+
+    return  xla.Range(xla.Cells(row + 13, col+3), xla.Cells(row + 13, col+3))
+
+
+def readDiscountFactors(xla , r , cc):
+    i   = 0
+    row = r.Row
+    col = r.Column
+    print "valore inziale di r:", r.Value, r.Address
+    while (True):
+        if (xla.Range(xla.Cells(row + i , col), xla.Cells(row + i, col)).Value == None) : break
+
+        dd          = xla.Range(xla.Cells(row + i , col), xla.Cells(row + i, col)).Value
+        data        = datetime.date(year=dd.year, month=dd.month, day=dd.day)
+        df          = xla.Range(xla.Cells(row + i , col+1), xla.Cells(row + i, col+1)).Value
+        use         = xla.Range(xla.Cells(row + i , col+2), xla.Cells(row + i, col+2)).Value
+        cc.boot_dates.append(data)
+        cc.boot_df.append(df)
+        cc.fit_usage.append(use)
+        i += 1
+
+
+
 def readIntestazione(xla , r , cc):
     row              = r.Row
     col              = r.Column
@@ -395,6 +524,8 @@ def readIntestazione(xla , r , cc):
         cc.cal = 'us'
 
     r =  xla.Range(xla.Cells(row + 9, col), xla.Cells(row + 9, col))
+
+    cc.show()
     return r
 
 def readParametriHW(xla,r,cc):
@@ -451,6 +582,7 @@ def readSegms(xla, r, cc):
     cc.show()
     return r
 
+
 def readCurveFromXls(xla, des, pos, nameSheet):
     rangeStart = "B2"
     distCurve = 5
@@ -470,13 +602,45 @@ def readCurveFromXls(xla, des, pos, nameSheet):
 
     return cc
 
+def findBootstrappedCurveFromPos (xla, nameSheet, pos):
+    rangeStart = "B2"
+    distanza = 2
+    sheet = xla.ActiveWorkbook.Sheets(nameSheet)
+    r = sheet.Range(rangeStart)
+    nCols = r.Columns.Count
+    row = r.Row
+    col = r.Column
+    i = 1
+    while i < pos:
+        while (r.Value != None):
+            nCols = r.Columns.Count
+            row = r.Row
+            col = r.Column
+            r = xla.Range(xla.Cells(row + 1, col), xla.Cells(row + 1, col))
+
+        r = xla.Range(xla.Cells(row + distanza, col), xla.Cells(row + distanza, col))
+        if r.Value != None:
+            i += 1
+    return r
+
+
+def readBootstrappedCurveFromXls(xla, des, pos, nameSheet):
+
+    r           = findBootstrappedCurveFromPos (xla, nameSheet, pos)
+    nomeCurva   = r.Value
+    cc          = BootstrappedCurve()
+    r           = readIntestazioneBootstrap(xla, r,cc)
+
+    readDiscountFactors(xla, r, cc)
+    return cc
+
 
 
 def readCurvesNames(xla, s, rangeStart, direzione, distanza):
     r = xla.Range(rangeStart)
+    curveL = []
 
     if direzione.lower() == "o":
-        curveL = []
         i = 0
         while (r.Value != None):
             i += 1
@@ -488,4 +652,23 @@ def readCurvesNames(xla, s, rangeStart, direzione, distanza):
             row   = r.Row
             col   = r.Column
             r = xla.Range(xla.Cells(row, col + distanza), xla.Cells(row, col + (nCols - 1) + distanza))
+    else:
+        j = 1
+        nomeCurva = r.Value
+        curveL.append((nomeCurva, j))
+
+        while (r.Value != None):
+            nCols = r.Columns.Count
+            row   = r.Row
+            col   = r.Column
+            r = xla.Range(xla.Cells(row + 1, col), xla.Cells(row + 1, col))
+            # porto avanti ancora per controllare
+
+            if (r.Value == None):
+                r = xla.Range(xla.Cells(row  + distanza, col), xla.Cells(row + distanza, col))
+                if r.Value != None:
+                    j += 1
+                    nomeCurva = r.Value
+                    curveL.append((nomeCurva, j))
+
     return curveL

@@ -88,31 +88,33 @@ class Segm:
 
 
 class Curve:
+    def setDefaults(self):
+        # --------
+        # anagrafica
+        # --------
+        self.description = ""
+        self.curr = ""
+        self.ref_date = ""
+        self.type = ""
+        self.source = "Bloomberg"
+        self.quotation = "MID"
+        self.download_type = ""
+        self.emittente = '999'
+        self.rating = 'NR'
+        self.settore = '999'
+        self.seniority = '999'
+        self.type = 'Swap'
+        self.floater_tenor = ''
+        self.cal = ''
+        # ---------
+        self.HWparms = {}
+        # ----------
+        # segmenti (dict of classes
+        # ----------
+        self.segms = {}
 
     def __init__(self):
-        #--------
-        #anagrafica
-        #--------
-        self.description    = ""
-        self.curr           = ""
-        self.ref_date       = ""
-        self.type           = ""
-        self.source         = "Bloomberg"
-        self.quotation      = "MID"
-        self.download_type  = ""
-        self.emittente      = '999'
-        self.rating         = 'NR'
-        self.settore        = '999'
-        self.seniority      = '999'
-        self.type           = 'Swap'
-        self.floater_tenor  = ''
-        self.cal            = ''
-        #---------
-        self.HWparms          = {}
-        #----------
-        #segmenti (dict of classes
-        #----------
-        self.segms          = {}
+        self.setDefaults()
 
 
     def getStrSegms(self):
@@ -475,3 +477,31 @@ class Curve:
         
         #res = fb.boot3s_elab_n(data_opt, raw_data)
         return res
+
+
+
+class BootstrappedCurve(Curve):
+
+    def __init__(self):
+
+        self.boot_dates = []
+        self.boot_df    = []
+        self.fit_usage  = []
+
+        Curve.setDefaults(self)
+
+
+    def show(self):
+
+        Curve.show(self)
+        print "------------------------------"
+        print "Begin Show Bootstrap Vars:"
+
+        for d,f,u in zip( self.boot_dates,self.boot_df,self.fit_usage):
+            print "date:", d, "-- df:", f, "-- usage:", u
+
+        print "End Show Bootstrap Vars"
+        print "------------------------------"
+
+    def fitting(self, optDict):
+        return fb.fitting()
