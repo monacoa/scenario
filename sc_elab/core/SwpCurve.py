@@ -478,7 +478,8 @@ class Curve:
         #res = fb.boot3s_elab_n(data_opt, raw_data)
         return res
 
-
+    def fittingFromPY(self, optDict):
+        return fb.fitting()
 
 
 class BootstrappedCurve(Curve):
@@ -504,6 +505,6 @@ class BootstrappedCurve(Curve):
         print "End Show Bootstrap Vars"
         print "------------------------------"
 
-    def fitting(self, optDict):
-
+    def fittingFromBoot(self, optDict):
         return fb.fitting()
+

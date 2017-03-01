@@ -176,19 +176,14 @@ def segmentoSwapCurve(xla, rangeS, code, segm):
     drawBox(xla, const.xlMedium, topLeftRow, topLeftCol, topLeftRow + nRows, topLeftCol + nCols - 1)
     isFut = False
     #Formatto zona codice curva
-    if  code == "G":
-            nomeSegmento = "0. Short term swap"
-    elif code == "D":
-            nomeSegmento = "1. Depositi"
-    elif code == "L":
-            nomeSegmento = "2. Libor"
-    elif code =="F":
-            nomeSegmento = "3. Futures"
-            isFut = True
-    elif code == "S":
-            nomeSegmento = "4. Swap Rate"
-    else:
-            nomeSegmento = code
+    if   code == "G": nomeSegmento = "0. Short term swap"
+    elif code == "D": nomeSegmento = "1. Depositi"
+    elif code == "L": nomeSegmento = "2. Libor"
+    elif code =="F" :
+        nomeSegmento = "3. Futures"
+        isFut = True
+    elif code == "S": nomeSegmento = "4. Swap Rate"
+    else:             nomeSegmento = code
 
     formatTestataCurva(xla, topLeftRow, topLeftCol, nCols, nomeSegmento)
     #Linea orizzontale di separazione
@@ -206,12 +201,6 @@ def segmentoSwapCurve(xla, rangeS, code, segm):
 
     f = 1
     i = 1
-
-    #recupero linguaggio xls per formato date
-    #lngCode = xla.LanguageSettings.LanguageID(const.msoLanguageIDExeMode)
-    #print lngCode,lngCode,lngCode,lngCode
-
-
     for tag,date,value in zip(segm.tags, segm.dates, segm.values):
         ll = [tag, date, value]
         for j in range(3):
@@ -503,7 +492,7 @@ def writeFittingResSVE(xla, s, r, Attributi, res):
 
 
 
-def writeFittingResOnXls(crv, xla, opt_dict, res, pos):
+def writeFittingBootResOnXls(crv, xla, opt_dict, res, pos):
     nameSheet = "ElabSwapCurve"
     try:
         s = xla.ActiveWorkbook.Sheets(nameSheet)
@@ -549,6 +538,56 @@ def writeFittingResOnXls(crv, xla, opt_dict, res, pos):
     col = r.Column
     r = xla.Range(xla.Cells(row -( len(Attributi.keys()) +1), col), (xla.Cells(row -(len(Attributi.keys()) + 1), col)))
 
+    print opt_dict
+    print opt_dict['interp'], type(opt_dict['interp'])
+    if      opt_dict['interp'] == '0':  writeFittingResLinear(xla, s, r, Attributi, res)
+    elif    opt_dict['interp'] == '1':  writeFittingResAVD(xla, s, r, Attributi, res)
+    else:                               writeFittingResSVE(xla, s, r, Attributi, res)
+
+
+def writeFittingPyResOnXls(crv, xla, opt_dict, res, pos):
+
+    nameSheet = "Curvette"
+    try:
+        s = xla.ActiveWorkbook.Sheets(nameSheet)
+    except:
+        s = xla.ActiveWorkbook.Sheets.Add()
+        s.Name = nameSheet
+    s.Activate()
+
+    r = findCurveFromPos(xla, pos, nameSheet)
+    print "------------------indirizzo trovato:", r.Value, r.Address
+    #---
+    #mi posiziono nella prima cella utile per scrivere i risultati del fitting
+    #---
+    Attributi = \
+        {     "Date Ref"     : crv.ref_date
+            , "Description"  : crv.description
+            , "Currency"     : crv.curr
+            , "Download Type": crv.download_type
+            , "Quotation"    : crv.quotation
+            , "CurveType"    : crv.type
+            , "Interp. Model": fitt_translate[opt_dict['interp']]
+        }
+
+    row = r.Row
+    col = r.Column
+    r = xla.Range(xla.Cells(row+13, col ),(xla.Cells(row+13, col)))
+
+    while (r.Value!= None):
+        row = r.Row
+        col = r.Column
+        r = xla.Range(xla.Cells(row+1, col), xla.Cells(row+1, col ))
+        if (r.Value == None):
+            row = r.Row
+            col = r.Column
+            r = xla.Range(xla.Cells(row+1, col), xla.Cells(row+1,col))
+            if (r.Value == None):
+                row = r.Row
+                col = r.Column
+                r = xla.Range(xla.Cells(row + 1, col), xla.Cells(row + 1, col))
+
+    print "------------------posizione calcolata per scrivere output fitting.:", r.Value, r.Address
     print opt_dict
     print opt_dict['interp'], type(opt_dict['interp'])
     if      opt_dict['interp'] == '0':  writeFittingResLinear(xla, s, r, Attributi, res)
@@ -709,6 +748,18 @@ def readCurveFromXls(xla, des, pos, nameSheet):
     r = readSegms(xla,r,cc)
 
     return cc
+
+def findCurveFromPos(xla, pos, nameSheet):
+    rangeStart = "B2"
+    distCurve = 5
+    print "pos;", pos, type(pos)
+    sheet = xla.ActiveWorkbook.Sheets(nameSheet)
+    r     = sheet.Range(rangeStart)
+    nCols = r.Columns.Count
+    row = r.Row
+    col = r.Column
+    r = xla.Range(xla.Cells(row, col + distCurve*(pos - 1)), xla.Cells(row, col + (nCols-1) + distCurve*(pos-1)))
+    return r
 
 def findBootstrappedCurveFromPos (xla, nameSheet, pos):
     rangeStart = "B2"

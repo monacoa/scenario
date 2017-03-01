@@ -244,11 +244,62 @@ class  W_boot_opt(LabelFrame):
         self.pack(fill="both", expand="yes")
 
 
+
+class W_fittingType (Frame):
+    def __init__(self, master = None):
+        Frame.__init__(self, master)
+        self.master = master
+        self.menubar = Menu(self)
+        filemenu = Menu(self.menubar, tearoff=0)
+        filemenu.add_command(label="Fit Bootstrapped Curve", command=self.fit_boot_curve)
+        filemenu.add_command(label="Fit par-yield Swap Curve", command=self.fit_py_curve)
+        filemenu.add_separator()
+        filemenu.add_command(label="Exit", command=donothing)
+
+        self.menubar.add_cascade(label="Click & Select Fitting Type", menu=filemenu)
+        self.master.config(menu=self.menubar)
+        self.canvas = Canvas(self, bg="grey", width=200, height=200, bd=0, highlightthickness=0)
+        self.canvas.pack()
+
+    def fit_boot_curve(self):
+        self.fit_type = "boot"
+        nameSheet = "ElabSwapCurve"
+
+        xla = xl_app()
+        book = xla.ActiveWorkbook
+        s = book.Sheets(nameSheet)
+        s.Activate()
+        print "RECUPERO LA LISTA CURVE"
+        curveL = readCurvesNames(xla, s, "B2", "v", 2)
+        print curveL
+
+        self.new_window = W_fittingSelection(self, curveL)
+
+
+    def fit_py_curve(self):
+        self.fit_type = "py"
+        nameSheet = "Curvette"
+        xla = xl_app()
+        book = xla.ActiveWorkbook
+        s = book.Sheets(nameSheet)
+        s.Activate()
+        curveL = readCurvesNames(xla, s, "B2", "o", 5)
+        print curveL
+        self.new_window = W_fittingSelection(self, curveL)
+
+    def close_window(self):
+        self.destroy()
+
+
 class W_fittingSelection(LabelFrame):
     def __init__(self, master=None, curveL=[]):
         c_date = None
-        LabelFrame.__init__(self, master)
-        self.master = master
+        if master:
+            self.master = master.master
+            master.close_window()
+
+        LabelFrame.__init__(self, self.master)
+        #self.master = master
         # self.geometry("800x600")
         # self.master.geometry("400x500")
         self.config(text="Available bootstraped curves for fitting:")
@@ -445,29 +496,34 @@ def fitting_from_xls(control):
         root.destroy()
         return
 
-    rangeStart = "B2"
-    distance = 2
-
-    curveL = readCurvesNames(xla, s, rangeStart, "v", distance)
-    print curveL
-
     root = Tk()
     # root.wm_withdraw()
-    W = W_fittingSelection(root, curveL)
+    #W = W_fittingSelection(root, curveL)
+    W = W_fittingType(root)
     root.mainloop()
 
-    curveDes = W.curve
-    curvePos = W.pos
+    curveDes = W.new_window.curve
+    curvePos = W.new_window.pos
+    fit_type = W.fit_type
 
     print "des:", curveDes
-    print "pos:", curvePos
+    print "pos:", curvePos,  type(curvePos)
+    print "TYPE", fit_type
 
     opt_dict = {}
-    opt_dict['interp']          = (str(W.new_window.variable1.get()).strip(""))[1]
-    opt_dict['opt_fwd_tenor']   = (str(W.new_window.variable2.get()).strip(""))[1]
-    opt_dict['opt_path_graph']  =  W.new_window.variable5.get()
+    opt_dict['interp']          = (str(W.new_window.new_window.variable1.get()).strip(""))[1]
+    opt_dict['opt_fwd_tenor']   = (str(W.new_window.new_window.variable2.get()).strip(""))[1]
+    opt_dict['opt_path_graph']  =  W.new_window.new_window.variable5.get()
+    opt_dict['fit_type']        = fit_type
+    print "**********************options:", opt_dict
 
-    print "options:", opt_dict
-    Bcurve = readBootstrappedCurveFromXls(xla, curveDes, curvePos, nameSheet)
-    res = Bcurve.fitting(opt_dict)
-    writeFittingResOnXls(Bcurve, xla, opt_dict, res, curvePos)
+    if fit_type == "boot":
+        Bcurve = readBootstrappedCurveFromXls(xla, curveDes, curvePos, nameSheet)
+        res = Bcurve.fittingFromBoot(opt_dict)
+        writeFittingBootResOnXls(Bcurve, xla, opt_dict, res, curvePos)
+    else:
+        nameSheet = "Curvette"
+        Bcurve = readCurveFromXls(xla, curveDes, curvePos, nameSheet)
+        Bcurve.show()
+        res = Bcurve.fittingFromPY(opt_dict)
+        writeFittingPyResOnXls(Bcurve, xla, opt_dict, res, curvePos)
