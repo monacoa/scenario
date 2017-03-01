@@ -25,7 +25,23 @@ def FQ(label):
 
 
 def fitting():
-    return True
+    #---
+    #esemplificativo dell'output richiesto per il fitting, da riempire solo i parametri del modello selezionato
+    #---
+    res = {'Dates'  : [datetime.date(2017,12,29), datetime.date(2017,12,30),datetime.date(2017,12,31)],
+           'a'      : [0.0,0.0],
+           'b'      : [0.9, 0.9],
+           'c'      : [0.111, 0.111],
+           'd'      : [0.222, 0.222],
+           'e'      : [0.333, 0.333],
+           'const1' : [0.44, 0.44],
+           'const2' : [0.55, 0.55],
+           'beta0'  : [0.1, 0.1],
+           'beta1'  : [0.2, 0.2],
+           'beta2'  : [0.3, 0.3],
+           'beta3'  : [0.4, 0.4]
+           }
+    return res
 
 
 def convertNodeToMnth(nodeRef):

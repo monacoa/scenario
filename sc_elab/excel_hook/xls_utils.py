@@ -8,9 +8,10 @@ from sc_elab.core.SwpCurve import dict_segm2, Segm, Curve, BootstrappedCurve
 FORMAT = "dd/mm/yyyy"
 #FORMAT = "gg/mm/aaaa"
 
+fitt_translate ={'0' : 'linear', '1':'AVD', '2':'SVE' }
+
 def popup_messagebox(msg):
     xlcAlert(msg)
-
 #----
 def findRigthPlaceBootCurveSeg(xla, r, distCurve, dir="O"):
     rOut = None
@@ -43,8 +44,8 @@ def findRigthPlaceBootCurveSeg(xla, r, distCurve, dir="O"):
         sys.exit()
 
     return rOut
-
 #----
+
 def drawBox(xla, spessore , rTopLeft = 0, cTopLeft = 0,rBottomRight=0,cBottomRight=0, Colore=0):
     if (rTopLeft <= 0) or(cTopLeft <= 0) or (rBottomRight <= 0)or (cBottomRight <= 0):
         msg = "Le coordinate del box devono essere maggiori di zero"
@@ -71,7 +72,6 @@ def drawBox(xla, spessore , rTopLeft = 0, cTopLeft = 0,rBottomRight=0,cBottomRig
     RR.Borders(const.xlEdgeRight).ColorIndex = Colore
 
 #------------------
-
 def formatTestataCurva(xla,nRiga,nColonna,nLarghezza,testo):
 
     (xla.Range(xla.Cells(nRiga, nColonna), xla.Cells(nRiga, nColonna + nLarghezza - 1))).Select()
@@ -148,7 +148,6 @@ def displayHWParamSwCurve (xla, rangeStart, attributi):
     topLeftCol = xla.Range(rangeStart).Column
     nomeBox = "Par. Hull & White per Conv. Adj."
 
-
     # box parametri
     drawBox(xla, const.xlMedium, topLeftRow, topLeftCol, topLeftRow + nRows, topLeftCol + nCols - 1, 0)
     drawLine(xla, topLeftRow + 1,topLeftCol + 1, topLeftRow + nRows, topLeftCol + 1, "v", const.xlThin)
@@ -164,7 +163,6 @@ def displayHWParamSwCurve (xla, rangeStart, attributi):
 
     rangeStartN = xla.Cells(topLeftRow + 3, topLeftCol).Address
     return rangeStartN
-
 
 def segmentoSwapCurve(xla, rangeS, code, segm):
     rangeStart = rangeS
@@ -325,13 +323,13 @@ def writeBootstrapResOnXls (crv,xla, str_boot_opt, res):
     topLeftRow = r.Row
     topLeftCol = r.Column
 
-    xla.Cells(topLeftRow-1, topLeftCol  ).Value               = "Date"
-    xla.Cells(topLeftRow-1, topLeftCol  ).HorizontalAlignment = const.xlCenter
-    xla.Cells(topLeftRow-1, topLeftCol+1).Value               = "Value"
-    xla.Cells(topLeftRow-1, topLeftCol+1).HorizontalAlignment = const.xlCenter
+    xla.Cells(topLeftRow - 1, topLeftCol    ).Value               = "Date"
+    xla.Cells(topLeftRow - 1, topLeftCol    ).HorizontalAlignment = const.xlCenter
+    xla.Cells(topLeftRow - 1, topLeftCol + 1).Value               = "Value"
+    xla.Cells(topLeftRow - 1, topLeftCol + 1).HorizontalAlignment = const.xlCenter
 
-    xla.Cells(topLeftRow - 1, topLeftCol+3).Value = "Date"
-    xla.Cells(topLeftRow - 1, topLeftCol+3).HorizontalAlignment = const.xlCenter
+    xla.Cells(topLeftRow - 1, topLeftCol + 3).Value = "Date"
+    xla.Cells(topLeftRow - 1, topLeftCol + 3).HorizontalAlignment = const.xlCenter
     xla.Cells(topLeftRow - 1, topLeftCol + 4).Value = "Value"
     xla.Cells(topLeftRow - 1, topLeftCol + 4).HorizontalAlignment = const.xlCenter
     xla.Cells(topLeftRow - 1, topLeftCol + 5).Value = "Usage"
@@ -339,8 +337,8 @@ def writeBootstrapResOnXls (crv,xla, str_boot_opt, res):
 
     nRows = len(res['DiscountFactors'])
 
-    drawBox (xla, const.xlMedium, topLeftRow-1, topLeftCol  , topLeftRow+nRows-1, topLeftCol+1)
-    drawLine(xla, topLeftRow-1  , topLeftCol  , topLeftRow-1, topLeftCol + 1    , "o", const.xlThin)
+    drawBox (xla, const.xlMedium, topLeftRow - 1, topLeftCol  , topLeftRow+nRows-1, topLeftCol+1)
+    drawLine(xla, topLeftRow-1  , topLeftCol  , topLeftRow - 1, topLeftCol + 1    , "o", const.xlThin)
 
     drawBox(xla, const.xlMedium, topLeftRow - 1, topLeftCol+3, topLeftRow + nRows - 1, topLeftCol + 5)
     drawLine(xla, topLeftRow - 1, topLeftCol+3, topLeftRow - 1, topLeftCol + 5, "o", const.xlThin)
@@ -367,7 +365,145 @@ def writeBootstrapResOnXls (crv,xla, str_boot_opt, res):
         xla.Cells(topLeftRow + i, topLeftCol + 5).HorizontalAlignment = const.xlCenter
 
 
-def writeFittingResOnXls(Bcurve, xla, opt_dict, res, pos):
+def writeFittingResLinear(xla, s, r, Attributi, res):
+
+    ra = intestazioneSwapCurveSegmenti(xla, "", r, Attributi, nCols=2)
+    r = s.Range(ra)
+
+    topLeftRow = r.Row
+    topLeftCol = r.Column
+    xla.Cells(topLeftRow - 1, topLeftCol).Value = "Date"
+    xla.Cells(topLeftRow - 1, topLeftCol).HorizontalAlignment = const.xlCenter
+    xla.Cells(topLeftRow - 1, topLeftCol + 1).Value = "a"
+    xla.Cells(topLeftRow - 1, topLeftCol + 1).HorizontalAlignment = const.xlCenter
+    xla.Cells(topLeftRow - 1, topLeftCol + 2).Value = "b"
+    xla.Cells(topLeftRow - 1, topLeftCol + 2).HorizontalAlignment = const.xlCenter
+    nRows = len(res['Dates'])
+    drawBox(xla, const.xlMedium, topLeftRow - 1, topLeftCol, topLeftRow + nRows - 1, topLeftCol + 2)
+    drawLine(xla, topLeftRow - 1, topLeftCol, topLeftRow - 1, topLeftCol + 2, "o", const.xlThin)
+    for i in range(nRows):
+        date = res['Dates'][i]
+        xla.Cells(topLeftRow + i, topLeftCol).Value = date
+        xla.Cells(topLeftRow + i, topLeftCol).NumberFormat = FORMAT
+        xla.Cells(topLeftRow + i, topLeftCol).HorizontalAlignment = const.xlCenter
+        if (i > 0):
+            a = res['a'][i-1]
+            b = res['b'][i-1]
+            xla.Cells(topLeftRow + i, topLeftCol + 1).Value = a
+            xla.Cells(topLeftRow + i, topLeftCol + 1).NumberFormat = "0.0000"
+            xla.Cells(topLeftRow + i, topLeftCol + 1).HorizontalAlignment = const.xlCenter
+            xla.Cells(topLeftRow + i, topLeftCol + 2).Value = b
+            xla.Cells(topLeftRow + i, topLeftCol + 2).NumberFormat = "0.0000"
+            xla.Cells(topLeftRow + i, topLeftCol + 2).HorizontalAlignment = const.xlCenter
+
+
+def writeFittingResAVD(xla, s, r, Attributi, res):
+    ra = intestazioneSwapCurveSegmenti(xla, "", r, Attributi, nCols=2)
+    r = s.Range(ra)
+
+    topLeftRow = r.Row
+    topLeftCol = r.Column
+    xla.Cells(topLeftRow - 1, topLeftCol).Value = "Date"
+    xla.Cells(topLeftRow - 1, topLeftCol).HorizontalAlignment = const.xlCenter
+    xla.Cells(topLeftRow - 1, topLeftCol + 1).Value = "a"
+    xla.Cells(topLeftRow - 1, topLeftCol + 1).HorizontalAlignment = const.xlCenter
+    xla.Cells(topLeftRow - 1, topLeftCol + 2).Value = "b"
+    xla.Cells(topLeftRow - 1, topLeftCol + 2).HorizontalAlignment = const.xlCenter
+    xla.Cells(topLeftRow - 1, topLeftCol + 3).Value = "c"
+    xla.Cells(topLeftRow - 1, topLeftCol + 3).HorizontalAlignment = const.xlCenter
+    xla.Cells(topLeftRow - 1, topLeftCol + 4).Value = "d"
+    xla.Cells(topLeftRow - 1, topLeftCol + 4).HorizontalAlignment = const.xlCenter
+    xla.Cells(topLeftRow - 1, topLeftCol + 5).Value = "e"
+    xla.Cells(topLeftRow - 1, topLeftCol + 5).HorizontalAlignment = const.xlCenter
+
+    nRows = len(res['Dates'])
+    drawBox(xla, const.xlMedium, topLeftRow - 1, topLeftCol, topLeftRow + nRows - 1, topLeftCol + 5)
+    drawLine(xla, topLeftRow - 1, topLeftCol, topLeftRow - 1, topLeftCol + 5, "o", const.xlThin)
+    for i in range(nRows):
+        date = res['Dates'][i]
+        xla.Cells(topLeftRow + i, topLeftCol).Value = date
+        xla.Cells(topLeftRow + i, topLeftCol).NumberFormat = FORMAT
+        xla.Cells(topLeftRow + i, topLeftCol).HorizontalAlignment = const.xlCenter
+        if (i > 0):
+            a = res['a'][i - 1]
+            b = res['b'][i - 1]
+            c = res['c'][i - 1]
+            d = res['d'][i - 1]
+            e = res['e'][i - 1]
+            xla.Cells(topLeftRow + i, topLeftCol + 1).Value = a
+            xla.Cells(topLeftRow + i, topLeftCol + 1).NumberFormat = "0.0000"
+            xla.Cells(topLeftRow + i, topLeftCol + 1).HorizontalAlignment = const.xlCenter
+            xla.Cells(topLeftRow + i, topLeftCol + 2).Value = b
+            xla.Cells(topLeftRow + i, topLeftCol + 2).NumberFormat = "0.0000"
+            xla.Cells(topLeftRow + i, topLeftCol + 2).HorizontalAlignment = const.xlCenter
+            xla.Cells(topLeftRow + i, topLeftCol + 3).Value = c
+            xla.Cells(topLeftRow + i, topLeftCol + 3).NumberFormat = "0.0000"
+            xla.Cells(topLeftRow + i, topLeftCol + 3).HorizontalAlignment = const.xlCenter
+            xla.Cells(topLeftRow + i, topLeftCol + 4).Value = d
+            xla.Cells(topLeftRow + i, topLeftCol + 4).NumberFormat = "0.0000"
+            xla.Cells(topLeftRow + i, topLeftCol + 4).HorizontalAlignment = const.xlCenter
+            xla.Cells(topLeftRow + i, topLeftCol + 5).Value = e
+            xla.Cells(topLeftRow + i, topLeftCol + 5).NumberFormat = "0.0000"
+            xla.Cells(topLeftRow + i, topLeftCol + 5).HorizontalAlignment = const.xlCenter
+
+
+def writeFittingResSVE(xla, s, r, Attributi, res):
+    ra = intestazioneSwapCurveSegmenti(xla, "", r, Attributi, nCols=2)
+    r = s.Range(ra)
+
+    topLeftRow = r.Row
+    topLeftCol = r.Column
+    xla.Cells(topLeftRow - 1, topLeftCol).Value = "const1"
+    xla.Cells(topLeftRow - 1, topLeftCol).HorizontalAlignment = const.xlCenter
+    xla.Cells(topLeftRow - 1, topLeftCol + 1).Value = "const2"
+    xla.Cells(topLeftRow - 1, topLeftCol + 1).HorizontalAlignment = const.xlCenter
+    xla.Cells(topLeftRow - 1, topLeftCol + 2).Value = "beta 0"
+    xla.Cells(topLeftRow - 1, topLeftCol + 2).HorizontalAlignment = const.xlCenter
+    xla.Cells(topLeftRow - 1, topLeftCol + 3).Value = "beta 1"
+    xla.Cells(topLeftRow - 1, topLeftCol + 3).HorizontalAlignment = const.xlCenter
+    xla.Cells(topLeftRow - 1, topLeftCol + 4).Value = "beta 2"
+    xla.Cells(topLeftRow - 1, topLeftCol + 4).HorizontalAlignment = const.xlCenter
+    xla.Cells(topLeftRow - 1, topLeftCol + 5).Value = "beta 3"
+    xla.Cells(topLeftRow - 1, topLeftCol + 5).HorizontalAlignment = const.xlCenter
+
+    nRows = 1
+    drawBox(xla, const.xlMedium, topLeftRow - 1, topLeftCol, topLeftRow + nRows - 1, topLeftCol + 5)
+    drawLine(xla, topLeftRow - 1, topLeftCol, topLeftRow - 1, topLeftCol + 5, "o", const.xlThin)
+
+    const1 = res['const1']
+    const2 = res['const2']
+    beta0  = res['beta0']
+    beta1  = res['beta1']
+    beta2  = res['beta2']
+    beta3  = res['beta3']
+
+    xla.Cells(topLeftRow , topLeftCol ).Value = const1
+    xla.Cells(topLeftRow , topLeftCol ).NumberFormat = "0.0000"
+    xla.Cells(topLeftRow , topLeftCol ).HorizontalAlignment = const.xlCenter
+
+    xla.Cells(topLeftRow, topLeftCol+1).Value = const2
+    xla.Cells(topLeftRow, topLeftCol+1).NumberFormat = "0.0000"
+    xla.Cells(topLeftRow, topLeftCol+1).HorizontalAlignment = const.xlCenter
+
+    xla.Cells(topLeftRow, topLeftCol+2).Value = beta0
+    xla.Cells(topLeftRow, topLeftCol+2).NumberFormat = "0.0000"
+    xla.Cells(topLeftRow, topLeftCol+2).HorizontalAlignment = const.xlCenter
+
+    xla.Cells(topLeftRow, topLeftCol+3).Value = beta1
+    xla.Cells(topLeftRow, topLeftCol+3).NumberFormat = "0.0000"
+    xla.Cells(topLeftRow, topLeftCol+3).HorizontalAlignment = const.xlCenter
+
+    xla.Cells(topLeftRow, topLeftCol+4).Value = beta2
+    xla.Cells(topLeftRow, topLeftCol+4).NumberFormat = "0.0000"
+    xla.Cells(topLeftRow, topLeftCol+4).HorizontalAlignment = const.xlCenter
+
+    xla.Cells(topLeftRow, topLeftCol+5).Value = beta3
+    xla.Cells(topLeftRow, topLeftCol+5).NumberFormat = "0.0000"
+    xla.Cells(topLeftRow, topLeftCol+5).HorizontalAlignment = const.xlCenter
+
+
+
+def writeFittingResOnXls(crv, xla, opt_dict, res, pos):
     nameSheet = "ElabSwapCurve"
     try:
         s = xla.ActiveWorkbook.Sheets(nameSheet)
@@ -377,76 +513,48 @@ def writeFittingResOnXls(Bcurve, xla, opt_dict, res, pos):
     s.Activate()
 
     r = findBootstrappedCurveFromPos(xla, nameSheet,pos)
+    print "------------------indirizzo trovato:", r.Value, r.Address
+    #---
+    #mi posiziono nella prima cella utile per scrivere i risultati del fitting
+    #---
+    Attributi = \
+        {     "Date Ref"     : crv.ref_date
+            , "Segms:"       : "-"
+            , "Al"           : "-"
+            , "Description"  : crv.description
+            , "Currency"     : crv.curr
+            , "Download Type": crv.download_type
+            , "Quotation"    : crv.quotation
+            , "CurveType"    : crv.type
+            , "Return"       : "-"
+            , "Node Type"    : "-"
+            , "Interp. Model": fitt_translate[opt_dict['interp']]
+        }
 
+    row = r.Row
+    col = r.Column
+    r = xla.Range(xla.Cells(row+len(Attributi.keys())+1, col ),(xla.Cells(row+len(Attributi.keys())+1, col)))
 
-    # -----
+    while (r.Value!= None):
+        row = r.Row
+        col = r.Column
+        r = xla.Range(xla.Cells(row, col + 1), xla.Cells(row, col + 1))
+        if (r.Value == None):
+            row = r.Row
+            col = r.Column
+            r = xla.Range(xla.Cells(row, col + 1), xla.Cells(row, col + 1))
+    print "------------------posizione calcolata:", r.Value, r.Address
 
+    row = r.Row
+    col = r.Column
+    r = xla.Range(xla.Cells(row -( len(Attributi.keys()) +1), col), (xla.Cells(row -(len(Attributi.keys()) + 1), col)))
 
-    Attributi_1 = {"Date Ref": crv.ref_date
-        , "Description": crv.description
-        , "Currency": crv.curr
-        , "Download Type": crv.download_type
-        , "Quotation": crv.quotation
-        , "Source": crv.source
-        , "CurveType": crv.type
-        , "Return": "Zero Coupon"
-        , "Node Type": "Spot"
-        , "Boot Optons": str_boot_opt
-        , "Segms": str_segms
-                   }
+    print opt_dict
+    print opt_dict['interp'], type(opt_dict['interp'])
+    if      opt_dict['interp'] == '0':  writeFittingResLinear(xla, s, r, Attributi, res)
+    elif    opt_dict['interp'] == '1':  writeFittingResAVD(xla, s, r, Attributi, res)
+    else:                               writeFittingResSVE(xla, s, r, Attributi, res)
 
-    ################################################################################
-    ################################################################################
-    ################################################################################
-
-    # r2 = s.Range(xla.Cells(r.Row, r.Column + 3), xla.Cells(r.Row, r.Column + 3))
-    #
-    # ra = intestazioneSwapCurveSegmenti(xla, s, r, Attributi_1, nCols=2)
-    # rb = intestazioneSwapCurveSegmenti(xla, s, r2, Attributi_2, nCols=2)
-    # r = s.Range(ra)
-    #
-    # topLeftRow = r.Row
-    # topLeftCol = r.Column
-    #
-    # xla.Cells(topLeftRow - 1, topLeftCol).Value = "Date"
-    # xla.Cells(topLeftRow - 1, topLeftCol).HorizontalAlignment = const.xlCenter
-    # xla.Cells(topLeftRow - 1, topLeftCol + 1).Value = "Value"
-    # xla.Cells(topLeftRow - 1, topLeftCol + 1).HorizontalAlignment = const.xlCenter
-    #
-    # xla.Cells(topLeftRow - 1, topLeftCol + 3).Value = "Date"
-    # xla.Cells(topLeftRow - 1, topLeftCol + 3).HorizontalAlignment = const.xlCenter
-    # xla.Cells(topLeftRow - 1, topLeftCol + 4).Value = "Value"
-    # xla.Cells(topLeftRow - 1, topLeftCol + 4).HorizontalAlignment = const.xlCenter
-    # xla.Cells(topLeftRow - 1, topLeftCol + 5).Value = "Usage"
-    # xla.Cells(topLeftRow - 1, topLeftCol + 5).HorizontalAlignment = const.xlCenter
-    #
-    # nRows = len(res['DiscountFactors'])
-    #
-    # drawBox(xla, const.xlMedium, topLeftRow - 1, topLeftCol, topLeftRow + nRows - 1, topLeftCol + 1)
-    # drawLine(xla, topLeftRow - 1, topLeftCol, topLeftRow - 1, topLeftCol + 1, "o", const.xlThin)
-    #
-    # drawBox(xla, const.xlMedium, topLeftRow - 1, topLeftCol + 3, topLeftRow + nRows - 1, topLeftCol + 5)
-    # drawLine(xla, topLeftRow - 1, topLeftCol + 3, topLeftRow - 1, topLeftCol + 5, "o", const.xlThin)
-    # for i in range(nRows):
-    #     value = res['DiscountFactors'][i]
-    #     date = res['DateScadenza'][i]
-    #     rate = res['TassiZC'][i]
-    #
-    #     xla.Cells(topLeftRow + i, topLeftCol).Value = date
-    #     xla.Cells(topLeftRow + i, topLeftCol).NumberFormat = FORMAT
-    #     xla.Cells(topLeftRow + i, topLeftCol).HorizontalAlignment = const.xlCenter
-    #     xla.Cells(topLeftRow + i, topLeftCol + 1).Value = rate
-    #     xla.Cells(topLeftRow + i, topLeftCol + 1).NumberFormat = "0.00"
-    #     xla.Cells(topLeftRow + i, topLeftCol + 1).HorizontalAlignment = const.xlCenter
-    #
-    #     xla.Cells(topLeftRow + i, topLeftCol + 3).Value = date
-    #     xla.Cells(topLeftRow + i, topLeftCol + 3).NumberFormat = FORMAT
-    #     xla.Cells(topLeftRow + i, topLeftCol + 3).HorizontalAlignment = const.xlCenter
-    #     xla.Cells(topLeftRow + i, topLeftCol + 4).Value = value
-    #     xla.Cells(topLeftRow + i, topLeftCol + 4).NumberFormat = "0.00000"
-    #     xla.Cells(topLeftRow + i, topLeftCol + 4).HorizontalAlignment = const.xlCenter
-    #     xla.Cells(topLeftRow + i, topLeftCol + 5).Value = "Y"
-    #     xla.Cells(topLeftRow + i, topLeftCol + 5).HorizontalAlignment = const.xlCenter
 
 def readIntestazioneBootstrap(xla , r , cc):
     row              = r.Row

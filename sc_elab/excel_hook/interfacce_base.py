@@ -10,10 +10,6 @@ from win32com.client import constants as const
 #------
 def donothing():
     tkMessageBox.showinfo("Nothing To do", "bye bye")
-    # filewin = Toplevel(root)
-    # button = Button(filewin, text="Do nothing button")
-    # button.pack()
-    # filewin.mainloop()
 
 #-------------------
 class W_curveType (Frame):
@@ -318,7 +314,7 @@ class W_fit_opt(LabelFrame):
         T1 = Label(self, height=1, width=30, text="Interpolation Type:").grid(row=0, sticky="e")
         self.variable1 = StringVar(self)
         self.variable1.set("(0) Linear")  # default value
-        w1 = OptionMenu(self, self.variable1, "(LIN) Linear", "(AVD) Adam Van Deventer", "(SVE) Svensson")
+        w1 = OptionMenu(self, self.variable1, "(0) Linear", "(1) Adam Van Deventer", "(2) Svensson")
         w1.grid(row=0, column=1)
         w1.config(width=30)
 
@@ -328,8 +324,6 @@ class W_fit_opt(LabelFrame):
         w2 = OptionMenu(self, self.variable2, "1M", "3M", "6M", "12M")
         w2.grid(row=1, column=1)
         w2.config(width=30)
-
-
 
         T3 = Label(self, height=1, width=30, text="Graphs location (save):").grid(row=2, sticky="e")
         self.variable5 = StringVar(self)

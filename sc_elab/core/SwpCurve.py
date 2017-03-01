@@ -480,6 +480,7 @@ class Curve:
 
 
 
+
 class BootstrappedCurve(Curve):
 
     def __init__(self):
@@ -488,7 +489,7 @@ class BootstrappedCurve(Curve):
         self.boot_df    = []
         self.fit_usage  = []
 
-        Curve.setDefaults(self)
+        self.setDefaults()
 
 
     def show(self):
@@ -504,4 +505,5 @@ class BootstrappedCurve(Curve):
         print "------------------------------"
 
     def fitting(self, optDict):
+
         return fb.fitting()
