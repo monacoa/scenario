@@ -450,7 +450,17 @@ class Curve:
                 raw_data['ValoreNodo'].append(v)
                 raw_data['TipoSegmento'].append(code)
                 raw_data['MatDate'].append(d)
-        res = fb.boot3s_elab_v2(data_opt, raw_data)
+        try:
+            res = fb.boot3s_elab_v2(data_opt, raw_data)
+        except ValueError as ve:
+            from Tkinter import *
+            import tkMessageBox
+            root = Tk()
+            root.withdraw()
+            msg = ve.message #"Missing input sheet for Swap Curves in your workbook... \nNothing to do for me!"
+            tkMessageBox.showinfo("Warning!", msg)
+            root.destroy()
+            return None
         return res
 
     def fittingFromPY(self, optDict):

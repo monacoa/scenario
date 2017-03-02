@@ -1665,12 +1665,14 @@ def chkDataCoherence(dict1s, dict_f, dict_s):
     #s3 = list(set(dict_s['TipoSegmento']))
 
     if (len(s1)< 1):  # caso-1mo segmento non valorizzato       
-        print 'Primo segmento non valorizzato !!!'
-        raise ValueError('Primo segmento non valorizzato !!!' )
+        msg = 'Missing first Segm...  Check your input!'
+        print msg
+        raise ValueError(msg)
     
-    if (len(s1)> 1):  # caso-1mo segmento non valorizzato       
-        print 'Elaborazione interrotta: sono presenti sia tassi Libor che Depositi !!!'
-        raise ValueError('Elaborazione interrotta: sono presenti sia tassi Libor che Depositi !!!')
+    if (len(s1)> 1):
+        msg = 'Found BOTH Dept and Libor Rates... check your input!'
+        print msg
+        raise ValueError(msg)
 
     bool_stessi_nodi = False
     for nTmp in dict1s['Nodo']:
@@ -1681,8 +1683,9 @@ def chkDataCoherence(dict1s, dict_f, dict_s):
             nodo_sovrapposto = nTmp 
             
     if (bool_stessi_nodi == True):  # caso-1mo segmento non valorizzato       
-        print 'Elaborazione interrotta: sovrapposizione segmenti, vedi nodo %s !!' %(nodo_sovrapposto)
-        raise ValueError('Elaborazione interrotta: sovrapposizione segmenti, vedi nodo %s !!' %(nodo_sovrapposto))
+        msg = 'Segms overlapping (node: %s)... check your input!'%(nodo_sovrapposto)
+        print msg
+        raise ValueError(msg)
         
 def boot3s_elab_v2(data_opt, data_raw):
 

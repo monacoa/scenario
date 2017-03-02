@@ -9,10 +9,14 @@ from win32com.client import constants as const
 from DEF_intef import nameSheetBootstrap,nameSheetCurve
 
 #------
-def donothing():
-    tkMessageBox.showinfo("Nothing To do", "bye bye")
+
 
 class W_fittingType (Frame):
+    def donothing(self):
+        tkMessageBox.showinfo("Nothing To do!", "bye bye")
+        self.master.destroy()
+        return
+
     def __init__(self, master = None):
         Frame.__init__(self, master)
         self.master = master
@@ -21,7 +25,7 @@ class W_fittingType (Frame):
         filemenu.add_command(label="Fit Bootstrapped Curve", command=self.fit_boot_curve)
         filemenu.add_command(label="Fit par-yield Swap Curve", command=self.fit_py_curve)
         filemenu.add_separator()
-        filemenu.add_command(label="Exit", command = donothing)
+        filemenu.add_command(label="Exit", command = self.donothing)
 
         self.menubar.add_cascade(label="Click & Select Fitting Type", menu=filemenu)
         self.master.config(menu=self.menubar)
@@ -34,12 +38,17 @@ class W_fittingType (Frame):
 
         xla = xl_app()
         book = xla.ActiveWorkbook
-        s = book.Sheets(nameSheet)
-        s.Activate()
+        try:
+            s = book.Sheets(nameSheet)
+            s.Activate()
+        except:
+            msg ="Missing input sheet for Bootstrapped Curves in your workbook... \nNothing to do for me!"
+            tkMessageBox.showinfo("Warning!", msg)
+            self.master.destroy()
+            return None
+
         print "RECUPERO LA LISTA CURVE"
         curveL = readCurvesNames(xla, s, "B2", "v", 2)
-        print curveL
-
         self.new_window = W_fittingSelection(self, curveL)
 
 
@@ -48,17 +57,34 @@ class W_fittingType (Frame):
         nameSheet = nameSheetCurve
         xla = xl_app()
         book = xla.ActiveWorkbook
-        s = book.Sheets(nameSheet)
-        s.Activate()
+        try:
+            s = book.Sheets(nameSheet)
+            s.Activate()
+        except:
+            msg = "Missing input sheet for Swap py Curves in your workbook... \nNothing to do for me!"
+            tkMessageBox.showinfo("Warning!", msg)
+            self.master.destroy()
+            return None
+
         curveL = readCurvesNames(xla, s, "B2", "o", 5)
-        print curveL
         self.new_window = W_fittingSelection(self, curveL)
+
+
+
+
+
 
     def close_window(self):
         self.destroy()
 
 
 class W_fittingSelection(LabelFrame):
+
+    def donothing(self):
+        tkMessageBox.showinfo("Nothing To do!", "bye bye")
+        self.master.destroy()
+        return
+
     def __init__(self, master=None, curveL=[]):
         c_date = None
         if master:
@@ -91,7 +117,7 @@ class W_fittingSelection(LabelFrame):
         self.bar.config(command=self.mylist.yview)
         # -----------
         # cretae button
-        self.btn2 = Button(self, text="Cancel", command=self.close_window)
+        self.btn2 = Button(self, text="Cancel", command=self.donothing)
         self.btn2.pack(side=BOTTOM, fill='x')
         # cretae button
         self.btn1 = Button(self, text="Select", command=self.selected_fit_curve)
@@ -115,6 +141,11 @@ class W_fit_opt(LabelFrame):
         self.close_window()
 
     def close_window(self):
+        self.destroy()
+        self.master.destroy()
+
+
+    def donothing(self):
         self.destroy()
         self.master.destroy()
 
@@ -155,7 +186,7 @@ class W_fit_opt(LabelFrame):
         # questa istruzione va messa dopo il pack altrimenti non vienne intercettato il valore dal .get() successivo
         self.variable5.set("C://")
 
-        B1 = Button(self, text="Select", width=20, command=self.sel).grid(row=3, column=1, sticky='e')
-        B2 = Button(self, text="Cancel", width=20, command=self.close_window).grid(row=4, column=1, sticky='e')
+        B1 = Button(self, text="Submit", width=20, command=self.sel).grid(row=3, column=1, sticky='e')
+
 
         self.pack(fill="both", expand="yes")

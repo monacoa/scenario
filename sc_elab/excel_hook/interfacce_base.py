@@ -103,6 +103,15 @@ def bootstrap_from_xls(control):
 
     curve    = readCurveFromXls(xla, curveDes, curvePos, nameSheet)
     boot_out = curve.bootstrap(data_opt)
+    if boot_out == None:
+        # significa che ho intercettato un errore!
+        root = Tk()
+        root.withdraw()
+        msg = "Unable to perform curve bootstrap!"
+        tkMessageBox.showinfo("ERROR!", msg)
+        root.destroy()
+        return
+
     writeBootstrapResOnXls(curve, xla, str_boot_opt,boot_out)
 
 
@@ -116,18 +125,19 @@ from xls_fittingCurve import writeFittingBootResOnXls, writeFittingPyResOnXls
 from DEF_intef import nameSheetBootstrap
 @xl_func
 def fitting_from_xls(control):
-    nameSheet = nameSheetBootstrap
-    xla = xl_app()
-    book = xla.ActiveWorkbook
-    try:
-        s = book.Sheets(nameSheet)
-        s.Activate()
-    except:
-        root = Tk()
-        msg = "Missing sheet  for Bootstrap Elab in your workbook... \nNothing to do for me!"
-        tkMessageBox.showinfo("Warning!", msg)
-        root.destroy()
-        return
+
+    #nameSheet = nameSheetBootstrap
+    #xla = xl_app()
+    #book = xla.ActiveWorkbook
+    #try:
+    #    s = book.Sheets(nameSheet)
+    #    s.Activate()
+    #except:
+    #    root = Tk()
+    #    msg = "Missing sheet  for Bootstrap Elab in your workbook... \nNothing to do for me!"
+    #    tkMessageBox.showinfo("Warning!", msg)
+    #    root.destroy()
+    #    return
 
     root = Tk()
     # root.wm_withdraw()
@@ -150,13 +160,17 @@ def fitting_from_xls(control):
     opt_dict['fit_type']        = fit_type
     print "**********************options:", opt_dict
 
+    xla = xl_app()
+    book = xla.ActiveWorkbook
+
     if fit_type == "boot":
-        Bcurve = readBootstrappedCurveFromXls(xla, curveDes, curvePos, nameSheet)
-        res = Bcurve.fittingFromBoot(opt_dict)
+        nameSheet   = nameSheetBootstrap
+        Bcurve      = readBootstrappedCurveFromXls(xla, curveDes, curvePos, nameSheet)
+        res         = Bcurve.fittingFromBoot(opt_dict)
         writeFittingBootResOnXls(Bcurve, xla, opt_dict, res, curvePos)
     else:
-        nameSheet = nameSheetCurve
-        Bcurve = readCurveFromXls(xla, curveDes, curvePos, nameSheet)
+        nameSheet   = nameSheetCurve
+        Bcurve      = readCurveFromXls(xla, curveDes, curvePos, nameSheet)
         Bcurve.show()
-        res = Bcurve.fittingFromPY(opt_dict)
+        res         = Bcurve.fittingFromPY(opt_dict)
         writeFittingPyResOnXls(Bcurve, xla, opt_dict, res, curvePos)
