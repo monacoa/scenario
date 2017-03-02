@@ -1,7 +1,3 @@
-
-
-
-
 import sys
 import datetime as dtime
 import math
@@ -28,6 +24,27 @@ def FQ(label):
     print ('------------- FIN QUI TUTTO OK  %s ----------' %(label))
     sys.exit()
 
+
+def fitting():
+    #---
+    #esemplificativo dell'output richiesto per il fitting, da riempire solo i parametri del modello selezionato
+    #---
+    res = {'Dates'  : [datetime.date(2017,12,29), datetime.date(2017,12,30),datetime.date(2017,12,31)],
+           'a'      : [0.0,0.0],
+           'b'      : [0.9, 0.9],
+           'c'      : [0.111, 0.111],
+           'd'      : [0.222, 0.222],
+           'e'      : [0.333, 0.333],
+           'const1' : [0.44, 0.44],
+           'const2' : [0.55, 0.55],
+           'beta0'  : [0.1, 0.1],
+           'beta1'  : [0.2, 0.2],
+           'beta2'  : [0.3, 0.3],
+           'beta3'  : [0.4, 0.4]
+           }
+    return res
+
+
 def convertNodeToMnth(nodeRef):
 
     dict_N2T = {} 
@@ -37,7 +54,6 @@ def convertNodeToMnth(nodeRef):
     dict_N2T['1Y'] = 1
     
     timeNode = dict_N2T[nodeRef]
-    #timeNode = 6
 
     return timeNode
 
@@ -502,8 +518,9 @@ def compute_df_future(seg1_times, seg1_val, seg1_df,  futures_rates, flag_future
     t_s_target   = futures_start_time[indx_ref]
     t_e_target   = futures_end_time[indx_ref]
     
-    index_seg1_last_s = find_indx_toll(t_s_target, seg1_times, 0.01)
-    index_seg1_last_e = find_indx_toll(t_e_target, seg1_times, 0.01)
+    
+    index_seg1_last_s = find_indx_toll(t_s_target, seg1_times, 0.1)
+    index_seg1_last_e = find_indx_toll(t_e_target, seg1_times, 0.1)
 
     #index_seg1_last_s = find_indx_n(t_s_target, seg1_times)
     #index_seg1_last_e = find_indx_n(t_e_target, seg1_times)
@@ -2415,9 +2432,9 @@ def boot3s_elab_v2(data_opt, data_raw):
     merge_rates = data_merge['Rates']
     merge_df    = data_merge['Df']
 
-    flag_make_graph = 1
 
     
+    flag_make_graph = 0
     if (flag_make_graph == 1):
 
 
