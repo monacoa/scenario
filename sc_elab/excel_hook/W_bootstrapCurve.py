@@ -40,7 +40,7 @@ class W_bootstrapSelection (LabelFrame):
         self.bar.config(command=self.mylist.yview)
         # -----------
         # cretae button
-        self.btn2 = Button(self, text="Cancel", command=self.close_window)
+        self.btn2 = Button(self, text="Cancel", command=self.donothing)
         self.btn2.pack(side=BOTTOM, fill='x')
         # cretae button
         self.btn1 = Button(self, text="Select", command=self.selected_curve)
@@ -50,6 +50,9 @@ class W_bootstrapSelection (LabelFrame):
         self.destroy()
         #self.master.destroy()
 
+    def donothing(self):
+        self.destroy()
+        self.master.destroy()
     def selected_curve(self):
         #recupero la data selezionata
         curve = str((self.mylist.get(ACTIVE)))
@@ -62,12 +65,15 @@ class W_bootstrapSelection (LabelFrame):
 
 
 class  W_boot_opt(LabelFrame):
-    def sel(self):
-        self.close_window()
 
-    def close_window(self):
+    def sel(self):
+        self.donothing()
+
+
+    def donothing(self):
         self.destroy()
         self.master.destroy()
+        return
 
     def __init__ (self,  parent = None):
         if parent:
@@ -118,7 +124,6 @@ class  W_boot_opt(LabelFrame):
         #questa istruzione va messa dopo il pack altrimenti non vienne intercettato il valore dal .get() successivo
         self.variable5.set("C://")
 
-        B1 = Button(self, text="Select",  width=20, command=self.sel).grid(row=5, column=1, sticky ='e')
-        B2 = Button(self, text="Cancel",  width=20, command=self.close_window).grid(row=6, column=1, sticky ='e')
+        B1 = Button(self, text="Submit",  width=20, command=self.sel).grid(row=5, column=1, sticky ='e')
 
         self.pack(fill="both", expand="yes")
