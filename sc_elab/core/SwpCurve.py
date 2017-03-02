@@ -7,27 +7,7 @@ import sc_elab.core.mdates.dateutils as dateutils
 import datetime
 from dateutil.relativedelta import relativedelta
 import sc_elab.core.funzioni_base as fb
-
-dict_segm =\
-    {\
-      "CDepositi": "Dep"    \
-    , "CLibor"  : "Libor"   \
-    , "CFuture" : "Fut"     \
-    , "CSwap"   : "Swp"     \
-    , "CSwap1M" : "GSwp1M"  \
-    , "CSwap3M" : "GSwp3M"  \
-    }
-
-dict_segm2 =\
-    {\
-      "D"   : "Dep"     \
-    , "L"   : "Libor"   \
-    , "F"   : "Fut"     \
-    , "S"   : "Swp"     \
-    , "G1"  : "GSwp1M"  \
-    , "G3"  : "GSwp3M"  \
-    }
-
+from DEF_core import dict_segm2,dict_segm
 
 
 def revDict(do):
@@ -115,6 +95,12 @@ class Curve:
 
     def __init__(self):
         self.setDefaults()
+
+
+    def getCurveCode(self):
+        code = "C"
+        code += self.curr
+        #code += if self.source=='Bloomberg' :"BLM"  else: "OTH"
 
 
     def getStrSegms(self):
@@ -426,9 +412,6 @@ class Curve:
         con.close()
 
     def bootstrap(self, data_opt):
-
-
-
         data_opt['Basis'  ]    = {}
         data_opt['BusConv']    = {}
         data_opt['RegimeRate'] = {}
@@ -450,9 +433,6 @@ class Curve:
         data_opt['ParConvexity']['B'] = self.HWparms['sigma']
 
         data_opt['RefDate'] = self.ref_date
-
-
-
         #==========
         raw_data = {}
         raw_data ['UsaNodo']     = []
@@ -470,12 +450,7 @@ class Curve:
                 raw_data['ValoreNodo'].append(v)
                 raw_data['TipoSegmento'].append(code)
                 raw_data['MatDate'].append(d)
-
         res = fb.boot3s_elab_v2(data_opt, raw_data)
-        
-        
-        
-        #res = fb.boot3s_elab_n(data_opt, raw_data)
         return res
 
     def fittingFromPY(self, optDict):
@@ -485,20 +460,15 @@ class Curve:
 class BootstrappedCurve(Curve):
 
     def __init__(self):
-
         self.boot_dates = []
         self.boot_df    = []
         self.fit_usage  = []
-
         self.setDefaults()
 
-
     def show(self):
-
         Curve.show(self)
         print "------------------------------"
         print "Begin Show Bootstrap Vars:"
-
         for d,f,u in zip( self.boot_dates,self.boot_df,self.fit_usage):
             print "date:", d, "-- df:", f, "-- usage:", u
 
