@@ -1667,7 +1667,7 @@ def chkDataCoherence(dict1s, dict_f, dict_s):
         print 'Elaborazione interrotta: sovrapposizione segmenti, vedi nodo %s !!' %(nodo_sovrapposto)
         raise ValueError('Elaborazione interrotta: sovrapposizione segmenti, vedi nodo %s !!' %(nodo_sovrapposto))
         
-def boot3s_elab_v3(data_opt, data_raw):
+def boot3s_elab_v2(data_opt, data_raw):
 
     #%--------------------------------------------------------------------------
     #%-------------- RETRIEVE DATA  -----------------------------------------
@@ -2197,9 +2197,7 @@ def boot3s_elab_v3(data_opt, data_raw):
 
                     df_tmp1s[i] = df_from_interp_df_exp(t_target, df_n, df_o, t_n, t_o)
 
-                    print 't_target: ',t_target
-                    print 'df_tmp1s[i]: ',df_tmp1s[i]
-                    print '------------------------------------'
+                    
 
                 else:
     
@@ -2208,9 +2206,6 @@ def boot3s_elab_v3(data_opt, data_raw):
                     index_0 = find_indx_equal(dates_swap_tmp1s[i], merge_dates)                    
                     df_tmp1s[i] = merge_df[index_0]
     
-                    print 't_target: ',t_target
-                    print 'df_tmp1s[i]: ',df_tmp1s[i]
-                    print '------------------------------------'
         
         
         t_z_all      = np.concatenate((times_swap_tmp1s, times_swap_tmp2s))
@@ -2281,10 +2276,12 @@ def boot3s_elab_v3(data_opt, data_raw):
 
                     swp_tmp =  swap_val[m_i - 1]
                     
+                    """
                     print 't_swt_n: ', t_swt_n
                     print 't_swt_m: ', t_swt_m
                     print 'swp_tmp: ', swp_tmp
                     print '------------------------------------'
+                    """
                     
                     z_out = compute_z_from_cfr(z_out, tenors, swp_tmp, times_swap_new, t_swt_n, t_swt_m, times_swap_, df_fix_swap)
     
@@ -2311,7 +2308,7 @@ def boot3s_elab_v3(data_opt, data_raw):
                     z_out[nz] = compute_z_from_swap_rate(z_out_n, df_fix_swap, tenors_n, swp_tmp, tenors[i])
 
                     
-                    
+                    """
                     dt_ref = []
                     
                     t_n = times_swap_[i]
@@ -2325,10 +2322,11 @@ def boot3s_elab_v3(data_opt, data_raw):
 
                     r_out = compute_rates(dz_ref, dt_ref, regime_output)
                     
+                    
                     print 'r_out: ', r_out[0] 
                     print 't_n: ', t_n
                     print '-----------------------------------'
-                    
+                    """
         else:
             
             z_out = z_all
@@ -2461,7 +2459,7 @@ def boot3s_elab_v3(data_opt, data_raw):
 
 
 
-def boot3s_elab_v2(data_opt, data_raw):
+def boot3s_elab_v2_old(data_opt, data_raw):
 
     #%--------------------------------------------------------------------------
     #%-------------- RETRIEVE DATA  -----------------------------------------
