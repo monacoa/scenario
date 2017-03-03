@@ -57,6 +57,7 @@ class Segm:
     def getDayCount(self):
         try : return self.anag['DAY COUNT CONV.']
         except: zzzzzzzzzzzz
+
     def getAdj(self):
         try: return self.anag['DATE ADJ.']
         except: zzzzzzzzzzzz
@@ -98,10 +99,15 @@ class Curve:
 
 
     def getCurveCode(self):
-        code = "C"
-        code += self.curr
-        #code += if self.source=='Bloomberg' :"BLM"  else: "OTH"
-
+        codeL   = "C"
+        codeL  += self.curr
+        codeR   = "ZC"
+        codeR  += "BLM0" if self.source=='Bloomberg'  else "OTH"
+        dd      = "%02d"%self.ref_date.day
+        mm      = "%02d"%self.ref_date.month
+        yy      = (str(self.ref_date.year))
+        codeR  += dd+mm+yy[-2:]
+        return codeL, codeR
 
     def getStrSegms(self):
         sep = ""
@@ -470,18 +476,19 @@ class Curve:
 class BootstrappedCurve(Curve):
 
     def __init__(self):
+        Curve.__init__(self)
         self.boot_dates = []
         self.boot_df    = []
         self.fit_usage  = []
-        self.setDefaults()
+        self.boot_rates = []
+        #self.setDefaults()
 
     def show(self):
         Curve.show(self)
         print "------------------------------"
         print "Begin Show Bootstrap Vars:"
-        for d,f,u in zip( self.boot_dates,self.boot_df,self.fit_usage):
-            print "date:", d, "-- df:", f, "-- usage:", u
-
+        for d,f,r,u in zip( self.boot_dates,self.boot_df,self.boot_rates, self.fit_usage):
+            print "date:", d, "-- df:", f, "--rate:", r, "-- usage:", u
         print "End Show Bootstrap Vars"
         print "------------------------------"
 

@@ -50,22 +50,23 @@ def drawLine (xla, rTopLeft, cTopLeft, rBottomRight, cBottomRight, hor, spessore
         xla.Selection.Borders(const.xlEdgeRight).ColorIndex = const.xlAutomatic
 #----------
 def formatTestataCurva(xla,nRiga,nColonna,nLarghezza,testo):
+
     (xla.Range(xla.Cells(nRiga, nColonna), xla.Cells(nRiga, nColonna + nLarghezza - 1))).Select()
-    xla.Selection.HorizontalAlignment = const.xlCenter
-    xla.Selection.VerticalAlignment = const.xlBottom
-    xla.Selection.WrapText = False
-    xla.Selection.Orientation = 0
-    xla.Selection.AddIndent = False
-    xla.Selection.IndentLevel = 0
-    xla.Selection.ShrinkToFit = False
-    xla.Selection.ReadingOrder = const.xlContext
-    xla.Selection.MergeCells = False
+    xla.Selection.HorizontalAlignment   = const.xlCenter
+    xla.Selection.VerticalAlignment     = const.xlBottom
+    xla.Selection.WrapText              = False
+    xla.Selection.Orientation           = 0
+    xla.Selection.AddIndent             = False
+    xla.Selection.IndentLevel           = 0
+    xla.Selection.ShrinkToFit           = False
+    xla.Selection.ReadingOrder          = const.xlContext
+    xla.Selection.MergeCells            = False
     xla.Selection.Merge()
-    xla.Selection.Font.ColorIndex = 2
-    xla.Selection.Font.Bold = True
-    xla.Selection.Interior.ColorIndex = 55
-    xla.Selection.Interior.Pattern = const.xlSolid
-    xla.Selection.Value = testo
+    xla.Selection.Font.ColorIndex       = 2
+    xla.Selection.Font.Bold             = True
+    xla.Selection.Interior.ColorIndex   = 55
+    xla.Selection.Interior.Pattern      = const.xlSolid
+    xla.Selection.Value                 = testo
 #----------
 
 def readCurvesNames(xla, s, rangeStart, direzione, distanza):

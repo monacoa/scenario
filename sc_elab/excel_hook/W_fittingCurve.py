@@ -47,7 +47,6 @@ class W_fittingType (Frame):
             self.master.destroy()
             return None
 
-        print "RECUPERO LA LISTA CURVE"
         curveL = readCurvesNames(xla, s, "B2", "v", 2)
         self.new_window = W_fittingSelection(self, curveL)
 

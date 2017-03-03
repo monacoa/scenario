@@ -81,6 +81,7 @@ def bootstrap_from_xls(control):
     curveDes = W.curve
     curvePos = W.pos
 
+
     #opt
     opt_swaps     = (str(W.new_window.variable1.get()).strip(""))[1]
     opt_fut_gap   = (str(W.new_window.variable2.get()).strip(""))[1]
@@ -101,8 +102,11 @@ def bootstrap_from_xls(control):
     data_opt['FutureTenor']     = 90
     data_opt['Path']            = opt_path_graph
 
-    curve    = readCurveFromXls(xla, curveDes, curvePos, nameSheet)
-    boot_out = curve.bootstrap(data_opt)
+    curve        = readCurveFromXls(xla, curveDes, curvePos, nameSheet)
+    codeL, codeR = curve.getCurveCode()
+    boot_out     = curve.bootstrap(data_opt)
+    print "risultati bootstrap:", boot_out
+
     if boot_out == None:
         # significa che ho intercettato un errore!
         root = Tk()
@@ -112,7 +116,7 @@ def bootstrap_from_xls(control):
         root.destroy()
         return
 
-    writeBootstrapResOnXls(curve, xla, str_boot_opt,boot_out)
+    writeBootstrapResOnXls(curve, xla, str_boot_opt,boot_out, codeL, codeR)
 
 
 #=======================================================================================================================
@@ -126,22 +130,8 @@ from DEF_intef import nameSheetBootstrap
 @xl_func
 def fitting_from_xls(control):
 
-    #nameSheet = nameSheetBootstrap
-    #xla = xl_app()
-    #book = xla.ActiveWorkbook
-    #try:
-    #    s = book.Sheets(nameSheet)
-    #    s.Activate()
-    #except:
-    #    root = Tk()
-    #    msg = "Missing sheet  for Bootstrap Elab in your workbook... \nNothing to do for me!"
-    #    tkMessageBox.showinfo("Warning!", msg)
-    #    root.destroy()
-    #    return
-
     root = Tk()
     # root.wm_withdraw()
-    #W = W_fittingSelection(root, curveL)
     W = W_fittingType(root)
     root.mainloop()
 
@@ -174,3 +164,37 @@ def fitting_from_xls(control):
         Bcurve.show()
         res         = Bcurve.fittingFromPY(opt_dict)
         writeFittingPyResOnXls(Bcurve, xla, opt_dict, res, curvePos)
+
+
+#=======================================================================================================================
+# punto di ingresso per SAVE
+#=======================================================================================================================
+
+from W_saveCurve import W_saveType
+from db_saveCurve import saveZcDfOnDB
+@xl_func
+def save_from_xls(control):
+
+    print "Punto ingresso funzione di salvataggio"
+    root = Tk()
+    #root.wm_withdraw()
+    W = W_saveType(root)
+    root.mainloop()
+
+    DF = W.new_window.new_window.var1.get()
+    ZC = W.new_window.new_window.var2.get()
+
+    print "DF", DF, "ZC", ZC
+
+    type = W.saveType
+    pos = W.new_window.pos
+    des = W.new_window.curve
+
+    if type == "Boot":
+        DF = W.new_window.new_window.var1.get()
+        ZC = W.new_window.new_window.var2.get()
+        xla = xl_app()
+        book = xla.ActiveWorkbook
+        nameSheet = nameSheetBootstrap
+        saveZcDfOnDB(xla, nameSheet, des, pos, DF, ZC)
+

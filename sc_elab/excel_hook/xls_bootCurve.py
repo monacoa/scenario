@@ -12,53 +12,52 @@ from DEF_intef import FORMAT, nameSheetBootstrap
 
 
 
-def writeBootstrapResOnXls(crv, xla, str_boot_opt, res):
+def writeBootstrapResOnXls(crv, xla, str_boot_opt, res, codeL, codeR):
     nameSheet = nameSheetBootstrap
-
     try:
         s = xla.ActiveWorkbook.Sheets(nameSheet)
     except:
         s = xla.ActiveWorkbook.Sheets.Add()
         s.Name = nameSheet
-
     s.Activate()
-    rangeStart = "B2"
-    distCurve = 1
-    r = s.Range(rangeStart)
-    r = findRigthPlaceBootCurveSeg(xla, r, distCurve, "v")
-    str_segms = crv.getStrSegms()
+    rangeStart  = "B2"
+    distCurve   = 1
+    r           = s.Range(rangeStart)
+    r           = findRigthPlaceBootCurveSeg(xla, r, distCurve, "v")
+    str_segms   = res['CodiceCurva']
     # -----
-    Attributi_1 = {"Date Ref": crv.ref_date
-        , "Description": crv.description
-        , "Currency": crv.curr
-        , "Download Type": crv.download_type
-        , "Quotation": crv.quotation
-        , "Source": crv.source
-        , "CurveType": crv.type
-        , "Return": "Zero Coupon"
-        , "Node Type": "Spot"
-        , "Boot Optons": str_boot_opt
-        , "Segms": str_segms
-                   }
+    Attributi_1 = \
+        { "Date Ref"        : crv.ref_date
+        , "Description"     : crv.description
+        , "Currency"        : crv.curr
+        , "Download Type"   : crv.download_type
+        , "Quotation"       : crv.quotation
+        , "Source"          : crv.source
+        , "CurveType"       : crv.type
+        , "Return"          : "Zero Coupon"
+        , "Node Type"       : "Spot"
+        , "Boot Optons"     : str_boot_opt
+        , "Segms"           : str_segms
+        }
 
-    Attributi_2 = {"Date Ref": crv.ref_date
-        , "Description": crv.description
-        , "Currency": crv.curr
-        , "Download Type": crv.download_type
-        , "Quotation": crv.quotation
-        , "Source": crv.source
-        , "CurveType": crv.type
-        , "Return": "-"
-        , "Node Type": "Discount Factors"
-        , "Boot Optons": str_boot_opt
-        , "Segms": str_segms
-                   }
+    Attributi_2 = \
+        { "Date Ref"        : crv.ref_date
+        , "Description"     : crv.description
+        , "Currency"        : crv.curr
+        , "Download Type"   : crv.download_type
+        , "Quotation"       : crv.quotation
+        , "Source"          : crv.source
+        , "CurveType"       : crv.type
+        , "Return"          : "-"
+        , "Node Type"       : "Discount Factors"
+        , "Boot Optons"     : str_boot_opt
+        , "Segms"           : str_segms
+        }
 
     r2 = s.Range(xla.Cells(r.Row, r.Column + 3), xla.Cells(r.Row, r.Column + 3))
-
-    ra = intestazioneSwapCurveSegmenti(xla, s, r, Attributi_1, nCols=2)
-    rb = intestazioneSwapCurveSegmenti(xla, s, r2, Attributi_2, nCols=2)
-    r = s.Range(ra)
+    ra = intestazioneSwapCurveSegmenti(xla, s, r , Attributi_1, nCols=2, text = codeL+"ST"+codeR+"_"+res['CodiceCurva'])
+    rb = intestazioneSwapCurveSegmenti(xla, s, r2, Attributi_2, nCols=2, text = codeL+"DF"+codeR+"_"+res['CodiceCurva'])
+    r  = s.Range(ra)
 
     topLeftRow = r.Row
     topLeftCol = r.Column
@@ -134,7 +133,7 @@ def readIntestazioneBootstrap(xla , r , cc):
     return  xla.Range(xla.Cells(row + 13, col+3), xla.Cells(row + 13, col+3))
 
 
-def readDiscountFactors(xla , r , cc):
+def readRatesAndDiscountFactors(xla , r , cc):
     i   = 0
     row = r.Row
     col = r.Column
@@ -144,10 +143,12 @@ def readDiscountFactors(xla , r , cc):
 
         dd          = xla.Range(xla.Cells(row + i , col), xla.Cells(row + i, col)).Value
         data        = datetime.date(year=dd.year, month=dd.month, day=dd.day)
+        rate        = xla.Range(xla.Cells(row + i , col-2), xla.Cells(row + i, col-2)).Value
         df          = xla.Range(xla.Cells(row + i , col+1), xla.Cells(row + i, col+1)).Value
         use         = xla.Range(xla.Cells(row + i , col+2), xla.Cells(row + i, col+2)).Value
         cc.boot_dates.append(data)
         cc.boot_df.append(df)
+        cc.boot_rates.append(rate)
         cc.fit_usage.append(use)
         i += 1
 
@@ -181,5 +182,6 @@ def readBootstrappedCurveFromXls(xla, des, pos, nameSheet):
     cc          = BootstrappedCurve()
     r           = readIntestazioneBootstrap(xla, r,cc)
 
-    readDiscountFactors(xla, r, cc)
+    readRatesAndDiscountFactors(xla, r, cc)
+
     return cc

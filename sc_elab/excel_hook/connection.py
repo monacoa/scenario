@@ -20,6 +20,9 @@ class Connection:
 
         return self.db_ang
 
+    def db_save(self):
+        return self.db_anag()
+
     def close(self):
         if self.db_dta: self.db_dta.close()
         del(self.db_dta)
