@@ -9,28 +9,26 @@ from xls_utils import drawBox, drawLine, formatTestataCurva, findRigthPlaceBootC
 from DEF_intef import FORMAT
 
 
-def intestazioneSwapCurveSegmenti( xla, sheet, rng,  attributi,nCols = 2):
-    nRows = len(attributi.keys())
-    topLeftRow = rng.Row
-    topLeftCol = rng.Column
+def intestazioneSwapCurveSegmenti( xla, sheet, rng,  attributi, nCols = 2, text= None):
+
+    txt = text if text!=None else attributi['description']
+    nRows           = len(attributi.keys())
+    topLeftRow      = rng.Row
+    topLeftCol      = rng.Column
     drawBox            (xla, 3,topLeftRow, topLeftCol,topLeftRow + nRows, topLeftCol + nCols - 1, 0)
-    formatTestataCurva (xla, topLeftRow, topLeftCol, nCols, attributi["Description"])
+    formatTestataCurva (xla, topLeftRow, topLeftCol, nCols, txt)
 
     kk = (attributi.keys())
     kk.sort()
     i = 0
     for k in kk:
-        a= xla.Cells(topLeftRow + 1+ i, topLeftCol)
-        a.Value = k
-
-        b = xla.Cells(topLeftRow + 1+ i, topLeftCol+1)
-
-        b.Value = attributi[k]
-
+        xla.Cells(topLeftRow + 1+ i, topLeftCol).Value   = k
+        xla.Cells(topLeftRow + 1+ i, topLeftCol+1).Value = attributi[k]
         if (type(attributi[k]) == datetime.datetime) or (type(attributi[k]) == datetime.date):
-            b.NumberFormat = FORMAT
-        b.HorizontalAlignment = const.xlCenter
+            xla.Cells(topLeftRow + 1 + i, topLeftCol + 1).NumberFormat = FORMAT
+        xla.Cells(topLeftRow + 1 + i, topLeftCol + 1).HorizontalAlignment = const.xlCenter
         i+=1
+
     rangeStart = xla.Cells(topLeftRow + nRows + 2, topLeftCol).Address
     return rangeStart
 
