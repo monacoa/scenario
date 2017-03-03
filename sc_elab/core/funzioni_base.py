@@ -217,7 +217,7 @@ def select_segments(data_raw_p):
             mat_f.append(mat_tmp)
             nodo_f.append(nd_tmp)
 
-        elif (ts_tmp == 'S'):      
+        elif (ts_tmp == 'S') or (ts_tmp == '3G'):      
 
             ts_s.append(ts_tmp)
             valore_s.append(vn_tmp)
@@ -376,17 +376,19 @@ def find_indx(x_target, x_list_ref):
 
     for i in range(0, len(x_list_ref)):
 
-        if (x_list_ref[0] > x_target): 
+        if (x_target < x_list_ref[0]): 
             i_ref = None
             break
+
+        elif (x_target > x_list_ref[ln]) : 
+            i_ref = None
+            break
+
          
         elif (x_list_ref[i] == x_target) and (i == 0): 
             i_ref = i
             break
 
-        elif (x_list_ref[ln] < x_target): 
-            i_ref = None
-            break
         
         elif (x_list_ref[i] >= x_target):
             i_ref = i - 1
@@ -403,23 +405,26 @@ def find_indx_toll(x_target, x_list_ref, toll):
 
     ln = len(x_list_ref) - 1
 
-    for i in range(0, len(x_list_ref)):
+    if (x_target < x_list_ref[0]): 
+        i_ref = 0
 
-        if (abs(x_list_ref[i] - x_target) < toll ): 
-            i_ref = i
-            break
+    elif (x_target > x_list_ref[ln]): 
+        i_ref = ln
 
-        elif (x_list_ref[0] > x_target): 
-            i_ref = 0
-            break
-         
-        elif (x_list_ref[ln] < x_target): 
-            i_ref = ln
-            break
+    else:
 
-        else:
-
-            continue
+        for i in range(0, len(x_list_ref)):
+    
+            if (abs(x_list_ref[i] - x_target) < toll ): 
+                i_ref = i
+                break
+    
+            elif (x_target < x_list_ref[i] - toll/2.0): 
+                i_ref = i
+    
+            else:
+    
+                continue
 
     return i_ref
 
@@ -477,6 +482,17 @@ def find_indx_equal(x_target, x_list_ref):
 
 
 
+def interp_df(t_s_target, df_n_s, df_o_s, t_n_s, t_o_s, flag_interp1):
+        
+    if (flag_interp1 == 1):  #%----------intepolazione esponenziale sui fattori di sconto ---------------
+    
+        futures_start_df_0 =  df_from_interp_df_exp(t_s_target, df_n_s, df_o_s, t_n_s, t_o_s)
+    
+    else: #%-------------- interpolazione lineare sui tassi -----------------------
+        
+        futures_start_df_0 = df_from_interp_R_lin(t_s_target, df_n_s, df_o_s, t_n_s, t_o_s)
+
+    return futures_start_df_0
 
 
 def df_from_interp_df_exp(t_target, df_n, df_o, t_n, t_o):
@@ -518,158 +534,108 @@ def compute_df_future(seg1_times, seg1_val, seg1_df,  futures_rates, flag_future
     t_s_target   = futures_start_time[indx_ref]
     t_e_target   = futures_end_time[indx_ref]
     
-    
-    index_seg1_last_s = find_indx_toll(t_s_target, seg1_times, 0.1)
-    index_seg1_last_e = find_indx_toll(t_e_target, seg1_times, 0.1)
+    indx_seg1_last_s = find_indx(t_s_target, seg1_times)
+    indx_seg1_last_e = find_indx(t_e_target, seg1_times)
 
-    #index_seg1_last_s = find_indx_n(t_s_target, seg1_times)
-    #index_seg1_last_e = find_indx_n(t_e_target, seg1_times)
-    
+
     
     index_cross     = find_indx_equal(futures_start_time[indx_ref], seg1_times)
     
 
-
-    if (indx_ref == 0):
-
-        print 'AAAA'
-        """
-        t_o  = seg1_times[index_seg1_last_s]
-        t_oo  = seg1_times[index_seg1_last_s-1]
-
-        df_o = seg1_df[index_seg1_last_s]
-        df_oo = seg1_df[index_seg1_last_s-1]
-        """
-    else:
-
+    if (indx_ref != 0):
         df_o = futures_end_df_x[indx_ref-1]
-        t_o  = futures_end_time[indx_ref-1]
         
-        futures_rates_old = futures_rates[indx_ref - 1]
+    t_o  = futures_end_time[indx_ref-1]
+    
+    futures_rates_old = futures_rates[indx_ref - 1]
 
-    futures_rates_target = futures_rates[indx_ref]
     
     
-    if (index_cross != None):
+    if (index_cross != None): # caso sovrapposizione
         futures_start_1 = seg1_df[index_cross]
-        
-        
+
         futures_start_df_0 = futures_start_1
-         
+        futures_rates_target = futures_rates[indx_ref]
+
         futures_end_df_0 = futures_start_1/(1.0 + futures_rates_target*(futures_end_time[indx_ref] - t_s_target) )
         
         
 
-    elif (seg1_times[len(seg1_times)-1] > t_s_target): #% controllo della sovrapposizione: seg1 e futures
+    elif (t_s_target < seg1_times[len(seg1_times)-1]): #% controllo della sovrapposizione: seg1 e futures
 
-        t_o_s  = futures_end_time[indx_ref-1]
-        t_o_e  = futures_end_time[indx_ref-1]
 
-        #t_o_s  = seg1_times[index_seg1_last_s]
-        t_n_s  = seg1_times[index_seg1_last_s + 1]
-        df_n_s = seg1_df[index_seg1_last_s + 1] 
-        df_o_s = seg1_df[index_seg1_last_s]        
+
+        df_o_s = seg1_df[indx_seg1_last_s]        
+        df_n_s = seg1_df[indx_seg1_last_s + 1] 
+
+        t_o_s = seg1_times[indx_seg1_last_s]        
+        t_n_s = seg1_times[indx_seg1_last_s + 1] 
+
+
+        futures_start_df_0 = interp_df(t_s_target, df_n_s, df_o_s, t_n_s, t_o_s, flag_interp1)
         
-        if (index_seg1_last_e != len(seg1_times) - 1):    
+        if (t_e_target < seg1_times[len(seg1_times)-1]):
 
-            t_o_e  = seg1_times[index_seg1_last_e] 
-            t_n_e  = seg1_times[index_seg1_last_e + 1]
-            df_n_e = seg1_df[index_seg1_last_e + 1] 
-            df_o_e = seg1_df[index_seg1_last_e]        
+            df_o_e = seg1_df[indx_seg1_last_e]        
+            df_n_e = seg1_df[indx_seg1_last_e + 1] 
 
+            t_o_e = seg1_times[indx_seg1_last_e]        
+            t_n_e = seg1_times[indx_seg1_last_e + 1] 
 
-        
-        
-        t_o_s1_s  = seg1_times[index_seg1_last_s]
-        df_o_s1_s = seg1_df[index_seg1_last_s]
-
-        t_o_s1_e  = seg1_times[index_seg1_last_e]
-        df_o_s1_e = seg1_df[index_seg1_last_e]
-        
-        if (t_o_s1_s > t_o_s):
+            futures_end_df_0 = interp_df(t_e_target, df_n_e, df_o_e, t_n_e, t_o_e, flag_interp1)
             
-            t_o_s  = t_o_s1_s
-            df_o_s = df_o_s1_s
-        
-
-        if (index_seg1_last_e != None) and (t_o_s1_e > t_o_e):
+        else:
             
-            t_o_e  = t_o_s1_e
-            df_o_e = df_o_s1_e
-        
-
-
-        if (flag_interp1 == 1): #%----- SI SOVRAPPOSIZIONE
-
-            #%----------intepolazione esponenziale sui fattori di scont ---------------
-            futures_start_df_0 =  df_from_interp_df_exp(t_s_target, df_n_s, df_o_s, t_n_s, t_o_s)
-
-            if (seg1_times[len(seg1_times)-1] > t_e_target):
-                
-                futures_end_df_0 = df_from_interp_df_exp(t_e_target, df_n_e, df_o_e, t_n_e, t_o_e)
-                
-            else:
-                futures_rates_target = futures_rates[indx_ref]                    
-                futures_end_df_0 = futures_start_df_0/(1.0 + futures_rates_target*(futures_end_time[indx_ref] - t_s_target))
-
-
-        else: #%-------------- interpolazione lineare sui tassi -----------------------
-            
-            futures_start_df_0 = df_from_interp_R_lin(t_s_target, df_n_s, df_o_s, t_n_s, t_o_s)
-
-        
-            if (seg1_times[len(seg1_times)-1] > t_e_target):
-                
-                futures_end_df_0 = df_from_interp_R_lin(t_e_target, df_n_e, df_o_e, t_n_e, t_o_e)
-
-            else:        
-                futures_rates_target = futures_rates[indx_ref]                    
-                futures_end_df_0 = futures_start_df_0/(1.0 + futures_rates_target*(futures_end_time[indx_ref] - t_s_target))
-        
-        
-        
+            futures_rates_target = futures_rates[indx_ref]                    
+            futures_end_df_0 = futures_start_df_0/(1.0 + futures_rates_target*(futures_end_time[indx_ref] - t_s_target))
+    
 
     else:  # ---- NO SOVRAPPOSIZIONE
 
-        #t_n = futures_start_time[indx_ref + 1]
-        t_o = futures_start_time[indx_ref - 1]
-
+        #t_o  = futures_start_time[indx_ref - 1]
+        t_o  = futures_end_time[indx_ref - 1]
         df_o = futures_end_df_x[indx_ref-1]
-        t_o  = futures_end_time[indx_ref-1]
 
-        
         #--------------------------
 
-        #df_n = seg1_df[index_seg1_last + 1] 
         futures_rates_target = futures_rates[indx_ref]
-        
-        #if (indx_ref == 0):
         
         if (indx_ref == 0) and (len(seg1_val) == 0):
                 
             R_start1 = futures_rates_target
             futures_start_df_0 = np.exp(-R_start1*futures_start_time[indx_ref])
         
-        elif (flag_futures_gap == 1) and (len(seg1_val) > 0): #------------ gap colmato mantenedo costante il tasso spot
+        elif (int(flag_futures_gap) == 1) and (len(seg1_val) > 0): #------------ gap colmato mantenedo costante il tasso spot
 
-            R_start1            = -np.log(df_o)/t_o #CHK indici 
+
+            if (indx_ref == 0):
+                 
+                ln_s = len(seg1_df)-1
+                df_o = seg1_df[ln_s]
+                t_o   = seg1_times[ln_s]
+
+
+            R_start1            = -np.log(df_o)/t_o #CHK indici
+            
             
             futures_start_df_0 =  np.exp(-R_start1*t_s_target)
             
         else:  #------------ gap colmato mantenedo costante il tasso fwd ---------------------------------------------
             
-            #fwd_start1         = -np.log(df_n/df_o )/(t_n - t_o)
             
             if (indx_ref == 0):
                 
-                t_o  = seg1_times[index_seg1_last_s]
-                t_oo  = seg1_times[index_seg1_last_s-1]
+                
+                ln_s = len(seg1_times)-1
+                t_o   = seg1_times[ln_s]
+                t_oo  = seg1_times[ln_s-1]
         
-                df_o = seg1_df[index_seg1_last_s]
-                df_oo = seg1_df[index_seg1_last_s-1]
+                df_o = seg1_df[ln_s]
+                df_oo = seg1_df[ln_s-1]
                 
                 fwd_start1         = -np.log(df_o/df_oo)/(t_o - t_oo)
                 futures_start_df_0 = df_o*np.exp(-fwd_start1*(t_s_target - t_o ))
+                
 
             else:
                 fwd_start1         = futures_rates_old
@@ -679,6 +645,9 @@ def compute_df_future(seg1_times, seg1_val, seg1_df,  futures_rates, flag_future
 
 
         futures_end_df_0 = futures_start_df_0/(1 + futures_rates_target*(t_e_target - t_s_target) )
+        #dr = 1.0/(t_e_target - t_s_target)*(futures_start_df_0/futures_end_df_0 - 1.0)
+
+
 
     futures_end_df_x[indx_ref] = futures_end_df_0
 
@@ -686,6 +655,7 @@ def compute_df_future(seg1_times, seg1_val, seg1_df,  futures_rates, flag_future
     #dr = 1.0/(t_e_target - t_s_target)*(futures_start_df_0/futures_end_df_0 - 1.0)
     
     
+     
     return futures_start_df_0, futures_end_df_0, futures_end_df_x 
 
 
@@ -948,7 +918,7 @@ def purge_data(data_out, ref_field, val_not_allowed):
         
             valRefTmp = data_out[ref_field][i]
         
-            if (valRefTmp == val_not_allowed):
+            if (valRefTmp in val_not_allowed):
                 continue
             else:
                 new_vec.append(data_out[kk][i])
@@ -1661,6 +1631,12 @@ def boot3s_elab(data_opt, data_raw):
 def chkDataCoherence(dict1s, dict_f, dict_s):
     
     s1 = list(set(dict1s['TipoSegmento']))
+    
+    try:
+        s1.remove('3G')
+    except:
+        
+        pass
     #s2 = list(set(dict_f['TipoSegmento']))
     #s3 = list(set(dict_s['TipoSegmento']))
 
@@ -1691,12 +1667,15 @@ def boot3s_elab_v2(data_opt, data_raw):
     #%--------------------------------------------------------------------------
 
 
-    ref_field = 'UsaNodo'
-    val_not_allowed = 'N'
+    ref_field       = 'UsaNodo'
+    val_not_allowed = ['N', 'n']
 
     data_raw_p = purge_data(data_raw, ref_field, val_not_allowed)
     
     dict1s, dict_f, dict_s = select_segments(data_raw_p)
+    
+    flag_f = (len(dict_f['Nodo'])>0)
+    flag_s = (len(dict_s['Nodo'])>0)
     
     chkDataCoherence(dict1s, dict_f, dict_s)
     
@@ -1712,20 +1691,42 @@ def boot3s_elab_v2(data_opt, data_raw):
 
     seg1_dates  = dict1s['MatDate']
     seg1_values = dict1s['ValoreNodo']
-
-    futures_start_dates = dict_f['MatDate']
-    futures_values      = dict_f['ValoreNodo']
-    
-    swap_dates          = dict_s['MatDate']
-    swap_val            = dict_s['ValoreNodo']
-
     seg1_values = seg1_values/100.0
-    swap_val = swap_val/100.0
+
+    n1s  = len(seg1_dates)
+
+    if (flag_f == True):
+
+        futures_start_dates = dict_f['MatDate']
+        futures_values      = dict_f['ValoreNodo']
+        nf   = len(futures_start_dates)
+
+        basis_f = data_opt['Basis']['F']
+        basis_f = convert_basis(basis_f)
+        day_conv_f = data_opt['BusConv']['F']
+    
+    
+    if (flag_s == True):
+        
+        swap_dates          = dict_s['MatDate']
+        swap_val            = dict_s['ValoreNodo']
+
+        swap_val = swap_val/100.0
+        nsw = len(swap_dates)
+        
+        basis_s = data_opt['Basis']['S']
+        basis_s = convert_basis(basis_s)
+        day_conv_s = data_opt['BusConv']['S']
+
+        par_a = data_opt['ParConvexity']['A']
+        par_b = data_opt['ParConvexity']['B']
+    
+        par_convexity    = [par_a, par_b]
+    
+        tenor_swap       = data_opt['TenorSwap']
+        tenor_swap       = convertNodeToMnth(tenor_swap)
 
     
-    n1s  = len(seg1_dates)
-    nf   = len(futures_start_dates)
-    nsw = len(swap_dates)
     
     
 
@@ -1737,13 +1738,6 @@ def boot3s_elab_v2(data_opt, data_raw):
 
     ref_date = data_opt['RefDate'] 
     
-    par_a = data_opt['ParConvexity']['A']
-    par_b = data_opt['ParConvexity']['B']
-
-    par_convexity    = [par_a, par_b]
-
-    tenor_swap       = data_opt['TenorSwap']
-    tenor_swap       = convertNodeToMnth(tenor_swap)
     
     
     
@@ -1765,14 +1759,9 @@ def boot3s_elab_v2(data_opt, data_raw):
     mkt_code = data_opt['MKT']
     mkt_ref  = holidays.get_calendar(mkt_code)
     
-    basis_s = data_opt['Basis']['S']
-    basis_f = data_opt['Basis']['F']
-
-    basis_f = convert_basis(basis_f)
-    basis_s = convert_basis(basis_s)
-
-    day_conv_f = data_opt['BusConv']['F']
-    day_conv_s = data_opt['BusConv']['S']
+    
+    
+        
     day_conv_tn = setting_default['BusConv']['TN']
     day_conv_on = setting_default['BusConv']['O/N']
 
@@ -1795,7 +1784,7 @@ def boot3s_elab_v2(data_opt, data_raw):
 
     '-------------- generazione scadenza futures ------------------------------'
     
-    if (len(futures_start_dates) > 0):
+    if (flag_f == True):
 
 
         futures_end_dates = increase_datetime_list(futures_start_dates, future_tenor)
@@ -1818,7 +1807,7 @@ def boot3s_elab_v2(data_opt, data_raw):
         
         
     
-    if (len(futures_values) > 0):
+    if (flag_f == True):
 
         futures_end_dates_n = futures_end_dates
         futures_end_dates_n.insert(0, ref_date)
@@ -1843,7 +1832,7 @@ def boot3s_elab_v2(data_opt, data_raw):
 
 
 
-    if (len(swap_dates)> 0):
+    if (flag_s == True):
 
         
         swap_dates_n = swap_dates
@@ -1942,7 +1931,7 @@ def boot3s_elab_v2(data_opt, data_raw):
     #%-------------- ELABORAZIONE SEGMENTO FUTURES -----------------------------
     #%--------------------------------------------------------------------------
 
-    if (nf > 0):
+    if (flag_f == True):
   
         futures_rates = (100.0 - futures_values)/100.0  #-------- tasso future
     
@@ -2003,6 +1992,7 @@ def boot3s_elab_v2(data_opt, data_raw):
     
     else:
 
+        futures_end_times = [999]
         futures_start_times = [999]
         futures_times       = [999]
         futures_rates       = [999]
@@ -2016,7 +2006,7 @@ def boot3s_elab_v2(data_opt, data_raw):
 
     #print'merge_times: ', len(merge_times) 
     
-    swap_discount_factor = np.zeros(len(swap_dates))
+    #swap_discount_factor = np.zeros(len(swap_dates))
 
     #%----------------------------------------------------------------------------------------------
     #%-------------- ELABORAZIONE SEGMENTO SWAP: FATTORI DI SCONTO A PARTIRE DAI TASSI SWAP ---------
@@ -2025,8 +2015,9 @@ def boot3s_elab_v2(data_opt, data_raw):
     #'merge_df: ', merge_df
     #FQ(2233)
     
-    if (nsw > 0):
+    if (flag_s == True):
 
+        swap_discount_factor = np.zeros(len(swap_dates))
 
         index_last = find_indx(fix_swap_date, merge_dates)
 
@@ -2186,13 +2177,11 @@ def boot3s_elab_v2(data_opt, data_raw):
                 if all(merge_df == 1):
                     fwd = swap_val[0]
                     df_tmp1s[i] = np.exp(-fwd*(times_swap_tmp1s[i]- merge_times[len(merge_times)-1]))
-                    print 'fwd: ',fwd
             
                 else:
 
                     fwd         = -np.log(merge_df[len(merge_df)-1]/merge_df[len(merge_df)-2])/(merge_times[len(merge_times)-1] - merge_times[len(merge_times)-2])
                     df_tmp1s[i] = np.exp(-fwd*(times_swap_tmp1s[i]- merge_times[len(merge_times)-1]))
-                    print 'fwd: ',fwd
     
             else: #%--- INTERPOLAZIONE --------------------------
     
@@ -2361,8 +2350,6 @@ def boot3s_elab_v2(data_opt, data_raw):
         swap_times_adj_n    = np.round(swap_times_x[1:]/(tenor_swap/12.0))*(tenor_swap/12.0)
         
         
-        print ''
-        
         #swp__ = np.round(swap_times_x/(tenor_swap/12.0), 0)
         #swap_times_adj = np.round(swp__*(tenor_swap/12.0),1)
         
@@ -2421,6 +2408,7 @@ def boot3s_elab_v2(data_opt, data_raw):
         
         swap_times = [999]
         swap_val   = [999]
+        swap_discount_factor =[999]
             
         
     #%-------------------------------------------------------------------------
@@ -2437,15 +2425,12 @@ def boot3s_elab_v2(data_opt, data_raw):
     flag_make_graph = 0
     if (flag_make_graph == 1):
 
-
-       
-        g1 = graphrates(seg1_times[1:], seg1_values, futures_start_times, futures_rates, swap_times, swap_val, merge_times, merge_rates)
+        g1 = graphrates(seg1_times[1:], seg1_values, futures_end_times, futures_rates, swap_times, swap_val, merge_times, merge_rates)
         g2 = graphdf(seg1_times, seg1_df, futures_times, futures_df, swap_times, swap_discount_factor)
 
         '--------------- save graph ------------------------------------------------------------'
 
     flag_save_graph = 0
-    
     if (flag_save_graph == 1):
     
         
@@ -2475,7 +2460,7 @@ def boot3s_elab_v2(data_opt, data_raw):
 
 
 
-
+"""
 def boot3s_elab_v2_old(data_opt, data_raw):
 
     #%--------------------------------------------------------------------------
@@ -3056,26 +3041,25 @@ def boot3s_elab_v2_old(data_opt, data_raw):
 
                     swp_tmp =  swap_val[m_i-1]
 
-                    """
-                    print 't_swt_n: ', t_swt_n
-                    print 't_swt_m: ', t_swt_m
-                    print 'swp_tmp: ', swp_tmp
-                    """
+                    
+                    #print 't_swt_n: ', t_swt_n
+                    #print 't_swt_m: ', t_swt_m
+                    #print 'swp_tmp: ', swp_tmp
+                    
                     
                     z_out = compute_z_from_cfr(z_out, tenors, swp_tmp, times_swap_new, t_swt_n, t_swt_m, times_swap_, df_fix_swap)
 
                     
-                    """
-                    dt_ref.append(t_swt_n)  
-                    dt_ref.append(t_swt_m)  
-                    dt_ref = np.asarray(dt_ref)
-                    dz_ref = z_out[m_i-1:m_i+1]
-                    r_out = compute_rates(dz_ref, dt_ref, regime_output)
-                    print 'r_out: ', r_out[0] 
-                    print 't_n: ', t_n
-                    print '-----------------------------------'
-                    """
                     
+                    #dt_ref.append(t_swt_n)  
+                    #dt_ref.append(t_swt_m)  
+                    #dt_ref = np.asarray(dt_ref)
+                    #dz_ref = z_out[m_i-1:m_i+1]
+                    #r_out = compute_rates(dz_ref, dt_ref, regime_output)
+                    #print 'r_out: ', r_out[0] 
+                    #print 't_n: ', t_n
+                    #print '-----------------------------------'
+                                        
                     k = k + 1
                 else:
 
@@ -3142,12 +3126,10 @@ def boot3s_elab_v2_old(data_opt, data_raw):
             indxTmp = find_indx_n(swap_times_adj[i], times_swap_[1:])            
             swap_discount_factor[i] = z_out[indxTmp+1]
             
-            """
-            try:
-                swap_discount_factor[i] = z_out[indxTmp + 1]
-            except:
-                swap_discount_factor[i] = z_out[indxTmp]
-            """
+            #try:
+            #    swap_discount_factor[i] = z_out[indxTmp + 1]
+            #except:
+            #    swap_discount_factor[i] = z_out[indxTmp]
         swap_rates_out = compute_rates(swap_discount_factor, swap_times_adj, regime_output)
 
 
@@ -3220,13 +3202,13 @@ def boot3s_elab_v2_old(data_opt, data_raw):
     return data_elab_out
 
 
-
+"""
 
 
 
 
   
-
+"""
 def boot3s_elab_n(data_opt, data_raw):
     
     
@@ -3376,7 +3358,7 @@ def boot3s_elab_n(data_opt, data_raw):
     #FQ(223)
     
     return data_elab_out
-
+"""
 def convert_basis(basis_to_convert):
     
     validated_basis = {}
