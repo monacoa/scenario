@@ -106,6 +106,10 @@ def readIntestazioneBootstrap(xla , r , cc):
     row              = r.Row
     col              = r.Column
 
+
+    if type(cc) == BootstrappedCurve : cc.code          = ((r.Value).split("_"))[1]
+
+
     cc.curr          = xla.Range(xla.Cells(row + 2, col + 1), xla.Cells(row + 2, col + 1)).Value
     cc.type          = xla.Range(xla.Cells(row + 3, col + 1), xla.Cells(row + 3, col + 1)).Value
 
