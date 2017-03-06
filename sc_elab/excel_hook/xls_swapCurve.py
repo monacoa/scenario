@@ -11,7 +11,8 @@ from DEF_intef import FORMAT
 
 def intestazioneSwapCurveSegmenti( xla, sheet, rng,  attributi, nCols = 2, text= None):
 
-    txt = text if text!=None else attributi['description']
+    print attributi
+    txt = text if text!=None else attributi['Description']
     nRows           = len(attributi.keys())
     topLeftRow      = rng.Row
     topLeftCol      = rng.Column
