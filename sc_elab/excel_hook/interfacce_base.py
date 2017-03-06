@@ -174,8 +174,6 @@ from W_saveCurve import W_saveType
 from db_saveCurve import saveZcDfOnDB
 @xl_func
 def save_from_xls(control):
-
-    print "Punto ingresso funzione di salvataggio"
     root = Tk()
     #root.wm_withdraw()
     W = W_saveType(root)
