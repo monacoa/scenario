@@ -481,6 +481,7 @@ class BootstrappedCurve(Curve):
         self.boot_df    = []
         self.fit_usage  = []
         self.boot_rates = []
+        self.code       = ""
         #self.setDefaults()
 
     def show(self):

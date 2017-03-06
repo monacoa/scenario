@@ -2450,7 +2450,7 @@ def boot3s_elab_v2(data_opt, data_raw):
     
     data_elab_out['DateScadenza']    = merge_dates        
     data_elab_out['DiscountFactors'] = merge_df
-    data_elab_out['TassiZC']         = merge_rates
+    data_elab_out['TassiZC']         = merge_rates * 100.
     data_elab_out['Tempi']           = merge_times
     data_elab_out['Nodi']            = nodi_out
     data_elab_out['CodiceCurva']     = codeCurve

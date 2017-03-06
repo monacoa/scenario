@@ -42,8 +42,7 @@ class W_saveType (Frame):
             tkMessageBox.showinfo("Warning!", msg)
             self.master.destroy()
             return None
-
-        curveL = readCurvesNames(xla, s, "B2", "v", 2)
+        curveL = readCurvesNames(xla, s, "B2", "v", 2,  5)
         self.new_window = W_saveBootSelection(self, curveL)
 
     def saveFittFromBoot(self):

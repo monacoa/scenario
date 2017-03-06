@@ -67,9 +67,11 @@ def formatTestataCurva(xla,nRiga,nColonna,nLarghezza,testo):
     xla.Selection.Interior.ColorIndex   = 55
     xla.Selection.Interior.Pattern      = const.xlSolid
     xla.Selection.Value                 = testo
+
 #----------
 
-def readCurvesNames(xla, s, rangeStart, direzione, distanza):
+def readCurvesNames(xla, s, rangeStart, direzione, distanza, offset = 0):
+
     r = xla.Range(rangeStart)
     curveL = []
 
@@ -77,17 +79,24 @@ def readCurvesNames(xla, s, rangeStart, direzione, distanza):
         i = 0
         while (r.Value != None):
             i += 1
-
+            if offset > 0:
+                r = xla.Range(xla.Cells(row + offset, col + 1), xla.Cells(row + offset, col + 1))
             nomeCurva = r.Value
             curveL.append((nomeCurva,i))
-
-            nCols = r.Columns.Count
-            row   = r.Row
-            col   = r.Column
-            r = xla.Range(xla.Cells(row, col + distanza), xla.Cells(row, col + (nCols - 1) + distanza))
+            nCols     = r.Columns.Count
+            row       = r.Row
+            col       = r.Column
+            r         = xla.Range(xla.Cells(row, col + distanza), xla.Cells(row, col + (nCols - 1) + distanza))
     else:
         j = 1
         nomeCurva = r.Value
+
+        if offset > 0:
+            row = r.Row
+            col = r.Column
+            r_tmp = xla.Range(xla.Cells(row + offset, col + 1), xla.Cells(row + offset, col + 1))
+            nomeCurva = r_tmp.Value
+
         curveL.append((nomeCurva, j))
 
         while (r.Value != None):
@@ -102,6 +111,11 @@ def readCurvesNames(xla, s, rangeStart, direzione, distanza):
                 if r.Value != None:
                     j += 1
                     nomeCurva = r.Value
+                    # ----
+                    if offset > 0:
+                        r_tmp       = xla.Range(xla.Cells(row + offset, col + 1), xla.Cells(row + offset, col + 1))
+                        nomeCurva   = r_tmp.Value
+                    # ----
                     curveL.append((nomeCurva, j))
 
     return curveL
