@@ -41,18 +41,21 @@ def rolldates(dates, calendar, convention):
     return map(lambda x: rolldate(x, calendar, convention), dts)
 
 
-def rolldate_from_db(dt, calendar, convention):
-    if   (convention.lower() == "following")    : res = "follow"
-    elif (convention.lower() == "mod_following"): res = "modfollow"
-    elif (convention.lower() =='mod_preceding') : res = "modprevious"
-    elif (convention.lower() == 'preceding')    : res = "previous"
+def translateCodeFromDB(code_old):
+    if   (code_old.lower() == "following")    : res = "follow"
+    elif (code_old.lower() == "mod_following"): res = "modfollow"
+    elif (code_old.lower() =='mod_preceding') : res = "modprevious"
+    elif (code_old.lower() == 'preceding')    : res = "previous"
     else: res = "unadjusted"
+    return res
+
+def rolldate_from_db(dt, calendar, convention):
+    res = translateCodeFromDB(convention)
     dn = rolldate(dt, calendar, res)
     return dn
 
 def rolldate(dt, calendar, convention):
     """ Roll date to the business day
-
     Roll date of the date to the business day according to the convention.
     For 'follow' convention, if date falls on a holiday, finds first working day after it
     For 'previous' convention, if date falls on a holiday, finds latest working day before it

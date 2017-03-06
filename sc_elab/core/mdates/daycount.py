@@ -7,6 +7,7 @@ import dateutils
 
 _dc_norm = dict({
     '30/360 US': '30/360 US',
+    '30A/360': '30A/360',
     '30U/360': '30/360 US',
     '360/360': '30/360 US',
     '30/360': '30/360 US',
@@ -82,7 +83,7 @@ def _daycount_parameters(dt1, dt2, convention, **kwargs):
     y2, m2, d2 = dt2.year, dt2.month, dt2.day
     factor = None
 
-    if convention in ['30/360 US', '30E/360', '30E/360 ISDA', '30E+/360']:
+    if convention in ['30/360 US', '30E/360', '30E/360 ISDA', '30E+/360', '30A/360']:
     #if convention in {'30/360 US', '30E/360', '30E/360 ISDA', '30E+/360'}:
 
         eom = 'eom' in kwargs and kwargs['eom']
@@ -101,6 +102,11 @@ def _daycount_parameters(dt1, dt2, convention, **kwargs):
             if d1 == 31:
                 d1 = 30
             if d2 == 31:
+                d2 = 30
+        elif convention == '30A/360':
+            if d1 == 31:
+                d1 = 30
+            if d1 == 30 and d2 == 31:
                 d2 = 30
         elif convention == '30E/360 ISDA':
             if dateutils.iseom(dt1):
