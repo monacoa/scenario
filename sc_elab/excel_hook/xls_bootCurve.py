@@ -8,7 +8,7 @@ from sc_elab.core.SwpCurve import BootstrappedCurve
 from xls_swapCurve import intestazioneSwapCurveSegmenti
 from xls_utils import drawBox,drawLine, findRigthPlaceBootCurveSeg
 
-from DEF_intef import FORMAT, nameSheetBootstrap
+from DEF_intef import FORMATT, nameSheetBootstrap
 
 
 
@@ -87,14 +87,14 @@ def writeBootstrapResOnXls(crv, xla, str_boot_opt, res, codeL, codeR):
         rate = res['TassiZC'][i]
 
         xla.Cells(topLeftRow + i, topLeftCol).Value = date
-        xla.Cells(topLeftRow + i, topLeftCol).NumberFormat = FORMAT
+        xla.Cells(topLeftRow + i, topLeftCol).NumberFormat = FORMATT
         xla.Cells(topLeftRow + i, topLeftCol).HorizontalAlignment = const.xlCenter
         xla.Cells(topLeftRow + i, topLeftCol + 1).Value = rate
         xla.Cells(topLeftRow + i, topLeftCol + 1).NumberFormat = "0.00"
         xla.Cells(topLeftRow + i, topLeftCol + 1).HorizontalAlignment = const.xlCenter
 
         xla.Cells(topLeftRow + i, topLeftCol + 3).Value = date
-        xla.Cells(topLeftRow + i, topLeftCol + 3).NumberFormat = FORMAT
+        xla.Cells(topLeftRow + i, topLeftCol + 3).NumberFormat = FORMATT
         xla.Cells(topLeftRow + i, topLeftCol + 3).HorizontalAlignment = const.xlCenter
         xla.Cells(topLeftRow + i, topLeftCol + 4).Value = value
         xla.Cells(topLeftRow + i, topLeftCol + 4).NumberFormat = "0.00000"

@@ -1,16 +1,15 @@
 from pyxll import xlcAlert
-import sys
-import datetime
-from win32com.client import constants as const
+import  sys
+import  datetime
+from    win32com.client import constants as const
 from Tkinter import *
 from sc_elab.core.SwpCurve import dict_segm2, Segm, Curve
 
 from xls_utils import drawBox, drawLine, formatTestataCurva, findRigthPlaceBootCurveSeg
-from DEF_intef import FORMAT
+
 
 
 def intestazioneSwapCurveSegmenti( xla, sheet, rng,  attributi, nCols = 2, text= None):
-
     print attributi
     txt = text if text!=None else attributi['Description']
     nRows           = len(attributi.keys())
@@ -26,8 +25,15 @@ def intestazioneSwapCurveSegmenti( xla, sheet, rng,  attributi, nCols = 2, text=
         xla.Cells(topLeftRow + 1+ i, topLeftCol).Value   = k
         xla.Cells(topLeftRow + 1+ i, topLeftCol+1).Value = attributi[k]
         if (type(attributi[k]) == datetime.datetime) or (type(attributi[k]) == datetime.date):
-            xla.Cells(topLeftRow + 1 + i, topLeftCol + 1).NumberFormat = FORMAT
+            print "SONO QUI!"
+            print "i:", i
+            print "k", k, "attr[k]", attributi[k], type(attributi[k])
+            print "topLeftRow", topLeftRow, "tlc", topLeftCol
+            print "*"*120
+            xla.Cells(topLeftRow + 1 + i, topLeftCol + 1).NumberFormat = "gg/MM/aaaa"
+        print "sono uscita da if e setto center"
         xla.Cells(topLeftRow + 1 + i, topLeftCol + 1).HorizontalAlignment = const.xlCenter
+        print "center fatto!"
         i+=1
 
     rangeStart = xla.Cells(topLeftRow + nRows + 2, topLeftCol).Address
@@ -59,6 +65,7 @@ def displayHWParamSwCurve (xla, rangeStart, attributi):
     return rangeStartN
 
 def segmentoSwapCurve(xla, rangeS, code, segm):
+    from DEF_intef import FORMATT
     rangeStart = rangeS
     topLeftRow = xla.Range(rangeStart).Row
     topLeftCol = xla.Range(rangeStart).Column
@@ -105,7 +112,8 @@ def segmentoSwapCurve(xla, rangeS, code, segm):
                 f += 1
             else :
                 a.Value = ll[j]
-                if (type(ll[j]) == datetime.date) or (type(ll[j]) == datetime.datetime): a.NumberFormat = FORMAT
+                #print "FORMATTTTT:::::", FORMATT, type (FORMATT), "check:", FORMATT=="gg/MM/aaaa"
+                if (type(ll[j]) == datetime.date) or (type(ll[j]) == datetime.datetime): a.NumberFormat = FORMATT
                 if (type(ll[j]) == float)         : a.NumberFormat = "0.00"
             a.HorizontalAlignment = const.xlCenter
             j +=1
@@ -121,6 +129,7 @@ def segmentoSwapCurve(xla, rangeS, code, segm):
 
 #=======================================================================================================================
 def writeCurveOnXls(crv, nameSheet, xla):
+    from DEF_intef import FORMATT
     rangeStart = "B2"
     distCurve  = 5
     #Individuo posizione in cui scrivere
