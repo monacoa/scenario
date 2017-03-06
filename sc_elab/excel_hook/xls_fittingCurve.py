@@ -6,7 +6,7 @@ from Tkinter import *
 
 
 from xls_utils import drawLine, drawBox
-from DEF_intef import fitt_translate, FORMAT, nameSheetBootstrap, nameSheetCurve
+from DEF_intef import fitt_translate, FORMATT, nameSheetBootstrap, nameSheetCurve
 from xls_swapCurve import findCurveFromPos
 from xls_bootCurve import intestazioneSwapCurveSegmenti, findBootstrappedCurveFromPos
 
@@ -29,7 +29,7 @@ def writeFittingResLinear(xla, s, r, Attributi, res):
     for i in range(nRows):
         date = res['Dates'][i]
         xla.Cells(topLeftRow + i, topLeftCol).Value = date
-        xla.Cells(topLeftRow + i, topLeftCol).NumberFormat = FORMAT
+        xla.Cells(topLeftRow + i, topLeftCol).NumberFormat = FORMATT
         xla.Cells(topLeftRow + i, topLeftCol).HorizontalAlignment = const.xlCenter
         if (i > 0):
             a = res['a'][i-1]
@@ -66,7 +66,7 @@ def writeFittingResAVD(xla, s, r, Attributi, res):
     for i in range(nRows):
         date = res['Dates'][i]
         xla.Cells(topLeftRow + i, topLeftCol).Value = date
-        xla.Cells(topLeftRow + i, topLeftCol).NumberFormat = FORMAT
+        xla.Cells(topLeftRow + i, topLeftCol).NumberFormat = FORMATT
         xla.Cells(topLeftRow + i, topLeftCol).HorizontalAlignment = const.xlCenter
         if (i > 0):
             a = res['a'][i - 1]
