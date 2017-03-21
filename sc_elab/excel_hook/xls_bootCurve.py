@@ -103,14 +103,15 @@ def writeBootstrapResOnXls(crv, xla, str_boot_opt, res, codeL, codeR):
         xla.Cells(topLeftRow + i, topLeftCol + 5).HorizontalAlignment = const.xlCenter
 
 def readIntestazioneBootstrap(xla , r , cc):
+
+    print "//////////////////////inizio a leggere da qui:", r.Value
     row              = r.Row
     col              = r.Column
-
-
-    if type(cc) == BootstrappedCurve : cc.code          = ((r.Value).split("_"))[1]
+    if type(cc) == BootstrappedCurve : cc.code  = ((r.Value).split("_"))[1]
 
 
     cc.curr          = xla.Range(xla.Cells(row + 2, col + 1), xla.Cells(row + 2, col + 1)).Value
+
     cc.type          = xla.Range(xla.Cells(row + 3, col + 1), xla.Cells(row + 3, col + 1)).Value
 
     dd = xla.Range(xla.Cells(row + 4, col + 1), xla.Cells(row + 4, col + 1)).Value
@@ -118,8 +119,8 @@ def readIntestazioneBootstrap(xla , r , cc):
 
     cc.description   = xla.Range(xla.Cells(row + 5, col+1), xla.Cells(row+5, col+1)).Value
     cc.download_type = xla.Range(xla.Cells(row + 6, col + 1), xla.Cells(row + 6, col + 1)).Value
-    cc.quotation     = xla.Range(xla.Cells(row + 5, col + 1), xla.Cells(row + 8, col + 1)).Value
-    cc.source        = xla.Range(xla.Cells(row + 6, col + 1), xla.Cells(row + 11, col + 1)).Value
+    cc.quotation     = xla.Range(xla.Cells(row + 8, col + 1), xla.Cells(row + 8, col + 1)).Value
+    cc.source        = xla.Range(xla.Cells(row + 11, col + 1), xla.Cells(row + 11, col + 1)).Value
 
 
     #imposto il mercato
@@ -180,10 +181,14 @@ def findBootstrappedCurveFromPos (xla, nameSheet, pos):
 
 
 def readBootstrappedCurveFromXls(xla, des, pos, nameSheet):
-
+    from sc_elab.core.SwpCurve import BootstrappedCurve
+    from sc_elab.core.SwpCurve import Curve
     r           = findBootstrappedCurveFromPos (xla, nameSheet, pos)
     nomeCurva   = r.Value
+
+
     cc          = BootstrappedCurve()
+    cc.code     = (nomeCurva.split("_"))[1]
     r           = readIntestazioneBootstrap(xla, r,cc)
 
     readRatesAndDiscountFactors(xla, r, cc)

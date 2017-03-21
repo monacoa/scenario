@@ -113,7 +113,7 @@ def readCurvesNames(xla, s, rangeStart, direzione, distanza, offset = 0):
                     nomeCurva = r.Value
                     # ----
                     if offset > 0:
-                        r_tmp       = xla.Range(xla.Cells(row + offset, col + 1), xla.Cells(row + offset, col + 1))
+                        r_tmp       = xla.Range(xla.Cells(row + offset + distanza, col + 1), xla.Cells(row + offset +  distanza, col + 1))
                         nomeCurva   = r_tmp.Value
                     # ----
                     curveL.append((nomeCurva, j))

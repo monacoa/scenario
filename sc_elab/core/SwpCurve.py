@@ -79,9 +79,9 @@ class Curve:
         self.type = ""
         self.source = "Bloomberg"
         self.quotation = "MID"
-        self.download_type = ""
+        self.download_type = "0"
         self.emittente = '999'
-        self.rating = 'NR'
+        self.rating = '999'
         self.settore = '999'
         self.seniority = '999'
         self.type = 'Swap'
@@ -488,6 +488,7 @@ class BootstrappedCurve(Curve):
         Curve.show(self)
         print "------------------------------"
         print "Begin Show Bootstrap Vars:"
+        print "Codice Segmenti Boots:", self.code
         for d,f,r,u in zip( self.boot_dates,self.boot_df,self.boot_rates, self.fit_usage):
             print "date:", d, "-- df:", f, "--rate:", r, "-- usage:", u
         print "End Show Bootstrap Vars"

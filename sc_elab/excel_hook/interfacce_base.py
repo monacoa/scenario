@@ -171,7 +171,7 @@ def fitting_from_xls(control):
 #=======================================================================================================================
 
 from W_saveCurve import W_saveType
-from db_saveCurve import saveZcDfOnDB
+from db_saveCurve import saveZcDfOnDB, deletingDbCurves
 @xl_func
 def save_from_xls(control):
     root = Tk()
@@ -179,20 +179,45 @@ def save_from_xls(control):
     W = W_saveType(root)
     root.mainloop()
 
-    DF = W.new_window.new_window.var1.get()
-    ZC = W.new_window.new_window.var2.get()
-
-    print "DF", DF, "ZC", ZC
-
+    DF   = W.new_window.new_window.var1.get()
+    ZC   = W.new_window.new_window.var2.get()
     type = W.saveType
-    pos = W.new_window.pos
-    des = W.new_window.curve
+    pos  = W.new_window.pos
+    des  = W.new_window.curve
+
+    #root.destroy()
 
     if type == "Boot":
-        DF = W.new_window.new_window.var1.get()
-        ZC = W.new_window.new_window.var2.get()
-        xla = xl_app()
-        book = xla.ActiveWorkbook
-        nameSheet = nameSheetBootstrap
-        saveZcDfOnDB(xla, nameSheet, des, pos, DF, ZC)
+        DF          = W.new_window.new_window.var1.get()
+        ZC          = W.new_window.new_window.var2.get()
+        xla         = xl_app()
+        nameSheet   = nameSheetBootstrap
 
+        res,codes   = saveZcDfOnDB(xla, nameSheet, des, pos, DF, ZC)
+
+        #---
+        root2 = Tk()
+        root2.withdraw()
+        if (res):
+            msg = "Bootstrap results are on DB, well done Comollis!"
+            tkMessageBox.showinfo("YES WE CAN!", msg)
+
+        else:
+            #msg = "Unable to save Bootstrap results because they're already on DB... Please delete IT before!!"
+            #tkMessageBox.showinfo("x@!#!", msg)
+            tkMessageBox.askquestion("Unable to save Bootstrap results because they're already on DB.", "DELETING... Are You Sure?", icon='warning')
+            if 'yes':
+                print "codes", codes
+                deletingDbCurves(codes)
+                r, cd = saveZcDfOnDB(xla, nameSheet, des, pos, DF, ZC)
+                if not r:
+                    msg = "Something's wrong..... SEPPUKU!!!!!"
+                    tkMessageBox.showinfo("x@!#!", msg)
+
+                else:
+                    msg = "Bootstrap results are on DB, well done Comollis!"
+                    tkMessageBox.showinfo("YES WE CAN!", msg)
+            else:
+                msg = "Unable to save Bootstrap results because they're already on DB... Please delete IT before!!"
+                tkMessageBox.showinfo("x@!#!", msg)
+        root2.destroy()
