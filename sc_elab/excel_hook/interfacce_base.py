@@ -127,6 +127,7 @@ from W_fittingCurve import W_fittingType
 from xls_bootCurve import readBootstrappedCurveFromXls
 from xls_fittingCurve import writeFittingBootResOnXls, writeFittingPyResOnXls
 from DEF_intef import nameSheetBootstrap
+
 @xl_func
 def fitting_from_xls(control):
 
@@ -148,8 +149,38 @@ def fitting_from_xls(control):
     opt_dict['opt_fwd_tenor']   = (str(W.new_window.new_window.variable2.get()).strip(""))[1]
     opt_dict['opt_path_graph']  =  W.new_window.new_window.variable5.get()
     opt_dict['fit_type']        = fit_type
-    print "**********************options:", opt_dict
 
+    opt_dict['bound_min_sve'] = []
+    opt_dict['bound_max_sve'] = []
+    opt_dict['sve_params']    = ['const1', 'const2', 'beta0', 'beta1', 'beta2', 'beta3']
+    opt_dict['bound_min_sve'].append( float(W.new_window.new_window.SVE_c1min.get().strip("")))
+    opt_dict['bound_min_sve'].append( float(W.new_window.new_window.SVE_c2min.get().strip("")))
+    opt_dict['bound_min_sve'].append( float(W.new_window.new_window.SVE_b0min.get().strip("")))
+    opt_dict['bound_min_sve'].append( float(W.new_window.new_window.SVE_b1min.get().strip("")))
+    opt_dict['bound_min_sve'].append( float(W.new_window.new_window.SVE_b2min.get().strip("")))
+    opt_dict['bound_min_sve'].append( float(W.new_window.new_window.SVE_b3min.get().strip("")))
+
+    opt_dict['bound_max_sve'].append( float(W.new_window.new_window.SVE_c1max.get().strip("")))
+    opt_dict['bound_max_sve'].append( float(W.new_window.new_window.SVE_c2max.get().strip("")))
+    opt_dict['bound_max_sve'].append( float(W.new_window.new_window.SVE_b0max.get().strip("")))
+    opt_dict['bound_max_sve'].append( float(W.new_window.new_window.SVE_b1max.get().strip("")))
+    opt_dict['bound_max_sve'].append( float(W.new_window.new_window.SVE_b2max.get().strip("")))
+    opt_dict['bound_max_sve'].append( float(W.new_window.new_window.SVE_b3max.get().strip("")))
+
+    opt_dict['bound_min_cir'] = []
+    opt_dict['bound_max_cir'] = []
+    opt_dict['cir_params'] =['r0', 'kappa', 'theta', 'sigma']
+    opt_dict['bound_min_cir'].append( float(W.new_window.new_window.CIR_r0min.get().strip("")))
+    opt_dict['bound_min_cir'].append( float(W.new_window.new_window.CIR_kmin.get().strip("")))
+    opt_dict['bound_min_cir'].append( float(W.new_window.new_window.CIR_thetamin.get().strip("")))
+    opt_dict['bound_min_cir'].append( float(W.new_window.new_window.CIR_sigmamin.get().strip("")))
+
+    opt_dict['bound_max_cir'].append( float(W.new_window.new_window.CIR_r0max.get().strip("")))
+    opt_dict['bound_max_cir'].append( float(W.new_window.new_window.CIR_kmax.get().strip("")))
+    opt_dict['bound_max_cir'].append( float(W.new_window.new_window.CIR_thetamax.get().strip("")))
+    opt_dict['bound_max_cir'].append( float(W.new_window.new_window.CIR_sigmamax.get().strip("")))
+
+    #---
     xla = xl_app()
     book = xla.ActiveWorkbook
 
@@ -192,19 +223,14 @@ def save_from_xls(control):
         ZC          = W.new_window.new_window.var2.get()
         xla         = xl_app()
         nameSheet   = nameSheetBootstrap
-
         res,codes   = saveZcDfOnDB(xla, nameSheet, des, pos, DF, ZC)
-
         #---
         root2 = Tk()
         root2.withdraw()
         if (res):
             msg = "Bootstrap results are on DB, well done Comollis!"
             tkMessageBox.showinfo("YES WE CAN!", msg)
-
         else:
-            #msg = "Unable to save Bootstrap results because they're already on DB... Please delete IT before!!"
-            #tkMessageBox.showinfo("x@!#!", msg)
             tkMessageBox.askquestion("Unable to save Bootstrap results because they're already on DB.", "DELETING... Are You Sure?", icon='warning')
             if 'yes':
                 print "codes", codes
