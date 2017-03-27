@@ -14,36 +14,59 @@ from win32com.client import constants as const
 
 from W_swapCurve import W_curveType
 from xls_swapCurve import writeCurveOnXls
-from DEF_intef import nameSheetCurve
+from DEF_intef import nameSheetCurve, nameSheetCDS
 
 @xl_func
 def load_swap_curve_from_db(control):
-    nameSheet = nameSheetCurve
-    xla = xl_app()
-    book = xla.ActiveWorkbook
-    #-----
-    #creo foglio nameSheetCurve se non esiste
-    try:
-        s = book.Sheets(nameSheet)
-        s.Activate()
-    except:
-        s = book.Sheets.Add()
-        s.Name = nameSheet
-   #------------------
     root = Tk()
     app  = W_curveType(root)
     root.mainloop()
 
     curve_des = app.new_window.new_window.curve
     curve_date= app.new_window.date
+    curve_type = app.new_window.type
 
-    cc = Curve()
+    print "descrizione:", curve_des
+    print "data:", curve_date
+    print "type:", curve_type
+
+
+    xla = xl_app()
+    book = xla.ActiveWorkbook
+    # -----
+    # creo foglio nameSheetCurve se non esiste
+    if curve_type == "SWP":
+        nameSheet = nameSheetCurve
+        try:
+            s = book.Sheets(nameSheet)
+            s.Activate()
+        except:
+            s = book.Sheets.Add()
+            s.Name = nameSheet
+            # ------------------
+        cc = Curve()
+    elif curve_type == "CDS":
+        nameSheet = nameSheetCDS
+        try:
+            s = book.Sheets(nameSheet)
+            s.Activate()
+        except:
+            s = book.Sheets.Add()
+            s.Name = nameSheet
+            # ------------------
+        cc = CdsCurve()
+
     cc.ref_date = datetime.date(day=int(curve_date[-2:]), month=int(curve_date[5:7]), year=int(curve_date[:4]))
     cc.description= curve_des
-    cc.loadDataFromDB()
-    cc.init_finalize()
 
-    writeCurveOnXls(cc, nameSheet, xla)
+    if curve_type == "CDS":
+        cc.ratingProvider = app.new_window.new_window.new_window.rating.get()
+        cc.sectorProvider = app.new_window.new_window.new_window.sector.get()
+
+    cc.loadDataFromDB()
+    if curve_type == "SWP": cc.init_finalize()
+
+    writeCurveOnXls(cc, nameSheet, xla, curve_type)
 
 
 #=======================================================================================================================

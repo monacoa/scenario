@@ -126,39 +126,116 @@ def segmentoSwapCurve(xla, rangeS, code, segm):
     return rangeStart
 
 
-#=======================================================================================================================
-def writeCurveOnXls(crv, nameSheet, xla):
+def CdsCurve(xla, rangeS, crv):
     from DEF_intef import FORMATT
+    rangeStart = rangeS
+    topLeftRow = xla.Range(rangeStart).Row
+    topLeftCol = xla.Range(rangeStart).Column
+    nNodi = len(crv.mats)
+    nRows = nNodi
+    nCols = 3
+
+    #box intestazione
+    drawBox(xla, const.xlMedium, topLeftRow, topLeftCol, topLeftRow + nRows+1, topLeftCol + nCols - 1)
+
+    formatTestataCurva(xla, topLeftRow, topLeftCol, nCols, "CDS Spread")
+
+
+    #Linea orizzontale di separazione
+    drawLine(xla, topLeftRow + 1, topLeftCol, topLeftRow + 1, topLeftCol + nCols - 1, "o", const.xlThin)
+
+    xla.Cells(topLeftRow + 1, topLeftCol + 0).Value = "Node"
+    xla.Cells(topLeftRow + 1, topLeftCol + 0).HorizontalAlignment = const.xlCenter
+    xla.Cells(topLeftRow + 1, topLeftCol + 1).Value = "Maturity (Y)"
+    xla.Cells(topLeftRow + 1, topLeftCol + 1).HorizontalAlignment = const.xlCenter
+    xla.Cells(topLeftRow + 1, topLeftCol + 2).Value = "Value"
+    xla.Cells(topLeftRow + 1, topLeftCol + 2).HorizontalAlignment = const.xlCenter
+
+
+    f = 1
+    i = 2
+    for tag, mat, value in zip(crv.tags, crv.mats, crv.values):
+        ll = [tag, mat, value]
+        for j in range(3):
+            a = xla.Cells(topLeftRow  + i, topLeftCol+j)
+            a.Value = ll[j]
+            if (type(ll[j]) == datetime.date) or (type(ll[j]) == datetime.datetime): a.NumberFormat = FORMATT
+            if (type(ll[j]) == float)         : a.NumberFormat = "0.00"
+            a.HorizontalAlignment = const.xlCenter
+            j +=1
+        i+=1
+
+    rangeStart = xla.Cells(topLeftRow + nRows + 2, topLeftCol).Address
+    return rangeStart
+#=======================================================================================================================
+def writeCurveOnXls(crv, nameSheet, xla, curve_type):
+    # ---
+    from DEF_intef import FORMATT
+    # ---
     rangeStart = "B2"
     distCurve  = 5
+    # ---
     #Individuo posizione in cui scrivere
+    # ---
     sheet = xla.ActiveWorkbook.Sheets(nameSheet)
-    r = sheet.Range(rangeStart)
-    rOut =  findRigthPlaceBootCurveSeg(xla, r, distCurve)
-    #rangeStartNew = rOut.Address
+    r     = sheet.Range(rangeStart)
+    rOut  =  findRigthPlaceBootCurveSeg(xla, r, distCurve)
 
+    # ---
     #Genero il blocco di intestazione della curva
-
-    Attributi     =  { "Date Ref": crv.ref_date
-                     , "Description":crv.description
-                     , "Currency":crv.curr
+    # ---
+    if curve_type == "SWP":
+        Attributi     =  { "Date Ref"     : crv.ref_date
+                     , "Description"  :crv.description
+                     , "Currency"     :crv.curr
                      , "Download Type": crv.download_type
-                     , "Quotation": crv.quotation
-                     , "Source": crv.source
+                     , "Quotation"    : crv.quotation
+                     , "Source"       : crv.source
                      , "Tenor Floater Rate":crv.floater_tenor}
 
+    elif curve_type == "CDS":
+        Attributi =   {"Date Ref": crv.ref_date
+                      , "Description": crv.description
+                      , "Curve Type": crv.type
+                      , "Currency": crv.curr
+                      , "Return Type": crv.rendimento
+                      , "Node Type": crv.node_type
+                      , "Quotation": crv.quotation
+                      , "Download Type": crv.download_type
+                      , "Issuer": crv.emittente
+                      , "Sector": crv.settore
+                      , "Rating": crv.rating
+                      , "Seniority": crv.seniority
+                      , "Fixing Lag (D)": str(int(crv.lag))
+                      , "Capitalization": crv.capitalization
+                      , "Day Count": crv.dayCount
+                      , "Day Adj.": crv.dayAdj
+                      , "Frequency (M)": crv.frequency
+                      , "Recovery Rate (%)": crv.recovery
+                      , "Source": crv.source
+                      }
+
+    else: mmmmmmmmmmmmmm
+
     rangeStartNew = intestazioneSwapCurveSegmenti ( xla, sheet , rOut, Attributi)
-    # Genero il blocco per i parametri di Hull e White
-    rangeStartNew = displayHWParamSwCurve (xla, rangeStartNew, Attributi)
-    # ' Genero i blocchi dei segmenti della curva
-    # codes = "DLGFS"; D = dep, L = libor, F = futures, G=swap sotto 1y, S = swap >=1Y
-    cd = "DLGFS"
-    for j in  range (len(cd)):
-        code =cd[j]
-        for s in crv.segms.keys():
-            if code == s[0]:
-                # visualizzo segmento
-                rangeStartNew = segmentoSwapCurve (xla, rangeStartNew, code, crv.segms[s])
+
+    if curve_type == "SWP":
+        # Genero il blocco per i parametri di Hull e White
+        rangeStartNew = displayHWParamSwCurve(xla, rangeStartNew, Attributi)
+        # ' Genero i blocchi dei segmenti della curva
+        # codes = "DLGFS"; D = dep, L = libor, F = futures, G=swap sotto 1y, S = swap >=1Y
+        cd = "DLGFS"
+        for j in range(len(cd)):
+            code = cd[j]
+            for s in crv.segms.keys():
+                if code == s[0]:
+                    # visualizzo segmento
+                    rangeStartNew = segmentoSwapCurve(xla, rangeStartNew, code, crv.segms[s])
+
+    elif  curve_type == "CDS":
+        rangeStartNew = CdsCurve(xla, rangeStartNew, crv)
+    else:
+        xxxxxxxxx
 
 
 def readIntestazione(xla , r , cc):
@@ -242,6 +319,9 @@ def readSegms(xla, r, cc):
     cc.fillAnagSegm()
     cc.show()
     return r
+
+
+
 
 
 def readCurveFromXls(xla, des, pos, nameSheet):

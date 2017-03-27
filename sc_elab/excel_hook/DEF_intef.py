@@ -5,5 +5,7 @@ FORMATT = "dd/mm/yyyy"
 
 fitt_translate ={'0' : 'linear', '1':'AVD', '2':'SVE' }
 
-nameSheetCurve     = 'Curvette'
+nameSheetCurve     = 'SwapCurve'
 nameSheetBootstrap = 'ElabSwapCurve'
+
+nameSheetCDS     = 'CDS'

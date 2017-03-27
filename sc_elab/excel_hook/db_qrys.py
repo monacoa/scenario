@@ -1,15 +1,22 @@
 
 from connection import *
 
-def getCurvesListFromDb(curve_date):
+def getCurvesListFromDb(curve_date, type):
+
+    if type == "SWP":
+        table        = "DProCurve"
+        where_clause = " where TipoDato in ('CDepositi', 'CSwap', 'CLibor', 'CFuture') "
+    elif type == "CDS":
+        table = "DProCDS"
+        where_clause = ""
+
     c_date_qry = str(curve_date).replace("-", "")
     con = Connection()
     qry = '''
           select distinct BloombergTicker FROM alm.DProTS_master where BloombergTicker in
-          ( select distinct BloombergTicker from alm.DProCurve
-            where TipoDato in ('CDepositi', 'CSwap', 'CLibor', 'CFuture')
+          ( select distinct BloombergTicker from alm.%s %s
           )and Data = '%s'
-          ''' % c_date_qry
+          ''' %(table, where_clause, c_date_qry)
     print qry
     c_data = con.db_data()
     c_data.execute(qry)
@@ -45,19 +52,48 @@ def getCurvesListFromDb(curve_date):
     # -----------
 
 
-def getDatesListFromDb():
+def getDatesListFromDb(type):
     cn  = Connection()
     cur = cn.db_data()
-    qry = '''
+    if type == "SWP":
+
+        qry = '''
                      select distinct Data from alm.DProTS_master where BloombergTicker in
                      ( select distinct BloombergTicker from alm.DProCurve where TipoDato in
                          ('CDepositi', 'CSwap', 'CLibor', 'CFuture')
                       )
                      order by Data desc
                     '''
+    elif type == "CDS":
+        qry = '''
+                    select distinct Data from alm.DProTS_master where BloombergTicker in
+                    (
+                        select distinct BloombergTicker from alm.DProCDS
+                    )
+                    order by Data desc
+                    '''
+
     cur.execute(qry)
     res         = cur.fetchall()
     date_list   = []
     for record in res:
         date_list.append(record[0])
+    cn.close()
     return date_list
+
+def getProvidersFromDb (table):
+    Con = Connection()
+    c   = Con.db_anag()
+    qry = '''
+            select distinct FONTE from %s
+            '''%table
+    c.execute(qry)
+    res=c.fetchall()
+    print res
+    sects = []
+    for record in res:
+        sects.append(record[0])
+
+    Con.close()
+    return sects
+
