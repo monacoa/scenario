@@ -25,11 +25,619 @@ def FQ(label):
     sys.exit()
 
 
-def fitting():
-    #---
-    #esemplificativo dell'output richiesto per il fitting, da riempire solo i parametri del modello selezionato
-    #---
-    res = {'Dates'  : [datetime.date(2017,12,29), datetime.date(2017,12,30),datetime.date(2017,12,31)],
+def find_indx_last(x_target, x_list_ref):
+
+    ln = len(x_list_ref) - 1
+
+    for i in range(0, len(x_list_ref)):
+
+        if (x_target < x_list_ref[0]): 
+            i_ref = None
+            break
+
+        elif (x_target > x_list_ref[ln]) : 
+            i_ref = None
+            break
+
+        elif (x_list_ref[i] == x_target) and (i == 0): 
+            i_ref = i
+            break
+
+        elif (x_list_ref[i] > x_target):
+            i_ref = i - 1
+            break
+            
+        else:
+
+            continue
+
+    return i_ref
+
+
+
+def zc_rate_by_SVE(dict_params, t_mat):
+
+    t_mat   = np.asarray(t_mat)
+
+    minTime = 0.0001
+    
+    for i in range(0, len(t_mat)):
+        t_matTmp = t_mat[i]
+        if (t_matTmp < minTime): t_matTmp = minTime
+        t_mat[i] = t_matTmp
+        
+    
+    tau1   = dict_params['const1'][0]
+    tau2   = dict_params['const2'][0]
+    beta0  = dict_params['beta0'][0]
+    beta1  = dict_params['beta1'][0]
+    beta2  = dict_params['beta2'][0]
+    beta3  = dict_params['beta3'][0]
+
+    tmp1 = t_mat/tau1
+    tmp2 = t_mat/tau2
+    g1 = np.exp(-tmp1)
+    g2 = np.exp(-tmp2)
+
+    G1 = 1.0 - g1
+
+    ns_model  =  beta0 + (beta1 + beta2)*(G1/tmp1) - beta2*g1
+    zc_rate   =  ns_model - beta3*(g2 - (1.0 - g2)/tmp2)
+
+    return zc_rate
+
+
+def zc_rate_by_CIR(dict_params, t_mat):
+
+    t_mat = np.asarray(t_mat)
+ 
+    minTime = 0.0001
+    
+    for i in range(0, len(t_mat)):
+        t_matTmp = t_mat[i]
+        if (t_matTmp < minTime): t_matTmp = minTime
+        t_mat[i] = t_matTmp
+
+    
+    r0     = dict_params['r0'][0]
+    kappa  = dict_params['kappa'][0]
+    theta  = dict_params['theta'][0]
+    sigma  = dict_params['sigma'][0]
+    
+    T = t_mat
+
+    #%Lettura dei parametri
+    
+    h = (kappa*kappa + 2.0*sigma*sigma)**(0.5)
+
+    g0 = 2*kappa*theta/(sigma*sigma)
+    g1 = np.exp(T*h) - 1.0
+    g2 = np.exp(T*(h + kappa)/2.0)
+
+    A0 = (2*h*g2/(2.0*h + (kappa + h)*g1))
+    B0 = (2.0*g1/(2.0*h + (kappa + h)*g1))
+    
+    zc_rate = -(g0*np.log(A0) - B0*r0)/T
+
+    return zc_rate
+
+
+
+def zc_rate_by_LIN(tempi,parameters, T_target):
+
+    
+    zc_rate = []
+    
+    type_ndarray = isinstance(T_target, np.ndarray)
+    type_list = isinstance(T_target, list)
+    
+    if( type_list and type_ndarray) == 'FALSE':
+            zc_rate = zc_rate_by_LIN_s(tempi, parameters, T_target)
+            zc_rate = [zc_rate]
+    
+    else:
+
+        for i in range(0, len(T_target)):    
+            t_tmp = T_target[i]
+            zc_outTmp = zc_rate_by_LIN_s(tempi,  parameters, t_tmp)            
+            zc_rate.append(zc_outTmp)
+    
+    return zc_rate
+
+
+def zc_rate_by_LIN_s(tempi, parameters, T_target):
+
+    t = tempi
+    n_knots  = len(t)
+
+    # Se la maturity T e' negativa, pongo Z=-1
+    if (T_target < 0):
+        zc_rate = -1
+        return  zc_rate  
+
+    elif (T_target == 0): #se il tempo T e' nullo Z=1
+        zc_rate =  parameters['b'][0]
+        return zc_rate
+
+    elif (T_target > 0) and (T_target < t[n_knots-1]):
+        index = find_indx_last(T_target, tempi)        
+        zc_rate = parameters['a'][index]/T_target + parameters['b'][index] 
+
+    elif T_target >= t[n_knots-1]:
+        index = n_knots - 2
+        
+        zc_rate = parameters['a'][index]/T_target + parameters['b'][index] 
+    
+    return zc_rate
+
+def zc_rate_by_AVD(tempi, zc_values, prms, T_target):
+
+    zc_rate = []
+    df_values = []
+    
+    for i in range(0, len(tempi)):
+        
+        t_tmp = tempi[i]
+        df_tmp = np.exp(-zc_values[i]*t_tmp)
+        df_values.append(df_tmp)
+    
+    type_ndarray = isinstance(T_target, np.ndarray)
+    type_list = isinstance(T_target, list)
+    
+    if( type_list and type_ndarray) == 'FALSE':
+
+            zc_rate = zc_rate_by_AVD_s(tempi, df_values, prms, T_target)
+            zc_rate = [zc_rate]
+    else:
+
+        for i in range(0, len(T_target)):    
+
+            t_tmp = T_target[i]          
+            zc_outTmp = zc_rate_by_AVD_s(tempi, df_values, prms, t_tmp) 
+            
+            zc_rate.append(zc_outTmp)
+        
+    return zc_rate
+
+def zc_rate_by_AVD_s(tempi, df_v, prms, T_target):
+    
+    if (T_target < 0.001): T_target = 0.001
+    
+    df_value = df_by_AVD_s(tempi, df_v, prms, T_target)
+    
+    
+    zc_rate_out = -np.log(df_value)/T_target
+
+    return zc_rate_out 
+
+def df_by_AVD_s(tempi, df_v, prms, T_target):
+
+    #Dichiarazione variabili
+    t = tempi
+    T = T_target
+    
+    n_knots = len(t)
+    
+    #%Se la maturity T e' negativa, pongo Z=-1
+
+    if (T < 0):
+        zc_rate = -1
+        return zc_rate
+
+        #Se il tempo T e' nullo Z=1
+    elif (T==0):
+        df_value =1.0
+        return df_value
+    
+        #Se e' compreso tra 0 e il tempo del primo nodo
+    elif ( T > 0) and  ( T < t[0]):
+        i = 0
+        Tp = 0
+        Zp = 1
+        
+    #Se e' compreso tra il tempo del primo nodo ed il tempo dell%ultimo nodo
+    #%individuo la fascia temporale di appartenenza
+    elif (T >= t[0]) and (T < t[n_knots-1]):
+    
+        i = find_indx_last(T,t)
+        Tp = t[i]
+        Zp = df_v[i]
+    
+    elif (T >= t[n_knots-1]):
+        i = n_knots-2
+        Tp = t[n_knots-1]
+        Zp = df_v[n_knots-1]
+    
+    #%--------------------------------------------------------------------------
+    #%Calcolo il prezzo ZC usando i parametri
+    #%secondo l'algoritmo di Adams & Van Denventer (1994)
+    #%--------------------------------------------------------------------------
+   
+    #zc_rate = parameters['a'][index]/T_target + parameters['b'][index] 
+    #dummy = prms['a'][i+1]*(T) + (prms['b'][i+1]/2)*(T^2)+(prms['c'][i+1]/3)*(T ^3) + (prms['d'][i+1]/4)*(T^4) + (prms['e'][i+1]/5)*(T^5)
+    #zc_rate = dummy/T
+    zc_rate_t = prms['a'][i]*(T-Tp) + (prms['b'][i]/2)*(T**2-Tp**2)+(prms['c'][i]/3)*(T**3-Tp**3) + (prms['d'][i]/4)*(T**4-Tp**4) + (prms['e'][i]/5)*(T**5-Tp**5)
+    
+    df_out = Zp*np.exp(-zc_rate_t)
+    
+    return df_out
+
+def df_linear_s(tempi, discount_factors, parameters, T_target):
+
+    t = tempi;
+    n_knots  = len(t);
+    
+    # Se la maturity T e' negativa, pongo Z=-1
+    if (T_target < 0):
+        z_out = -1
+        return    
+
+    elif (T_target == 0): #se il tempo T e' nullo Z=1
+        z_out = 1
+        return
+
+    elif (T_target > 0) and (T_target < t[n_knots-1]):
+        index = find_indx_last(T_target, tempi)
+        dummy = parameters[index,0] + parameters[index,1]*T_target 
+        z_out     = np.exp(-dummy)
+
+    elif T_target >= t[n_knots-1]:
+        index = n_knots
+        dummy = parameters[index,0] + parameters[index,1]*T_target 
+        z_out    = np.exp(-dummy)
+    
+    return z_out
+
+
+
+
+
+def estimate_linear_params(t_times, zc_rates):
+
+
+    zc_rates = np.asarray(zc_rates)
+    t_times = np.asarray(t_times)
+
+    discount_factors = np.exp(-t_times*zc_rates)
+
+    t = t_times 
+    # Calcolo numero nodi
+    n_knot = len(t_times) 
+    # Numero funzioni da stimare
+    n_functions = n_knot - 1
+    # numero parameteri per funzione
+    n_parameters = 2
+        
+    # Dimensionamento vettori e matrice
+    m = n_functions*n_parameters
+
+    #lin_parameters = np.zeros((n_knot-1,n_parameters))    
+    lin_parameters = {}
+    lin_parameters['a'] = {}
+    lin_parameters['b'] = {}
+
+    system_coeff   = np.zeros((m,m))
+    known_term     = np.zeros((m,1))
+    
+    # Riempimento matrice dei coefficienti del sistema e del vettore termine noto
+    # Le condizioni usate sono a pag.42-43 del documento 'modelli_tassi'
+    for k in range(0, n_functions-1):
+        for j in range(0, n_parameters):
+            # 1ma condizione: f=f
+            system_coeff[k][k*n_parameters+j] = 1.0*t[k+1]**(j)
+            system_coeff[k][k*n_parameters+n_parameters+j] = -1.0*t[k+1]**(j)
+    
+    for k in range(0, n_functions-1):
+        for j in range(0, n_parameters):
+            # 2 condizione che sul nodo il fattore di sconto si a pari
+            # a quello quotato sul mercato Z_lin = Z__mkt
+            system_coeff[(n_functions-1)+k][(k)*n_parameters+j] = 1*t[k+1]**(j)
+            known_term[(n_functions-1)+k] = -1.0*np.log(discount_factors[k+1])
+    
+    #  condizione: sul nodo zero (0)
+    system_coeff[n_parameters*(n_functions-1),0] = 1
+    known_term[n_parameters*(n_functions-1)] = 0
+    
+    #  condizioni: sull'ultimo nodo (n_knot)
+    for j in range(0,n_parameters):
+        system_coeff[n_parameters*(n_functions-1)+1][(n_functions-1)*n_parameters+j] = 1.0*t[n_knot-1]**(j)
+
+    known_term[n_parameters*n_functions-1] = -1.0*np.log(discount_factors[n_knot-1])
+        
+    # Risoluzione del sistema
+    
+    solution = np.linalg.solve(system_coeff, known_term)
+
+    # Disposizione della soluzione sottoforma di matrice
+    for i in range(0, n_knot-1):
+        lin_parameters['a'][i] = solution[(i)*n_parameters]
+        lin_parameters['b'][i] = solution[(i)*n_parameters + 1]
+
+    return lin_parameters 
+
+
+
+def estimate_avd_params(curve_times, zc_rate):
+
+    zc_rate = np.asarray(zc_rate)
+    curve_times = np.asarray(curve_times)
+
+    discount_factors = np.exp(-curve_times*zc_rate)
+
+  
+    t = curve_times
+    
+    # Calcolo numero nodi
+    n_knot = len(curve_times) 
+    # Numero funzioni da stimare
+    n_functions = n_knot - 1
+    # numero parameteri per funzione
+    n_parameters = 5
+        
+    # Dimensionamento vettori e matrice
+    m = n_functions*n_parameters
+    
+    system_coeff     =  np.zeros((m,m))
+    known_term       =  np.zeros((m,1))
+    lin_parameters   =  np.zeros((n_knot-1,n_parameters))
+    
+    
+    
+    # Calcolo tassi ZC continui sui nodi
+    r_cont_t0 = -1/t[1]*np.log(discount_factors[1])
+    
+    
+    # Riempimento matrice dei coefficienti del sistema e del vettore termine noto
+    # Le condizioni usate sono a pag.42-43 del documento 'modelli_tassi'
+    
+    
+    avd_parameters = {}
+    avd_parameters['a'] = {}
+    avd_parameters['b'] = {}
+    avd_parameters['c'] = {}
+    avd_parameters['d'] = {}
+    avd_parameters['e'] = {}
+
+
+    for k in range(0, n_functions-1):
+        for j in range(0, n_parameters):
+            # 1 condizione: f=f 
+            system_coeff[k][k*n_parameters+j] = 1.0*t[k+1]**(j)
+            system_coeff[k][k*n_parameters+n_parameters+j] = -1.0*t[k+1]**(j)
+            
+            # 2 condizione f'=f' 
+            
+            system_coeff[(n_functions-1)+k][(k)*n_parameters+j] =(j)*t[k+1]**(j-1)
+            system_coeff[(n_functions-1)+k][(k)*n_parameters+n_parameters+j] =-(j)*t[k+1]**(j-1)
+
+        
+        # 3 condizione f''=f''
+        
+        system_coeff[2*(n_functions-1)+k][(k)*n_parameters+0] = 0
+        system_coeff[2*(n_functions-1)+k][(k)*n_parameters+1] = 0
+        system_coeff[2*(n_functions-1)+k][(k)*n_parameters+2] = 2*t[k+1]**0
+        system_coeff[2*(n_functions-1)+k][(k)*n_parameters+3] = 6*t[k+1]**1
+        system_coeff[2*(n_functions-1)+k][(k)*n_parameters+4] = 12*t[k+1]**2
+        system_coeff[2*(n_functions-1)+k][(k)*n_parameters+n_parameters+0] = 0
+        system_coeff[2*(n_functions-1)+k][(k)*n_parameters+n_parameters+1] = 0
+        system_coeff[2*(n_functions-1)+k][(k)*n_parameters+n_parameters+2] = -2*t[k+1]**0
+        system_coeff[2*(n_functions-1)+k][(k)*n_parameters+n_parameters+3] = -6*t[k+1]**1
+        system_coeff[2*(n_functions-1)+k][(k)*n_parameters+n_parameters+4] = -12*t[k+1]**2
+    
+        # 4 condizione f'''=f''' 
+        system_coeff[3*(n_functions-1)+k][(k)*n_parameters+0] = 0
+        system_coeff[3*(n_functions-1)+k][(k)*n_parameters+1] = 0
+        system_coeff[3*(n_functions-1)+k][(k)*n_parameters+2] = 0
+        system_coeff[3*(n_functions-1)+k][(k)*n_parameters+3] = 6*t[k+1]**0
+        system_coeff[3*(n_functions-1)+k][(k)*n_parameters+4] = 24*t[k+1]**1
+        system_coeff[3*(n_functions-1)+k][(k)*n_parameters+n_parameters+0] = 0
+        system_coeff[3*(n_functions-1)+k][(k)*n_parameters+n_parameters+1] = 0
+        system_coeff[3*(n_functions-1)+k][(k)*n_parameters+n_parameters+2] = 0
+        system_coeff[3*(n_functions-1)+k][(k)*n_parameters+n_parameters+3] =-6*t[k+1]**0
+        system_coeff[3*(n_functions-1)+k][(k)*n_parameters+n_parameters+4] = -24*t[k+1]**1
+    
+        # 5 condizione  -ln(discount_factors(k)/discount_factors(k-1)), uguaglianza con fattori sconto
+
+        for k in range(0, n_functions):
+            for j in range(0, n_parameters):
+                    
+                t_x = (1.0/(j+1))*(t[k+1]**(j+1)-t[k]**(j+1))
+                t_y = -1.0*np.log(discount_factors[k+1]/discount_factors[k])
+                indx_r = 4*(n_functions-1)+k
+                indx_c = k*n_parameters+j
+                
+                """
+                print 'indx_r: ', indx_r
+                print 'indx_c: ', indx_c
+                print 't_x: ', t_x
+                """
+                
+                system_coeff[indx_r][indx_c] = t_x
+                known_term[indx_r] = t_y
+                
+        # 6 e 7 condizioni: sul nodo zero (0)
+        system_coeff[n_parameters*n_functions-4][0] = 1
+        
+        known_term[n_parameters*n_functions-4] = r_cont_t0;
+        
+        system_coeff[n_parameters*n_functions-3][0] = 0
+        system_coeff[n_parameters*n_functions-3][1] = 0
+        system_coeff[n_parameters*n_functions-3][2] = 2*t[0]**0
+        system_coeff[n_parameters*n_functions-3][3] = 6*t[0]**1
+        system_coeff[n_parameters*n_functions-3][4] = 12*t[0]**2
+        
+        # 8 e 9 condizioni: sull'ultimo nodo (n_knot)
+        for j in range(1, n_parameters):
+            
+            indx_r = n_parameters*n_functions-2
+            indx_c = (n_functions-1)*n_parameters+j
+            t_x = (j)*t[n_knot-1]**(j)
+
+            """
+            print 'indx_r: ', indx_r
+            print 'indx_c: ', indx_c
+            print 't_x: ', t_x
+            """
+            system_coeff[indx_r][indx_c] = t_x
+         
+        system_coeff[n_parameters*n_functions-1][(n_functions-1)*n_parameters] = 0
+        system_coeff[n_parameters*n_functions-1][(n_functions-1)*n_parameters+1] = 0
+        system_coeff[n_parameters*n_functions-1][(n_functions-1)*n_parameters+2] = 2*t[n_knot-1]**0
+        system_coeff[n_parameters*n_functions-1][(n_functions-1)*n_parameters+3] = 6*t[n_knot-1]**1
+        system_coeff[n_parameters*n_functions-1][(n_functions-1)*n_parameters+4] = 12*t[n_knot-1]**2
+         
+        
+        # Risoluzione del sistema
+    solution = np.linalg.solve(system_coeff, known_term)
+    
+
+    # Disposizione della soluzione sottoforma di matrice
+    
+    for i in range(0, n_knot-1):
+        
+        avd_parameters['a'][i] = solution[(i)*n_parameters]
+        avd_parameters['b'][i] = solution[(i)*n_parameters + 1]
+        avd_parameters['c'][i] = solution[(i)*n_parameters + 2]
+        avd_parameters['d'][i] = solution[(i)*n_parameters + 3]
+        avd_parameters['e'][i] = solution[(i)*n_parameters + 4]
+
+    return avd_parameters 
+    
+
+
+
+def loss_fun_for_fitting(par, t_mkt, zc_mkt, model_type):
+        
+        
+        if (model_type == '2'): # modello SVE
+            dict_params = {}
+
+            dict_params['const1'] = [par[0]]
+            dict_params['const2'] = [par[1]]
+            dict_params['beta0']  = [par[2]]
+            dict_params['beta1']  = [par[3]]
+            dict_params['beta2']  = [par[4]]
+            dict_params['beta3']  = [par[5]]
+                        
+            zc_model = zc_rate_by_SVE(dict_params, t_mkt)
+            
+        elif (model_type == '3'): # modello CIR
+
+            dict_params = {}
+            
+            dict_params['r0']     = [par[0]]
+            dict_params['kappa']  = [par[1]]
+            dict_params['theta']  = [par[2]]
+            dict_params['sigma']  = [par[3]]
+                        
+            zc_model = zc_rate_by_CIR(dict_params, t_mkt)
+
+        
+        else:
+            
+            dict_params = {}
+            
+            dict_params['const1'] = [par[0]]
+            dict_params['const2'] = [par[1]]
+            dict_params['beta0']  = [par[2]]
+            dict_params['beta1']  = [par[3]]
+            dict_params['beta2']  = [par[4]]
+            dict_params['beta3']  = [par[5]]
+            
+            zc_model = zc_rate_by_SVE(dict_params, t_mkt)
+            
+        
+
+            
+        diff = abs((zc_mkt - zc_model)) #- l*returns
+        
+        diff2 = diff*diff 
+        
+        val_sum = np.sum(diff2)
+        
+        return val_sum
+
+def chk_graph(mkt_times, mkt_values, model_type, dict_model_par):
+
+
+    mkt_times = np.asarray(mkt_times)
+    target_times = mkt_times
+
+    if (model_type == '0'):
+        mdl_values = zc_rate_by_LIN(mkt_times, dict_model_par, target_times)
+
+    elif (model_type == '1'):
+        mdl_values = zc_rate_by_AVD(mkt_times, mkt_values, dict_model_par, target_times)
+        
+    elif (model_type == '2'):
+        mdl_values = zc_rate_by_SVE(dict_model_par, target_times)
+
+    elif (model_type == '3'):
+        mdl_values = zc_rate_by_CIR(dict_model_par, target_times)
+
+    else:
+        mdl_values = zc_rate_by_CIR(dict_model_par, target_times)
+        
+    
+    #print 'mdl_values: ', mdl_values
+    
+    plt.plot(mkt_times, mkt_values, 'o', label='market')
+    plt.plot(target_times, mdl_values, '-', label='model')
+
+    plt.xlabel('Tempi [anni]')
+    plt.ylabel('Livello tassi zc')
+
+    plt.legend()
+    plt.show()
+
+    return 100.0
+
+
+
+def  fitting(opt_dict, data_raw):
+    
+    
+    model_type = opt_dict['interp']
+    mthod_o ='SLSQP' #ok
+
+    zc_mkt = data_raw['ValoreZC']
+    
+    t_mkt  = data_raw['MatTimes']
+    t_mkt  = np.asarray(t_mkt)
+
+
+    
+    if (model_type == '0'): # caso lineare
+
+        prms_lin = estimate_linear_params(t_mkt, zc_mkt)
+        
+    elif (model_type == '1'): # caso AVD
+        
+        prms_avd = estimate_avd_params(t_mkt, zc_mkt)
+        
+    else:
+        
+        ln_prms = len(opt_dict['bound_min'])
+                
+        x_bnd = []
+        x0 = []
+        
+        for i in range(0, ln_prms):
+            
+            x_bnd_minTmp = opt_dict['bound_min'][i]
+            x_bnd_maxTmp = opt_dict['bound_max'][i]
+            x0Tmp        = opt_dict['x0'][i]
+    
+            x_bnd.append([x_bnd_minTmp, x_bnd_maxTmp])
+            x0.append(x0Tmp)
+
+            
+        res = optimize.minimize(loss_fun_for_fitting, x0, method = mthod_o,  args=(t_mkt, zc_mkt, model_type), bounds = x_bnd)
+
+    dict_model_par = {}
+    
+    """
+        res = {'Dates'  : [datetime.date(2017,12,29), datetime.date(2017,12,30),datetime.date(2017,12,31)],
            'a'      : [0.0,0.0],
            'b'      : [0.9, 0.9],
            'c'      : [0.111, 0.111],
@@ -42,7 +650,116 @@ def fitting():
            'beta2'  : [0.3, 0.3],
            'beta3'  : [0.4, 0.4]
            }
-    return res
+    """
+    
+
+    if (model_type == '0'): # Linear
+
+        date_prms = []
+        a_prms = []
+        b_prms = []
+        
+        values_list = prms_lin['a'].keys()
+        ln = len(values_list)
+        
+        for i in range(0, ln):
+        
+            
+            dateTmp = data_raw['MatDate'][i]
+            a_prmsTmp = prms_lin['a'][i]
+            b_prmsTmp = prms_lin['b'][i]
+
+            a_prms.append(a_prmsTmp)
+            b_prms.append(b_prmsTmp)
+            date_prms.append(dateTmp)
+
+
+        dict_model_par['a']      = a_prms
+        dict_model_par['b']      = b_prms
+        dict_model_par['Dates']  = date_prms
+
+    elif (model_type == '1'): # AVD
+
+        date_prms = []
+        a_prms = []
+        b_prms = []
+        c_prms = []
+        d_prms = []
+        e_prms = []
+
+        values_list = prms_avd['a'].keys()
+        ln = len(values_list)
+        
+        for i in range(0, ln):
+        
+            dateTmp = data_raw['MatDate'][i]
+            a_prmsTmp = prms_avd['a'][i]
+            b_prmsTmp = prms_avd['b'][i]
+            c_prmsTmp = prms_avd['c'][i]
+            d_prmsTmp = prms_avd['d'][i]
+            e_prmsTmp = prms_avd['e'][i]
+
+            date_prms.append(dateTmp)
+
+            a_prms.append(a_prmsTmp)
+            b_prms.append(b_prmsTmp)
+            c_prms.append(c_prmsTmp)
+            d_prms.append(d_prmsTmp)
+            e_prms.append(e_prmsTmp)
+
+        dict_model_par['a']      = a_prms
+        dict_model_par['b']      = b_prms
+        dict_model_par['c']      = c_prms
+        dict_model_par['d']      = d_prms
+        dict_model_par['e']      = e_prms
+
+        dict_model_par['Dates']  = date_prms
+
+    elif (model_type == '2'): # Svensson
+
+        dataRef = data_raw['MatDate'][0]
+
+        dict_model_par['Dates']  = [dataRef]
+        dict_model_par['const1'] = [res.x[0]]
+        dict_model_par['const2'] = [res.x[1]]
+        dict_model_par['beta0']  = [res.x[2]]
+        dict_model_par['beta1']  = [res.x[3]]
+        dict_model_par['beta2']  = [res.x[4]]
+        dict_model_par['beta3']  = [res.x[5]]
+        
+    elif (model_type == '3'): # CIR
+
+        dataRef = data_raw['MatDate'][0]
+        
+        dict_model_par['Dates'] = [dataRef]
+        dict_model_par['r0']    = [res.x[0]]
+        dict_model_par['kappa'] = [res.x[1]]
+        dict_model_par['theta'] = [res.x[2]]
+        dict_model_par['sigma'] = [res.x[3]]
+
+    else:
+
+        dataRef = data_raw['MatDate'][0]
+        
+        dict_model_par['r0']    = [res.x[0]]
+        dict_model_par['Dates'] = [dataRef ]      
+        dict_model_par['kappa'] = [res.x[1]]
+        dict_model_par['theta'] = [res.x[2]]
+        dict_model_par['sigma'] = [res.x[3]]
+    
+    #--------------- MAKE GRAPH -------------------
+    make_graph = 0
+    
+    if (make_graph == 1):
+        
+        mkt_times  = data_raw['MatTimes']
+        mkt_values = data_raw['ValoreZC']
+        model_type = opt_dict['interp']
+        
+        chk_graph(mkt_times, mkt_values, model_type, dict_model_par)
+
+
+    return dict_model_par
 
 
 def convertNodeToMnth(nodeRef):
@@ -724,9 +1441,7 @@ def from_date_to_ordinal(date_dates):
         
         
         dateTmp = date_dates[i].toordinal()
-        
         serial_dates.append(dateTmp)
-
 
     return  serial_dates  
 
@@ -744,7 +1459,6 @@ def compute_first_df(seg1_df, seg1_dates, seg1_times, seg1_val, fix_time1, on_da
 
     #---------------- caso 2) si ON, si TN ----------------------------------------------------
     elif (seg1_dates[0] == on_date) and (seg1_dates[1] == tn_date):
-
         
         seg1_df[0] = 1/(1 + seg1_val[0]*seg1_times[0])
         seg1_df[1] = seg1_df_0*df_simple(seg1_val[1], seg1_times[1] - seg1_times[0])
@@ -761,7 +1475,6 @@ def compute_first_df(seg1_df, seg1_dates, seg1_times, seg1_val, fix_time1, on_da
     #---------------- caso 4) si ON, no TN ---------------------------------------------------
     elif (seg1_dates[0] == on_date) and (seg1_dates[1]!= tn_date):
 
-        #seg1_df(1) = 1./( 1 + seg1_val(1).*seg1_times(1) );
         seg1_df[0] = seg1_df_0
         seg1_df[1] = seg1_df_0*df_simple(seg1_val[1], seg1_times[1] - seg1_times[0])
         
@@ -790,9 +1503,6 @@ def fwd_fun(x,n,m,f1, py_rate_m, time_new):
         
         f0 = (time_new[k] - time_new[k-1])*np.exp(-x*(time_new[k]-time_new[n])) + f0
     
-    #f = py_rate_m*f0 + np.exp(-x*(time_new[m]-time_new[n])) - f1
-
-
     f = f1 - x
     
     #%-------------------------------------------------------------------------
@@ -802,43 +1512,21 @@ def fwd_fun(x,n,m,f1, py_rate_m, time_new):
 
 def fwd_fun_0(x, n, m, f1, py_rate_m, time_new):
 
-    #%--------------------------------------------------------------------------
+    #--------------------------------------------------------------------------
     f0 = 0
     
     for k in range(n+1,m+1):    
         
-        #print 'k: ', k
         dt_tmp = (time_new[k] - time_new[k-1])
-        t_tmp = time_new[k]-time_new[n]
         n_tmp = k-n
         z_Tmp = (1.0 + x*dt_tmp)**-(n_tmp)
         f0 = dt_tmp*z_Tmp + f0
 
-        """        
-        print 't_tmp: ', t_tmp
-        print 'dt_tmp: ', dt_tmp
-        print 'z_Tmp: ', z_Tmp
-        print 'f0: ', f0
-        
-        print '-----------------------------'
-
-        #f = py_rate_m*f0 + np.exp(-x*(time_new[m]-time_new[n])) - f1
-        """
-
     X = py_rate_m*f0
     Y = (1.0 + x*dt_tmp)**-(m-n)
     
-
-    #Y = np.exp(-x*(time_new[m]-time_new[n]))
-    
     f_out = X  + Y - f1
 
-    #print 'X: ', X
-    #print 'Y: ', Y
-    #print 'f_out: ', f_out
-    
-    
-    #%-------------------------------------------------------------------------
     return f_out
 
 
