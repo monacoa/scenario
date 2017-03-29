@@ -594,15 +594,22 @@ def chk_graph(mkt_times, mkt_values, model_type, dict_model_par):
 
 
 
-def  fitting(opt_dict, data_raw):
+def  fitting(c_dates, c_values, opt_dict):
     
+    t_mkt = []
+    for i in range(0, len(c_dates)):
+        
+        dateDiff = c_dates[i] - c_dates[0]
+        timeTmp = float(dateDiff.days/365.2425)
+        t_mkt.append(timeTmp)
     
     model_type = opt_dict['interp']
     mthod_o ='SLSQP' #ok
 
-    zc_mkt = data_raw['ValoreZC']
+    zc_mkt = c_values
+    #zc_mkt = data_raw['ValoreZC']
     
-    t_mkt  = data_raw['MatTimes']
+    #t_mkt  = data_raw['MatTimes']
     t_mkt  = np.asarray(t_mkt)
 
 
@@ -616,20 +623,37 @@ def  fitting(opt_dict, data_raw):
         prms_avd = estimate_avd_params(t_mkt, zc_mkt)
         
     else:
-        
-        ln_prms = len(opt_dict['bound_min'])
-                
+
         x_bnd = []
         x0 = []
         
-        for i in range(0, ln_prms):
+        if (model_type == '2'): # caso SVE
             
-            x_bnd_minTmp = opt_dict['bound_min'][i]
-            x_bnd_maxTmp = opt_dict['bound_max'][i]
-            x0Tmp        = opt_dict['x0'][i]
-    
-            x_bnd.append([x_bnd_minTmp, x_bnd_maxTmp])
-            x0.append(x0Tmp)
+            ln_prms = len(opt_dict['bound_min_sve'])
+
+            for i in range(0, ln_prms):
+                
+                x_bnd_minTmp = opt_dict['bound_min_sve'][i]
+                x_bnd_maxTmp = opt_dict['bound_max_sve'][i]
+                x0Tmp        = float((x_bnd_maxTmp + x_bnd_minTmp)/2.0)
+        
+                x_bnd.append([x_bnd_minTmp, x_bnd_maxTmp])
+                x0.append(x0Tmp)
+
+
+        if (model_type == '3'): # caso CIR
+        
+            ln_prms = len(opt_dict['bound_min_cir'])
+            
+            for i in range(0, ln_prms):
+                
+                x_bnd_minTmp = opt_dict['bound_min_cir'][i]
+                x_bnd_maxTmp = opt_dict['bound_max_cir'][i]
+                x0Tmp        = float((x_bnd_maxTmp + x_bnd_minTmp)/2.0)
+                
+                x_bnd.append([x_bnd_minTmp, x_bnd_maxTmp])
+                x0.append(x0Tmp)
+        
 
             
         res = optimize.minimize(loss_fun_for_fitting, x0, method = mthod_o,  args=(t_mkt, zc_mkt, model_type), bounds = x_bnd)
@@ -665,7 +689,9 @@ def  fitting(opt_dict, data_raw):
         for i in range(0, ln):
         
             
-            dateTmp = data_raw['MatDate'][i]
+            #dateTmp = data_raw['MatDate'][i]
+            dateTmp =c_dates[i]
+
             a_prmsTmp = prms_lin['a'][i]
             b_prmsTmp = prms_lin['b'][i]
 
@@ -692,7 +718,9 @@ def  fitting(opt_dict, data_raw):
         
         for i in range(0, ln):
         
-            dateTmp = data_raw['MatDate'][i]
+            #dateTmp = data_raw['MatDate'][i]
+            dateTmp = c_dates[i]
+
             a_prmsTmp = prms_avd['a'][i]
             b_prmsTmp = prms_avd['b'][i]
             c_prmsTmp = prms_avd['c'][i]
@@ -717,7 +745,8 @@ def  fitting(opt_dict, data_raw):
 
     elif (model_type == '2'): # Svensson
 
-        dataRef = data_raw['MatDate'][0]
+        #dataRef = data_raw['MatDate'][0]
+        dataRef = c_dates[0]
 
         dict_model_par['Dates']  = [dataRef]
         dict_model_par['const1'] = [res.x[0]]
@@ -729,8 +758,9 @@ def  fitting(opt_dict, data_raw):
         
     elif (model_type == '3'): # CIR
 
-        dataRef = data_raw['MatDate'][0]
-        
+        #dataRef = data_raw['MatDate'][0]
+        dataRef = c_dates[0]
+
         dict_model_par['Dates'] = [dataRef]
         dict_model_par['r0']    = [res.x[0]]
         dict_model_par['kappa'] = [res.x[1]]
@@ -739,7 +769,8 @@ def  fitting(opt_dict, data_raw):
 
     else:
 
-        dataRef = data_raw['MatDate'][0]
+        #dataRef = data_raw['MatDate'][0]
+        dataRef = c_dates[0]
         
         dict_model_par['r0']    = [res.x[0]]
         dict_model_par['Dates'] = [dataRef ]      
@@ -751,10 +782,13 @@ def  fitting(opt_dict, data_raw):
     make_graph = 0
     
     if (make_graph == 1):
-        
-        mkt_times  = data_raw['MatTimes']
-        mkt_values = data_raw['ValoreZC']
+
+        dataRef = c_dates[0]
+
         model_type = opt_dict['interp']
+        
+        mkt_times  = t_mkt
+        mkt_values = c_values
         
         chk_graph(mkt_times, mkt_values, model_type, dict_model_par)
 
