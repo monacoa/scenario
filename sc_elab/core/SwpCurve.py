@@ -73,19 +73,18 @@ class Curve:
         # --------
         # anagrafica
         # --------
-        self.description = ""
-        self.curr = ""
-        self.ref_date = ""
-        self.type = ""
-        self.source = "Bloomberg"
-        self.quotation = "MID"
-        self.download_type = "0"
-        self.emittente = '999'
-        self.rating = '999'
-        self.settore = '999'
-        self.seniority = '999'
-        self.type = 'Swap'
-        self.floater_tenor = ''
+        self.description    = ""
+        self.curr           = ""
+        self.ref_date       = ""
+        self.source         = "Bloomberg"
+        self.quotation      = "MID"
+        self.download_type  = "0"
+        self.emittente      = '999'
+        self.rating         = '999'
+        self.settore        = '999'
+        self.seniority      = '999'
+        self.type           = 'Swap'
+        self.floater_tenor  = ''
         self.cal = ''
         # ---------
         self.HWparms = {}
@@ -497,3 +496,242 @@ class BootstrappedCurve(Curve):
     def fittingFromBoot(self, optDict):
         return fb.fitting()
 
+class CdsCurve(Curve):
+
+    def __init__(self):
+        Curve.__init__(self)
+        self.tags           = []
+        self.mats           = []
+        self.values         = []
+        self.ratingProvider = ""
+        self.sectorProvider = ""
+        self.type           = "CDS"
+        self.dayCount       = ""
+        self.dayAdj         = ""
+        self.lag            = 0
+        self.capitalization = ""
+        self.code = ""
+        self.recovery = 0.0
+        self.rendimento = ""
+        self.node_type = ""
+        self.emittente = ""
+    def show(self):
+        Curve.show(self)
+        print "------------------------------"
+        print "Begin Show CDS Vars:"
+        print "Sector Provider:", self.sectorProvider
+        print "Rating Provider:", self.ratingProvider
+        print "Curve Type:", self.type
+        print "Day count:", self.dayCount
+        print "Day Adj:", self.dayAdj
+        print "lag (days):", self.lag
+        print "Capitalization:", self.capitalization
+        print "Curve Code:", self.code
+        print "Recovery rate:", self.recovery
+        print "Return type:", self.rendimento
+        print "Node type:", self.node_type
+        # ---
+        for t,m,v  in zip( self.tags,self.mats,self.values):
+            print "tag:", t, "-- mat:", m, "--value:", v
+        # ---
+        print "End Show CDS Vars"
+        print "------------------------------"
+
+
+    def loadDataFromDB(self):
+        self.description.strip()
+        con = Connection()
+        c_a = con.db_anag()
+
+        # ---
+        #recupero elenco tickers
+        # ---
+        qry = "SELECT DISTINCT  ID_object, Tipo FROM AnagMktObject WHERE description = '%s' " % (
+            self.description)
+        c_a.execute(qry)
+        res = c_a.fetchall()
+        if len(res) != 1:
+            aaaaaaaaaaaaaaaaaaaaaaa
+
+        self.type = res[0][1]
+        # ----
+        qry = '''
+                 SELECT ticker FROM AnagMktObject_D where ID_object ='%s'
+              ''' % res[0][0]
+        print qry
+        c_a.execute(qry)
+        res = c_a.fetchall()
+        print res
+        blm_tckrs_lst_str = ""
+        sep = ""
+        for record in res:
+            blm_tckrs_lst_str += sep + "'" + record[0] + "'"
+            sep = ","
+
+        # ---------
+        # RECUPERO DATI DA DB RRM
+        # ---------
+
+
+        c_d = con.db_data()
+        qry = '''
+                     SELECT DISTINCT currency, Emittente, Seniority  FROM alm.DProCDS where BloombergTicker IN
+                     (
+                        SELECT DISTINCT BLOOMBERGTICKER FROM alm.DProTS_master WHERE
+                        BLOOMBERGTICKER IN (%s) AND
+                        DATA = '%s'
+                     )
+              ''' % (blm_tckrs_lst_str, str(self.ref_date).replace("-",""))
+        print qry
+        c_d.execute(qry)
+        res = c_d.fetchall()
+        if len(res) <> 1: bbbbbbbbbbbbbbbb
+        self.curr      = res[0][0]
+        code_sen    = res[0][2]
+        code_issuer = res[0][1]
+        # ---
+        # traduzione dei codici per seniority e emittente
+        # ---
+        qry = '''
+                 SELECT descrizione from ZEmittente where codice_emittente = '%s'
+             '''%(code_issuer)
+        print qry
+        c_a.execute(qry)
+        self.emittente = c_a.fetchall()[0][0]
+        print "self.emi", self.emittente
+
+        # ---
+        qry = '''
+                         SELECT descrizione from ZSeniority where codice_seniority = '%s'
+                     ''' % (code_sen)
+        print qry
+        c_a.execute(qry)
+        self.seniority = c_a.fetchall()[0][0]
+
+        # ---
+        # recupero le altre info di anagrafica dalla tabella MKT_Curve, dove sono censite le curve CDS (hanno data_rif == Null)
+        # ---
+        qry = '''
+                SELECT codice_curva, tipo_curva, rendimento, tipo_nodo, lag, recovery_rate, codice_segmentazione, codice_settore, codice_rating, periodicita
+                FROM MKT_Curve WHERE
+                  descrizione = '%s' 
+            '''%self.description
+
+        print qry
+        c_a.execute(qry)
+        res             = c_a.fetchall()
+        self.code       = res[0][0]
+        self.type    = res[0][1]
+        self.rendimento = res[0][2]
+        self.node_type = res[0][3]
+        self.lag     = res[0][4]
+        self.recovery =  res[0][5]
+        cod_segm     = res[0][6] #codice_segmentazione
+        self.settore = res[0][7]
+        self.rating  = res[0][8]
+        self.frequency = res[0][9]
+        qry = '''
+                SELECT daycount, dayadj, capitalizzazione FROM MKT_Segmentazione_D where codice_segmentazione = '%s'
+                '''%cod_segm
+
+        c_a.execute(qry)
+        res = c_a.fetchall()
+
+        self.dayCount = res[0][0]
+        self.dayAdj   = res[0][1]
+        self.capitalization = res[0][2]
+
+
+        if self.settore == 999:
+            qry = '''
+                    SELECT   codice_settore from MKT_EmittenteSettore where codice_emittente = '%s'
+                    AND date <= '%s'
+                    AND FONTE = '%s'
+                    order by date desc
+                  '''%(code_issuer, str(self.ref_date), self.sectorProvider)
+            print qry
+            c_a.execute(qry)
+            res = c_a.fetchall()
+            self.settore = res[0][0]
+        #ora converto il settore da codice a descrizione
+        qry = ''' SELECT DESCRIZIONE FROM ZSettore WHERE CODICE_SETTORE = '%s' '''%(self.settore)
+        print qry
+        c_a.execute(qry)
+        res = c_a.fetchall()
+        self.settore = res[0][0]
+
+        if self.rating == 999:
+            qry = '''
+                         SELECT codice_rating from MKT_EmittenteRating where
+                         codice_emittente = '%s' AND
+                          DATE <= '%s' and
+                          fonte = '%s'
+                          order by date desc
+                           LIMIT 1
+                       ''' % (code_issuer,str(self.ref_date), self.ratingProvider)
+            print qry
+            c_a.execute(qry)
+            res = c_a.fetchall()
+            if len(res) > 1: zzzzzzzzz
+            self.rating = res[0][0]
+
+         # ora converto il settore da codice a descrizione
+        qry = ''' SELECT DESCRIZIONE FROM ZRating WHERE CODICE_RATING = '%s' ''' % (self.rating)
+        print qry
+        c_a.execute(qry)
+        res = c_a.fetchall()
+        self.rating = res[0][0]
+
+        #----
+        if self.curr == "EUR":
+            self.cal = "de.eurex"
+        elif self.curr == "USD":
+            self.cal = 'us'
+        elif self.curr == 'GBP':
+            self.cal = 'uk'
+        elif self.curr == 'CAD':
+            self.cal = 'ca'
+        else:
+            self.cal = 'us'
+        # ----
+        if self.quotation == "MID":
+            quotazione = "valoremid"
+        elif self.quotation == "ASK":
+            quotazione = "valoreask"
+        elif self.quotation == "BID":
+            quotazione = "valorebid"
+        else:
+            mmmmmmmmmmmmmmmm
+
+        print res
+
+        qry = '''
+                     SELECT      alm.DProCDS.maturityInt, alm.DProTS_master.%s
+                     FROM        alm.DProCDS
+                     INNER JOIN  alm.DProTS_master
+                     ON          alm.DProCDS.BloombergTicker = alm.DProTS_master.BloombergTicker
+                     WHERE       alm.DProTS_master.data='%s'
+                     AND         alm.DProCDS.BloombergTicker in (%s)
+                     ORDER BY    alm.DProCDS.maturityInt
+              ''' % (quotazione, str(self.ref_date).replace("-", ""), blm_tckrs_lst_str)
+        print qry
+        c_d.execute(qry)
+        res = c_d.fetchall()
+        print "*" * 120
+        print qry
+
+        print res
+
+        for record in res:
+            print "record:", record
+            mat = float(record[0])/360.
+            if (mat-int(mat)) < 1.e-8: mat = int(mat)
+            tag = str(mat)+"Y"
+            val = float(record[1])
+            print mat, tag, val
+            self.mats.append(mat)
+            self.tags.append(tag)
+            self.values.append(val)
+            print self.mats, self.tags, self.values
+
+        self.show()

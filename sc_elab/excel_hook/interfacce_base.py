@@ -14,36 +14,59 @@ from win32com.client import constants as const
 
 from W_swapCurve import W_curveType
 from xls_swapCurve import writeCurveOnXls
-from DEF_intef import nameSheetCurve
+from DEF_intef import nameSheetCurve, nameSheetCDS
 
 @xl_func
 def load_swap_curve_from_db(control):
-    nameSheet = nameSheetCurve
-    xla = xl_app()
-    book = xla.ActiveWorkbook
-    #-----
-    #creo foglio nameSheetCurve se non esiste
-    try:
-        s = book.Sheets(nameSheet)
-        s.Activate()
-    except:
-        s = book.Sheets.Add()
-        s.Name = nameSheet
-   #------------------
     root = Tk()
     app  = W_curveType(root)
     root.mainloop()
 
     curve_des = app.new_window.new_window.curve
     curve_date= app.new_window.date
+    curve_type = app.new_window.type
 
-    cc = Curve()
+    print "descrizione:", curve_des
+    print "data:", curve_date
+    print "type:", curve_type
+
+
+    xla = xl_app()
+    book = xla.ActiveWorkbook
+    # -----
+    # creo foglio nameSheetCurve se non esiste
+    if curve_type == "SWP":
+        nameSheet = nameSheetCurve
+        try:
+            s = book.Sheets(nameSheet)
+            s.Activate()
+        except:
+            s = book.Sheets.Add()
+            s.Name = nameSheet
+            # ------------------
+        cc = Curve()
+    elif curve_type == "CDS":
+        nameSheet = nameSheetCDS
+        try:
+            s = book.Sheets(nameSheet)
+            s.Activate()
+        except:
+            s = book.Sheets.Add()
+            s.Name = nameSheet
+            # ------------------
+        cc = CdsCurve()
+
     cc.ref_date = datetime.date(day=int(curve_date[-2:]), month=int(curve_date[5:7]), year=int(curve_date[:4]))
     cc.description= curve_des
-    cc.loadDataFromDB()
-    cc.init_finalize()
 
-    writeCurveOnXls(cc, nameSheet, xla)
+    if curve_type == "CDS":
+        cc.ratingProvider = app.new_window.new_window.new_window.rating.get()
+        cc.sectorProvider = app.new_window.new_window.new_window.sector.get()
+
+    cc.loadDataFromDB()
+    if curve_type == "SWP": cc.init_finalize()
+
+    writeCurveOnXls(cc, nameSheet, xla, curve_type)
 
 
 #=======================================================================================================================
@@ -127,6 +150,7 @@ from W_fittingCurve import W_fittingType
 from xls_bootCurve import readBootstrappedCurveFromXls
 from xls_fittingCurve import writeFittingBootResOnXls, writeFittingPyResOnXls
 from DEF_intef import nameSheetBootstrap
+
 @xl_func
 def fitting_from_xls(control):
 
@@ -148,8 +172,38 @@ def fitting_from_xls(control):
     opt_dict['opt_fwd_tenor']   = (str(W.new_window.new_window.variable2.get()).strip(""))[1]
     opt_dict['opt_path_graph']  =  W.new_window.new_window.variable5.get()
     opt_dict['fit_type']        = fit_type
-    print "**********************options:", opt_dict
 
+    opt_dict['bound_min_sve'] = []
+    opt_dict['bound_max_sve'] = []
+    opt_dict['sve_params']    = ['const1', 'const2', 'beta0', 'beta1', 'beta2', 'beta3']
+    opt_dict['bound_min_sve'].append( float(W.new_window.new_window.SVE_c1min.get().strip("")))
+    opt_dict['bound_min_sve'].append( float(W.new_window.new_window.SVE_c2min.get().strip("")))
+    opt_dict['bound_min_sve'].append( float(W.new_window.new_window.SVE_b0min.get().strip("")))
+    opt_dict['bound_min_sve'].append( float(W.new_window.new_window.SVE_b1min.get().strip("")))
+    opt_dict['bound_min_sve'].append( float(W.new_window.new_window.SVE_b2min.get().strip("")))
+    opt_dict['bound_min_sve'].append( float(W.new_window.new_window.SVE_b3min.get().strip("")))
+
+    opt_dict['bound_max_sve'].append( float(W.new_window.new_window.SVE_c1max.get().strip("")))
+    opt_dict['bound_max_sve'].append( float(W.new_window.new_window.SVE_c2max.get().strip("")))
+    opt_dict['bound_max_sve'].append( float(W.new_window.new_window.SVE_b0max.get().strip("")))
+    opt_dict['bound_max_sve'].append( float(W.new_window.new_window.SVE_b1max.get().strip("")))
+    opt_dict['bound_max_sve'].append( float(W.new_window.new_window.SVE_b2max.get().strip("")))
+    opt_dict['bound_max_sve'].append( float(W.new_window.new_window.SVE_b3max.get().strip("")))
+
+    opt_dict['bound_min_cir'] = []
+    opt_dict['bound_max_cir'] = []
+    opt_dict['cir_params'] =['r0', 'kappa', 'theta', 'sigma']
+    opt_dict['bound_min_cir'].append( float(W.new_window.new_window.CIR_r0min.get().strip("")))
+    opt_dict['bound_min_cir'].append( float(W.new_window.new_window.CIR_kmin.get().strip("")))
+    opt_dict['bound_min_cir'].append( float(W.new_window.new_window.CIR_thetamin.get().strip("")))
+    opt_dict['bound_min_cir'].append( float(W.new_window.new_window.CIR_sigmamin.get().strip("")))
+
+    opt_dict['bound_max_cir'].append( float(W.new_window.new_window.CIR_r0max.get().strip("")))
+    opt_dict['bound_max_cir'].append( float(W.new_window.new_window.CIR_kmax.get().strip("")))
+    opt_dict['bound_max_cir'].append( float(W.new_window.new_window.CIR_thetamax.get().strip("")))
+    opt_dict['bound_max_cir'].append( float(W.new_window.new_window.CIR_sigmamax.get().strip("")))
+
+    #---
     xla = xl_app()
     book = xla.ActiveWorkbook
 
@@ -192,19 +246,14 @@ def save_from_xls(control):
         ZC          = W.new_window.new_window.var2.get()
         xla         = xl_app()
         nameSheet   = nameSheetBootstrap
-
         res,codes   = saveZcDfOnDB(xla, nameSheet, des, pos, DF, ZC)
-
         #---
         root2 = Tk()
         root2.withdraw()
         if (res):
             msg = "Bootstrap results are on DB, well done Comollis!"
             tkMessageBox.showinfo("YES WE CAN!", msg)
-
         else:
-            #msg = "Unable to save Bootstrap results because they're already on DB... Please delete IT before!!"
-            #tkMessageBox.showinfo("x@!#!", msg)
             tkMessageBox.askquestion("Unable to save Bootstrap results because they're already on DB.", "DELETING... Are You Sure?", icon='warning')
             if 'yes':
                 print "codes", codes
