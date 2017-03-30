@@ -3,14 +3,14 @@ import  sys
 import  datetime
 from    win32com.client import constants as const
 from Tkinter import *
-from sc_elab.core.SwpCurve import dict_segm2, Segm, Curve
+from sc_elab.core.SwpCurve import dict_segm2, Segm, Curve, CdsCurve
 
 from xls_utils import drawBox, drawLine, formatTestataCurva, findRigthPlaceBootCurveSeg
 
 
 
 def intestazioneSwapCurveSegmenti( xla, sheet, rng,  attributi, nCols = 2, text= None):
-    print attributi
+
     txt = text if text!=None else attributi['Description']
     nRows           = len(attributi.keys())
     topLeftRow      = rng.Row
@@ -126,7 +126,7 @@ def segmentoSwapCurve(xla, rangeS, code, segm):
     return rangeStart
 
 
-def CdsCurve(xla, rangeS, crv):
+def SegmentoCdsCurve(xla, rangeS, crv):
     from DEF_intef import FORMATT
     rangeStart = rangeS
     topLeftRow = xla.Range(rangeStart).Row
@@ -233,7 +233,7 @@ def writeCurveOnXls(crv, nameSheet, xla, curve_type):
                     rangeStartNew = segmentoSwapCurve(xla, rangeStartNew, code, crv.segms[s])
 
     elif  curve_type == "CDS":
-        rangeStartNew = CdsCurve(xla, rangeStartNew, crv)
+        rangeStartNew = SegmentoCdsCurve(xla, rangeStartNew, crv)
     else:
         xxxxxxxxx
 
@@ -264,6 +264,51 @@ def readIntestazione(xla , r , cc):
     r =  xla.Range(xla.Cells(row + 9, col), xla.Cells(row + 9, col))
     cc.show()
     return r
+
+def readIntestazioneCds(xla , r , cc):
+    row             = r.Row
+    col             = r.Column
+
+    cc.capitalization = xla.Range(xla.Cells(row+1, col+1), xla.Cells(row+1, col+1)).Value
+    cc.curr           = xla.Range(xla.Cells(row+2, col+1), xla.Cells(row+2, col+1)).Value
+    # imposto il mercato
+    if cc.curr == "EUR":
+        cc.cal = "de.eurex"
+    elif cc.curr == "USD":
+        cc.cal = 'us'
+    elif cc.curr == 'GBP':
+        cc.cal = 'uk'
+    elif cc.curr == 'CAD':
+        cc.cal = 'ca'
+    else:
+        cc.cal = 'us'
+
+    print ".................", r.Value
+    cc.type = xla.Range(xla.Cells(row + 3, col + 1), xla.Cells(row + 3, col + 1)).Value
+    dd = xla.Range(xla.Cells(row + 4, col + 1), xla.Cells(row + 4, col + 1)).Value
+    cc.ref_date = datetime.date(year=dd.year, month=dd.month, day=dd.day)
+
+    cc.dayAdj   = xla.Range(xla.Cells(row + 5, col + 1), xla.Cells(row + 5, col + 1)).Value
+    cc.dayCount = xla.Range(xla.Cells(row + 6, col + 1), xla.Cells(row + 6, col + 1)).Value
+
+    cc.description   = xla.Range(xla.Cells(row + 7, col + 1), xla.Cells(row + 7, col + 1)).Value
+    cc.download_type = xla.Range(xla.Cells(row + 8, col + 1), xla.Cells(row + 8, col + 1)).Value
+    cc.lag           = xla.Range(xla.Cells(row + 9, col + 1), xla.Cells(row + 9, col + 1)).Value
+    cc.frequency     = xla.Range(xla.Cells(row + 10, col + 1), xla.Cells(row + 10, col + 1)).Value
+    cc.emittente     = xla.Range(xla.Cells(row + 11, col + 1), xla.Cells(row + 11, col + 1)).Value
+    cc.node_type     = xla.Range(xla.Cells(row + 12, col + 1), xla.Cells(row + 12, col + 1)).Value
+    cc.quotation     = xla.Range(xla.Cells(row + 13, col + 1), xla.Cells(row + 13, col + 1)).Value
+    cc.rating        = xla.Range(xla.Cells(row + 14, col + 1), xla.Cells(row + 14, col + 1)).Value
+    cc.recovery      = xla.Range(xla.Cells(row + 15, col + 1), xla.Cells(row + 15, col + 1)).Value
+    cc.rendimento    = xla.Range(xla.Cells(row + 16, col + 1), xla.Cells(row + 16, col + 1)).Value
+    cc.sector        = xla.Range(xla.Cells(row + 17, col + 1), xla.Cells(row + 17, col + 1)).Value
+    cc.seniority     = xla.Range(xla.Cells(row + 18, col + 1), xla.Cells(row + 18, col + 1)).Value
+    cc.source        = xla.Range(xla.Cells(row + 19, col + 1), xla.Cells(row + 19, col + 1)).Value
+
+    r = xla.Range(xla.Cells(row + 21, col), xla.Cells(row + 21, col))
+    cc.show()
+    return r
+
 
 
 def readParametriHW(xla,r,cc):
@@ -321,10 +366,32 @@ def readSegms(xla, r, cc):
     return r
 
 
+def readSegm(xla, r, cc):
+    row  = r.Row
+    col  = r.Column
+    name = r.Value
+    print "SONO QUIIIIIIIIIII", name
+    i = 2
+
+    while r.Value != None:
+        r = xla.Range(xla.Cells(row + 2, col), xla.Cells(row + 2, col))
+        tag   = r.Value
+        print "tag", tag
+        time  = xla.Range(xla.Cells(row + i, col + 1), xla.Cells(row + i, col + 1)).Value
+        value = xla.Range(xla.Cells(row + i, col + 2), xla.Cells(row + i, col + 2)).Value
+
+        cc.tags.append(tag)
+        cc.mats.append(time)
+        cc.values.append(value)
+        i += 1
+        r = xla.Range(xla.Cells(row + i, col), xla.Cells(row + i, col))
+
+    cc.show()
+    return r
 
 
 
-def readCurveFromXls(xla, des, pos, nameSheet):
+def readCurveFromXls(xla, des, pos, nameSheet, type = "SWP"):
     rangeStart = "B2"
     distCurve = 5
     sheet = xla.ActiveWorkbook.Sheets(nameSheet)
@@ -336,11 +403,18 @@ def readCurveFromXls(xla, des, pos, nameSheet):
 
     r = xla.Range(xla.Cells(row, col + distCurve*(pos-1)), xla.Cells(row, col + (nCols-1) + distCurve*(pos-1)))
 
-    cc = Curve()
-    r = readIntestazione(xla, r,cc)
-    r = readParametriHW(xla,r,cc)
-    r = readSegms(xla,r,cc)
+    if type == "SWP":
+        from sc_elab.core.SwpCurve import  Curve
+        cc = Curve()
+        r = readIntestazione(xla, r, cc)
+        r = readParametriHW(xla,r,cc)
+        r = readSegms(xla,r,cc)
 
+    else:
+        from sc_elab.core.SwpCurve import CdsCurve
+        cc = CdsCurve()
+        r = readIntestazioneCds(xla, r, cc)
+        r = readSegm(xla, r, cc)
     return cc
 
 
@@ -355,3 +429,6 @@ def findCurveFromPos(xla, pos, nameSheet):
     col   = r.Column
     r     = xla.Range(xla.Cells(row, col + distCurve*(pos - 1)), xla.Cells(row, col + (nCols-1) + distCurve*(pos-1)))
     return r
+
+
+

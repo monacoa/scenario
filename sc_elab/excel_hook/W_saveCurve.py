@@ -4,7 +4,7 @@ import tkMessageBox
 from win32com.client import constants as const
 from DEF_intef import nameSheetBootstrap
 
-from xls_utils import readCurvesNames
+from xls_utils import readCurvesNames, readCurvesParmsNames
 
 class W_saveType (Frame):
     def donothing(self):
@@ -38,7 +38,7 @@ class W_saveType (Frame):
             s    = book.Sheets(nameSheet)
             s.Activate()
         except:
-            msg = "Missing input sheet for Swap py Curves in your workbook... \nNothing to do for me!"
+            msg = "Missing input sheet for Bootstrapped Curves in your workbook... \nNothing to do for me!"
             tkMessageBox.showinfo("Warning!", msg)
             self.master.destroy()
             return None
@@ -46,23 +46,24 @@ class W_saveType (Frame):
         self.new_window = W_saveBootSelection(self, curveL)
 
     def saveFittFromBoot(self):
+
         self.saveType = "FitFromBoot"
-        aaaaaaaa
-        # self.fit_type = "py"
-        # nameSheet = nameSheetCurve
-        # xla = xl_app()
-        # book = xla.ActiveWorkbook
-        # try:
-        #     s = book.Sheets(nameSheet)
-        #     s.Activate()
-        # except:
-        #     msg = "Missing input sheet for Swap py Curves in your workbook... \nNothing to do for me!"
-        #     tkMessageBox.showinfo("Warning!", msg)
-        #     self.master.destroy()
-        #     return None
-        #
-        # curveL = readCurvesNames(xla, s, "B2", "o", 5)
-        # self.new_window = W_fittingSelection(self, curveL)
+        nameSheet = nameSheetBootstrap
+        try:
+            xla = xl_app()
+            book = xla.ActiveWorkbook
+            s = book.Sheets(nameSheet)
+            s.Activate()
+        except:
+            msg = "Missing input sheet for Fitted Curves in your workbook... \nNothing to do for me!"
+            tkMessageBox.showinfo("Warning!", msg)
+            self.master.destroy()
+            return None
+
+        print "SONO QUI!!!"
+        curveParmsDict = readCurvesParmsNames (xla, s, "B2")
+
+        self.new_window = W_saveFitSelection(self, curveParmsDict)
 
     def saveFittFromPy(self):
         self.saveType = "FitFromPy"
@@ -91,7 +92,7 @@ class W_saveBootSelection(LabelFrame):
         #self.master = master
         # self.geometry("800x600")
         # self.master.geometry("400x500")
-        self.config(text="Available curves for save:")
+        self.config(text="Available curves to save:")
         self.pack(fill="both", expand="yes")
         # create scrollbar
         self.bar = Scrollbar(self)
@@ -134,7 +135,6 @@ class W_saveBootSelection(LabelFrame):
         self.new_window = W_saveBoot_opt(parent=self)
 
 
-
 class W_saveBoot_opt(LabelFrame):
     def selected(self):
         self.close_window()
@@ -142,7 +142,6 @@ class W_saveBoot_opt(LabelFrame):
     def close_window(self):
         self.destroy()
         self.master.destroy()
-
 
     def donothing(self):
         self.destroy()
@@ -170,3 +169,126 @@ class W_saveBoot_opt(LabelFrame):
 
         self.pack(fill="both", expand="yes")
         #self.pack(fill="both", expand="yes")
+
+
+
+# -----
+
+class W_saveFitSelection(LabelFrame):
+
+    def donothing(self):
+        tkMessageBox.showinfo("Nothing To do!", "bye bye")
+        self.master.destroy()
+        return
+
+    def __init__(self, master=None, curveDict={}):
+        self.curveDict = curveDict
+        c_date = None
+        if master:
+            self.master = master.master
+            master.close_window()
+
+        LabelFrame.__init__(self, self.master)
+        #self.master = master
+        # self.geometry("800x600")
+        # self.master.geometry("400x500")
+        self.config(text="Available curves to save:")
+        self.pack(fill="both", expand="yes")
+        # create scrollbar
+        self.bar = Scrollbar(self)
+        # ---
+        # create curve list
+        # ---
+        self.mylist = Listbox(self, yscrollcommand=self.bar.set)
+
+
+        for l in curveDict.keys():
+            l_list = l.split("-")
+            crv = l_list[0]
+            pos = l_list[1]
+            crv = "(" + str(pos) + ") " + crv
+            self.mylist.insert(int(pos)-1, crv)
+
+        self.mylist.config(width=50)
+        self.mylist.pack(side=LEFT, fill='y')
+        # ----------.
+        self.bar.pack(side=LEFT, fill='y')
+        self.mylist.config(yscrollcommand=self.bar.set)
+        self.bar.config(command=self.mylist.yview)
+        # -----------
+        # cretae button
+        self.btn2 = Button(self, text="Cancel", command=self.donothing)
+        self.btn2.pack(side=BOTTOM, fill='x')
+        # cretae button
+        self.btn1 = Button(self, text="Select", command=self.selected_curve)
+        self.btn1.pack(side=BOTTOM, fill='x')
+
+
+    def close_window(self):
+        self.destroy()
+
+    def selected_curve(self):
+        # ---
+        # recupero la data selezionata
+        # ---
+        curve = str((self.mylist.get(ACTIVE)))
+        curve = curve.replace("(", "")
+        tmp = curve.split(") ")
+        self.curve = tmp[1]
+        self.pos_curve = int(tmp[0])
+        self.new_window = W_saveFitParms(master=self, curve = self.curve, pos = self.pos_curve, cd = self.curveDict)
+
+
+class W_saveFitParms(LabelFrame):
+
+    def close_window(self):
+        self.destroy()
+        self.master.destroy()
+
+    def donothing(self):
+        tkMessageBox.showinfo("Nothing To do!", "bye bye")
+        self.master.destroy()
+        return
+
+    def __init__(self, master=None, curve = "", pos = "", cd ={}):
+        if master:
+            self.master = master.master
+            master.close_window()
+        LabelFrame.__init__(self, self.master)
+        self.config(text="Available parms to save:")
+        self.pack(fill="both", expand="yes")
+        # create scrollbar
+        self.bar = Scrollbar(self)
+        # ---
+        # create curve list
+        # ---
+        self.mylist = Listbox(self, yscrollcommand=self.bar.set)
+        curve_key = curve+"-"+str(pos)
+        for l in cd[curve_key]:
+            par     = l[0]
+            pos_par = l[1]
+            par = "(" + str(pos_par) + ") " + par
+            self.mylist.insert(END, par)
+
+        self.mylist.config(width=50)
+        self.mylist.pack(side=LEFT, fill='y')
+        # ----------.
+        self.bar.pack(side=LEFT, fill='y')
+        self.mylist.config(yscrollcommand=self.bar.set)
+        self.bar.config(command=self.mylist.yview)
+        # -----------
+        # cretae button
+        self.btn2 = Button(self, text="Cancel", command=self.donothing)
+        self.btn2.pack(side=BOTTOM, fill='x')
+        # cretae button
+        self.btn1 = Button(self, text="Select", command=self.selected)
+        self.btn1.pack(side=BOTTOM, fill='x')
+
+    def selected(self):
+        stringa = str((self.mylist.get(ACTIVE)))
+        stringa = stringa.replace("(", "")
+        tmp = stringa.split(") ")
+        self.parms = tmp[1]
+        self.pos_parms = int(tmp[0])
+        self.close_window()
+

@@ -20,8 +20,6 @@ class W_curveType (Frame):
         filemenu = Menu(self.menubar, tearoff=0)
 
         filemenu.add_command(label="swap - RF curve", command= lambda : self.load_swp_RF_curve("SWP"))
-        filemenu.add_command(label="CDS curve", command=lambda: self.load_swp_RF_curve("CDS"))
-
         filemenu.add_command(label="govt curve", command=donothing)
         filemenu.add_command(label="sector curve", command=donothing)
 
@@ -36,7 +34,7 @@ class W_curveType (Frame):
 
     def load_swp_RF_curve(self, type):
         print "type", type
-        self.new_window = W_curveDate(parent = self, type = type)
+        self.new_window = W_curveDate(master = None, parent = self, type = type)
 
     def close_window(self):
         self.destroy()
@@ -44,13 +42,15 @@ class W_curveType (Frame):
 
 #-------------
 class W_curveDate(LabelFrame):
-    def __init__(self, parent = None, type = "SWP"):
+    def __init__(self, master = None, parent = None, type = "SWP"):
         c_date = None
-        if parent:
+        if master: self.master = master
+        elif parent:
             self.master = parent.master
             parent.close_window()
         # create labelframe
-        LabelFrame.__init__(self, self.master)
+        LabelFrame.__init__(self, master)
+
         self.config(text = "Select reference date:")
         self.pack(fill="both", expand="yes")
 
@@ -122,28 +122,27 @@ class W_curveSelection (LabelFrame):
         self.btn1 = Button(self, text="Select", command=lambda:self.selected_curve(type))
         self.btn1.pack(side=BOTTOM, fill='x')
 
-    def close_window(self):
+    def close_window(self, type):
         self.destroy()
-        #self.master.destroy()
+        if (type == "SWP") : self.master.destroy()
 
     def selected_curve(self, type):
         #recupero la data selezionata
         curve_des = str((self.mylist.get(ACTIVE)))
         self.curve = curve_des
         if type == "SWP":
-            self.close_window()
+            self.close_window(type)
         elif type == "CDS":
             print "XXXXXXXXXXXXXX caso CDS!!!!!!!!!"
-            self.new_window = W_settoreRatingSelection(parent=self)
-        else:
-            xxxxxx
+            self.new_window = W_settoreRatingSelection(parent=self, type = type)
+
 
 
 class W_settoreRatingSelection(LabelFrame):
-    def __init__(self, parent = None):
+    def __init__(self, parent = None, type = "CDS"):
         if parent:
             self.master = parent.master
-            parent.close_window()
+            parent.close_window(type)
         LabelFrame.__init__(self, self.master)
         self.config(text="Provider selection:")
         # ---
