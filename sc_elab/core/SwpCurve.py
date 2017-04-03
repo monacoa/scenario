@@ -469,7 +469,27 @@ class Curve:
         return res
 
     def fittingFromPY(self, optDict):
-        return fb.fitting()
+
+        raw_data = {}
+        raw_data['ValoreNodo']   = []
+        raw_data['MatDate']      = []
+
+        for name in self.segms.keys():
+            code = revDict(dict_segm2) [name]
+            s = self.segms[name]
+            for u,t,v,d in zip(s.usage, s.tags, s.values, s.dates):
+
+                if (u == 'y'):
+                    raw_data['ValoreNodo'].append(v)
+                    raw_data['MatDate'].append(d)
+                else:
+                    pass
+        
+        c_dates = raw_data['MatDate']
+        c_rates = raw_data['ValoreNodo']
+        
+        
+        return fb.fitting(c_dates, c_rates, optDict)
 
 
 class BootstrappedCurve(Curve):
@@ -494,7 +514,11 @@ class BootstrappedCurve(Curve):
         print "------------------------------"
 
     def fittingFromBoot(self, optDict):
-        return fb.fitting()
+        
+        c_dates = self.boot_dates
+        c_rates = self.boot_rates
+
+        return fb.fitting(c_dates, c_rates, optDict)
 
 class CdsCurve(Curve):
 
