@@ -68,7 +68,11 @@ class Segm:
         else: return ""
 
 
-class Curve:
+class Curve(object):
+    def __init__(self):
+        object.__init__(self)
+        self.setDefaults()
+
     def setDefaults(self):
         # --------
         # anagrafica
@@ -93,8 +97,6 @@ class Curve:
         # ----------
         self.segms = {}
 
-    def __init__(self):
-        self.setDefaults()
 
 
     def getCurveCode(self):
@@ -493,7 +495,6 @@ class Curve:
 
 
 class BootstrappedCurve(Curve):
-
     def __init__(self):
         Curve.__init__(self)
         self.boot_dates = []
@@ -501,13 +502,15 @@ class BootstrappedCurve(Curve):
         self.fit_usage  = []
         self.boot_rates = []
         self.code       = ""
-        #self.setDefaults()
+        self.rendimento = "ZC"
 
     def show(self):
         Curve.show(self)
         print "------------------------------"
         print "Begin Show Bootstrap Vars:"
+        print "Rendimneto:", self.rendimento
         print "Codice Segmenti Boots:", self.code
+
         for d,f,r,u in zip( self.boot_dates,self.boot_df,self.boot_rates, self.fit_usage):
             print "date:", d, "-- df:", f, "--rate:", r, "-- usage:", u
         print "End Show Bootstrap Vars"
@@ -520,8 +523,38 @@ class BootstrappedCurve(Curve):
 
         return fb.fitting(c_dates, c_rates, optDict)
 
-class CdsCurve(Curve):
 
+
+class InterpolatedCurve(BootstrappedCurve):
+    def __init__(self):
+        BootstrappedCurve.__init__(self)
+        self.code_interp         = ""
+        self.interpolation_model = ""
+        self.interp_dates        = []
+        self.parms_list          = []
+        self.interp_parms        = {}
+
+    def show(self):
+        BootstrappedCurve.show(self)
+        print "------------------------------"
+        print "Begin Show interpolation Vars:"
+        print "Codice interpolazione:", self.code_interp
+        print "Modello di interpolazione:", self.interpolation_model
+
+
+        print "date:", self.interp_dates
+        print "lista dei parametri del modello:", self.parms_list
+        print "dizionario: ", self.interp_parms
+
+        print "End Show interpolation Vars"
+        print "------------------------------"
+
+    def getCurveCode(self):
+        return self.code_interp
+
+
+
+class CdsCurve(Curve):
     def __init__(self):
         Curve.__init__(self)
         self.tags           = []
@@ -539,6 +572,8 @@ class CdsCurve(Curve):
         self.rendimento = ""
         self.node_type = ""
         self.emittente = ""
+
+
     def show(self):
         Curve.show(self)
         print "------------------------------"
@@ -759,3 +794,9 @@ class CdsCurve(Curve):
             print self.mats, self.tags, self.values
 
         self.show()
+
+    def getCurveCode (self):
+        # ---
+        # per le curve cds il codice si trova sul db
+        # ---
+        qry

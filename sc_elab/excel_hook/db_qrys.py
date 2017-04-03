@@ -93,7 +93,15 @@ def getProvidersFromDb (table):
     sects = []
     for record in res:
         sects.append(record[0])
-
     Con.close()
     return sects
 
+def getCdsCodeFromDb(cds_curve):
+    con = Connection()
+    c = con.db_ang()
+    qry ='''
+            select codice_curva from MKT_Curve where
+            tipo_curva = 'CDS' and
+            emittente in (select codice_emittente from ZEmittente where descrizione = '%s') and
+            seniority in (select codice_seniority from ZSeniority where descrizione = '%s') and
+    '''

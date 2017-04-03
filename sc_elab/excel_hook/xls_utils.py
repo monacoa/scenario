@@ -120,6 +120,57 @@ def readCurvesNames(xla, s, rangeStart, direzione, distanza, offset = 0):
 
     return curveL
 
+
+
+def readCurvesParmsNames (xla, s, rangeStart):
+    r = xla.Range(rangeStart)
+    curveDict = {}
+    # --- inizializzo la prima
+    nomeCurva = r.Value
+    j = 1
+    nomeCurva = nomeCurva+"-"+str(j)
+    curveDict[nomeCurva] = []
+    rp = xla.Range(xla.Cells(r.Row, "I"), xla.Cells(r.Row, "I"))
+    p_i = 0
+    while (rp.Value != None):
+        print "RP address", rp.Row, rp.Column
+        p_i += 1
+        nome = rp.Value
+        if nome[0:3] == "PIL": distanzaO = 4
+        else:                  distanzaO = 7
+        curveDict[nomeCurva].append((nome, p_i))
+        row = rp.Row
+        col = rp.Column
+        rp = xla.Range(xla.Cells(row, col + distanzaO), xla.Cells(row, col + distanzaO))
+    # --- proseguo con le successive
+    while (r.Value != None):
+        print "loop su R", r.Value
+        r = xla.Range(xla.Cells(r.Row + 1, r.Column), xla.Cells(r.Row + 1, r.Column))
+        if (r.Value == None):
+            r = xla.Range(xla.Cells(r.Row + 1, r.Column), xla.Cells(r.Row + 1, r.Column))
+
+            if r.Value != None: # ho trovato una nuova curva
+                j += 1
+                nomeCurva = r.Value
+                nomeCurva = nomeCurva + "-" + str(j)
+                curveDict[nomeCurva] = []
+                # --- prendo i relativi parametri disponibili
+                rp  = xla.Range(xla.Cells(r.Row, "I"), xla.Cells(r.Row, "I"))
+                p_i = 0
+                while (rp.Value != None):
+                    p_i += 1
+                    nome = rp.Value
+                    curveDict[nomeCurva].append((nome, p_i))
+                    row  = rp.Row
+                    col  = rp.Column
+                    if nome[0:3] == "PIL": distanzaO = 4
+                    else                 : distanzaO = 7
+                    rp = xla.Range(xla.Cells(row, col + distanzaO), xla.Cells(row, col + distanzaO))
+
+    print curveDict
+    return curveDict
+
+
 def findRigthPlaceBootCurveSeg(xla, r, distCurve, dir="O"):
     rOut = None
     if dir == "v" :
