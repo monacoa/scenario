@@ -471,7 +471,7 @@ class Curve(object):
         return res
 
     def fittingFromPY(self, optDict):
-        return fb.fitting()
+        return fb.fitting(self.segms['Swp'].dates, self.segms['Swp'].rates, optDict)
 
 
 class BootstrappedCurve(Curve):
@@ -497,7 +497,7 @@ class BootstrappedCurve(Curve):
         print "------------------------------"
 
     def fittingFromBoot(self, optDict):
-        return fb.fitting()
+        return fb.fitting(self.boot_dates, self.boot_rates, optDict)
 
 
 
@@ -707,7 +707,6 @@ class CdsCurve(Curve):
             print qry
             c_a.execute(qry)
             res = c_a.fetchall()
-            if len(res) > 1: zzzzzzzzz
             self.rating = res[0][0]
 
          # ora converto il settore da codice a descrizione
@@ -733,10 +732,9 @@ class CdsCurve(Curve):
             quotazione = "valoremid"
         elif self.quotation == "ASK":
             quotazione = "valoreask"
-        elif self.quotation == "BID":
-            quotazione = "valorebid"
         else:
-            mmmmmmmmmmmmmmmm
+            quotazione = "valorebid"
+
 
         print res
 
