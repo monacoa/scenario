@@ -1,5 +1,5 @@
 import sys
-import datetime as dtime
+#import datetime as dtime
 import math
 import numpy as np
 
@@ -11,6 +11,11 @@ from sc_elab.core.mdates import busdayrule
 from scipy import optimize
 from scipy.optimize import minimize
 from scipy.optimize import fmin
+from datetime import datetime as dtime
+
+
+from dateutil.relativedelta import relativedelta
+
 
 
 import matplotlib.pyplot as plt
@@ -23,6 +28,8 @@ import calendar
 def FQ(label):
     print ('------------- FIN QUI TUTTO OK  %s ----------' %(label))
     sys.exit()
+
+
 
 
 def find_indx_last(x_target, x_list_ref):
@@ -64,7 +71,7 @@ def zc_rate_by_SVE(dict_params, t_mat):
     for i in range(0, len(t_mat)):
         t_matTmp = t_mat[i]
         if (t_matTmp < minTime): t_matTmp = minTime
-        t_mat[i] = t_matTmp
+        t_mat[i] = float(t_matTmp)
         
     
     tau1   = dict_params['const1'][0]
@@ -83,6 +90,34 @@ def zc_rate_by_SVE(dict_params, t_mat):
 
     ns_model  =  beta0 + (beta1 + beta2)*(G1/tmp1) - beta2*g1
     zc_rate   =  ns_model - beta3*(g2 - (1.0 - g2)/tmp2)
+
+    return zc_rate
+
+
+
+def zc_rate_by_NS(dict_params, t_mat):
+
+    t_mat   = np.asarray(t_mat)
+
+    minTime = 0.0001
+    
+    for i in range(0, len(t_mat)):
+        t_matTmp = t_mat[i]
+        if (t_matTmp < minTime): t_matTmp = minTime
+        t_mat[i] = float(t_matTmp)
+
+    tau1   = dict_params['const1'][0]
+    beta0  = dict_params['beta0'][0]
+    beta1  = dict_params['beta1'][0]
+    beta2  = dict_params['beta2'][0]
+
+    tmp1 = t_mat/tau1
+    g1 = np.exp(-tmp1)
+
+    G1 = 1.0 - g1
+
+    ns_model  =  beta0 + (beta1 + beta2)*(G1/tmp1) - beta2*g1
+    zc_rate   =  ns_model
 
     return zc_rate
 
@@ -157,16 +192,18 @@ def zc_rate_by_LIN_s(tempi, parameters, T_target):
 
     elif (T_target == 0): #se il tempo T e' nullo Z=1
         zc_rate =  parameters['b'][0]
-        return zc_rate
+        return zc_rate[0]
 
     elif (T_target > 0) and (T_target < t[n_knots-1]):
         index = find_indx_last(T_target, tempi)        
-        zc_rate = parameters['a'][index]/T_target + parameters['b'][index] 
+        zc_rate = parameters['a'][index]/T_target + parameters['b'][index]
+        zc_rate = zc_rate[0] 
 
     elif T_target >= t[n_knots-1]:
         index = n_knots - 2
         
-        zc_rate = parameters['a'][index]/T_target + parameters['b'][index] 
+        zc_rate = parameters['a'][index]/T_target + parameters['b'][index]
+        zc_rate = zc_rate[0] 
     
     return zc_rate
 
@@ -509,6 +546,7 @@ def estimate_avd_params(curve_times, zc_rate):
 def loss_fun_for_fitting(par, t_mkt, zc_mkt, model_type):
         
         
+        
         if (model_type == '2'): # modello SVE
             dict_params = {}
 
@@ -532,6 +570,16 @@ def loss_fun_for_fitting(par, t_mkt, zc_mkt, model_type):
                         
             zc_model = zc_rate_by_CIR(dict_params, t_mkt)
 
+        elif (model_type == '4'): # modello NS
+
+            dict_params = {}
+            
+            dict_params['const1'] = [par[0]]
+            dict_params['beta0']  = [par[1]]
+            dict_params['beta1']  = [par[2]]
+            dict_params['beta2']  = [par[3]]
+                        
+            zc_model = zc_rate_by_NS(dict_params, t_mkt)
         
         else:
             
@@ -546,22 +594,28 @@ def loss_fun_for_fitting(par, t_mkt, zc_mkt, model_type):
             
             zc_model = zc_rate_by_SVE(dict_params, t_mkt)
             
-        
+        zc_mkt = np.array(zc_mkt)
 
-            
-        diff = abs((zc_mkt - zc_model)) #- l*returns
+        zc_mkt = zc_mkt*10000.0
+        zc_model = zc_model*10000.0
+
+        #zc_mkt = zc_mkt
+        #zc_model = zc_model
+        #n_pt = len(zc_mkt)
+
+        diff = abs((zc_mkt - zc_model))
         
-        diff2 = diff*diff 
+        diff2 = diff*diff
+
         
         val_sum = np.sum(diff2)
+        val_sum = val_sum
         
         return val_sum
 
-def chk_graph(mkt_times, mkt_values, model_type, dict_model_par):
 
+def makeRatesFromModel(mkt_times, mkt_values, dict_model_par, target_times, model_type):
 
-    mkt_times = np.asarray(mkt_times)
-    target_times = mkt_times
 
     if (model_type == '0'):
         mdl_values = zc_rate_by_LIN(mkt_times, dict_model_par, target_times)
@@ -575,8 +629,34 @@ def chk_graph(mkt_times, mkt_values, model_type, dict_model_par):
     elif (model_type == '3'):
         mdl_values = zc_rate_by_CIR(dict_model_par, target_times)
 
+    elif (model_type == '4'):
+        mdl_values = zc_rate_by_NS(dict_model_par, target_times)
+
     else:
         mdl_values = zc_rate_by_CIR(dict_model_par, target_times)
+
+
+
+    return mdl_values 
+
+
+
+def chk_graph(mkt_times, mkt_values, model_type, dict_model_par):
+
+
+    model_dict = {}
+    model_dict['0'] = 'LIN'
+    model_dict['1'] = 'AVD'
+    model_dict['2'] = 'SVE'
+    model_dict['3'] = 'CIR'
+    model_dict['4'] = 'NS'
+    
+    modelRef = model_dict[model_type]
+
+    mkt_times = np.asarray(mkt_times)
+    target_times = mkt_times
+
+    mdl_values = makeRatesFromModel(mkt_times, mkt_values, dict_model_par, target_times, model_type)
         
     
     #print 'mdl_values: ', mdl_values
@@ -586,15 +666,24 @@ def chk_graph(mkt_times, mkt_values, model_type, dict_model_par):
 
     plt.xlabel('Tempi [anni]')
     plt.ylabel('Livello tassi zc')
+    plt.title('Fitting via %s model' %(modelRef))
 
     plt.legend()
     plt.show()
 
-    return 100.0
 
 
 
 def  fitting(c_dates, c_values, opt_dict):
+    
+    
+    try:
+        opt_dict['MakeGraph']
+    except:
+        opt_dict['MakeGraph'] = False
+
+        
+    #opt_dict['MakeGraph'] = True
     
     t_mkt = []
     for i in range(0, len(c_dates)):
@@ -604,7 +693,244 @@ def  fitting(c_dates, c_values, opt_dict):
         t_mkt.append(timeTmp)
     
     model_type = opt_dict['interp']
-    mthod_o ='SLSQP' #ok
+    
+    
+    #mthod_o ='SLSQP' #ok
+    mthod_o ='TNC' #ok
+
+    zc_mkt = c_values
+    #zc_mkt = data_raw['ValoreZC']
+    
+    #t_mkt  = data_raw['MatTimes']
+    t_mkt  = np.asarray(t_mkt)
+
+
+    
+    if (model_type == '0'): # caso lineare
+
+        prms_lin = estimate_linear_params(t_mkt, zc_mkt)
+        
+    elif (model_type == '1'): # caso AVD
+        
+        prms_avd = estimate_avd_params(t_mkt, zc_mkt)
+        
+    else:
+
+        x_bnd = []
+        x0 = []
+        
+        if (model_type == '2'): # caso SVE
+            
+            ln_prms = len(opt_dict['bound_min_sve'])
+
+            for i in range(0, ln_prms):
+                
+                x_bnd_minTmp = opt_dict['bound_min_sve'][i]
+                x_bnd_maxTmp = opt_dict['bound_max_sve'][i]
+                x0Tmp       = opt_dict['x0'][i]
+                
+                #x0Tmp        = float((x_bnd_maxTmp + x_bnd_minTmp)/2.0)
+        
+                x_bnd.append([x_bnd_minTmp, x_bnd_maxTmp])
+                x0.append(x0Tmp)
+
+
+        if (model_type == '3'): # caso CIR
+        
+            ln_prms = len(opt_dict['bound_min_cir'])
+            
+            for i in range(0, ln_prms):
+                
+                x_bnd_minTmp = opt_dict['bound_min_cir'][i]
+                x_bnd_maxTmp = opt_dict['bound_max_cir'][i]
+                x0Tmp = opt_dict['x0'][i]
+                
+                x_bnd.append([x_bnd_minTmp, x_bnd_maxTmp])
+                x0.append(x0Tmp)
+        
+        if (model_type == '4'): # caso NS
+        
+            ln_prms = len(opt_dict['bound_min_ns'])
+            
+            for i in range(0, ln_prms):
+                
+                x_bnd_minTmp = opt_dict['bound_min_ns'][i]
+                x_bnd_maxTmp = opt_dict['bound_max_ns'][i]
+                x0Tmp = opt_dict['x0'][i]
+                
+                x_bnd.append([x_bnd_minTmp, x_bnd_maxTmp])
+                x0.append(x0Tmp)
+
+            
+        res = optimize.minimize(loss_fun_for_fitting, x0, method = mthod_o,  args=(t_mkt, zc_mkt, model_type), bounds = x_bnd)
+
+    dict_model_par = {}
+    
+    """
+        res = {'Dates'  : [datetime.date(2017,12,29), datetime.date(2017,12,30),datetime.date(2017,12,31)],
+           'a'      : [0.0,0.0],
+           'b'      : [0.9, 0.9],
+           'c'      : [0.111, 0.111],
+           'd'      : [0.222, 0.222],
+           'e'      : [0.333, 0.333],
+           'const1' : [0.44, 0.44],
+           'const2' : [0.55, 0.55],
+           'beta0'  : [0.1, 0.1],
+           'beta1'  : [0.2, 0.2],
+           'beta2'  : [0.3, 0.3],
+           'beta3'  : [0.4, 0.4]
+           }
+    """
+    
+
+    if (model_type == '0'): # Linear
+
+        date_prms = []
+        a_prms = []
+        b_prms = []
+        
+        values_list = prms_lin['a'].keys()
+        ln = len(values_list)
+        
+        for i in range(0, ln):
+        
+            
+            #dateTmp = data_raw['MatDate'][i]
+            dateTmp =c_dates[i]
+
+            a_prmsTmp = prms_lin['a'][i]
+            b_prmsTmp = prms_lin['b'][i]
+
+            a_prms.append(a_prmsTmp)
+            b_prms.append(b_prmsTmp)
+            date_prms.append(dateTmp)
+
+
+        dict_model_par['a']      = a_prms
+        dict_model_par['b']      = b_prms
+        dict_model_par['Dates']  = date_prms
+
+    elif (model_type == '1'): # AVD
+
+        date_prms = []
+        a_prms = []
+        b_prms = []
+        c_prms = []
+        d_prms = []
+        e_prms = []
+
+        values_list = prms_avd['a'].keys()
+        ln = len(values_list)
+        
+        for i in range(0, ln):
+        
+            #dateTmp = data_raw['MatDate'][i]
+            dateTmp = c_dates[i]
+
+            a_prmsTmp = prms_avd['a'][i]
+            b_prmsTmp = prms_avd['b'][i]
+            c_prmsTmp = prms_avd['c'][i]
+            d_prmsTmp = prms_avd['d'][i]
+            e_prmsTmp = prms_avd['e'][i]
+
+            date_prms.append(dateTmp)
+
+            a_prms.append(a_prmsTmp)
+            b_prms.append(b_prmsTmp)
+            c_prms.append(c_prmsTmp)
+            d_prms.append(d_prmsTmp)
+            e_prms.append(e_prmsTmp)
+
+        dict_model_par['a']      = a_prms
+        dict_model_par['b']      = b_prms
+        dict_model_par['c']      = c_prms
+        dict_model_par['d']      = d_prms
+        dict_model_par['e']      = e_prms
+
+        dict_model_par['Dates']  = date_prms
+
+    elif (model_type == '2'): # Svensson
+
+        #dataRef = data_raw['MatDate'][0]
+        dataRef = c_dates[0]
+
+        dict_model_par['Dates']  = [dataRef]
+        dict_model_par['const1'] = [res.x[0]]
+        dict_model_par['const2'] = [res.x[1]]
+        dict_model_par['beta0']  = [res.x[2]]
+        dict_model_par['beta1']  = [res.x[3]]
+        dict_model_par['beta2']  = [res.x[4]]
+        dict_model_par['beta3']  = [res.x[5]]
+        
+    elif (model_type == '3'): # CIR
+
+        #dataRef = data_raw['MatDate'][0]
+        dataRef = c_dates[0]
+
+        dict_model_par['Dates'] = [dataRef]
+        dict_model_par['r0']    = [res.x[0]]
+        dict_model_par['kappa'] = [res.x[1]]
+        dict_model_par['theta'] = [res.x[2]]
+        dict_model_par['sigma'] = [res.x[3]]
+
+    elif (model_type == '4'): # NS
+
+        #dataRef = data_raw['MatDate'][0]
+        dataRef = c_dates[0]
+
+        dict_model_par['Dates'] = [dataRef]
+        dict_model_par['const1']    = [res.x[0]]
+        dict_model_par['beta0'] = [res.x[1]]
+        dict_model_par['beta1'] = [res.x[2]]
+        dict_model_par['beta2'] = [res.x[3]]
+
+
+
+    else:
+
+        #dataRef = data_raw['MatDate'][0]
+        dataRef = c_dates[0]
+        
+        dict_model_par['r0']    = [res.x[0]]
+        dict_model_par['Dates'] = [dataRef ]      
+        dict_model_par['kappa'] = [res.x[1]]
+        dict_model_par['theta'] = [res.x[2]]
+        dict_model_par['sigma'] = [res.x[3]]
+    
+    #--------------- MAKE GRAPH -------------------
+    make_graph = opt_dict['MakeGraph']
+    
+    if (make_graph == True):
+
+        dataRef = c_dates[0]
+
+        model_type = opt_dict['interp']
+        
+        mkt_times  = t_mkt
+        mkt_values = c_values
+        
+        chk_graph(mkt_times, mkt_values, model_type, dict_model_par)
+
+
+    return dict_model_par
+
+def  fitting_with_plot(c_dates, c_values, opt_dict, flag_plot):
+    
+    opt_dict['MakeGraph'] = flag_plot
+    #opt_dict['MakeGraph'] = True
+    
+    t_mkt = []
+    for i in range(0, len(c_dates)):
+        
+        dateDiff = c_dates[i] - c_dates[0]
+        timeTmp = float(dateDiff.days/365.2425)
+        t_mkt.append(timeTmp)
+    
+    model_type = opt_dict['interp']
+    
+    
+    #mthod_o ='SLSQP' #ok
+    mthod_o ='TNC' #ok
 
     zc_mkt = c_values
     #zc_mkt = data_raw['ValoreZC']
@@ -654,6 +980,18 @@ def  fitting(c_dates, c_values, opt_dict):
                 x_bnd.append([x_bnd_minTmp, x_bnd_maxTmp])
                 x0.append(x0Tmp)
         
+        if (model_type == '4'): # caso NS
+        
+            ln_prms = len(opt_dict['bound_min_ns'])
+            
+            for i in range(0, ln_prms):
+                
+                x_bnd_minTmp = opt_dict['bound_min_ns'][i]
+                x_bnd_maxTmp = opt_dict['bound_max_ns'][i]
+                x0Tmp        = float((x_bnd_maxTmp + x_bnd_minTmp)/2.0)
+                
+                x_bnd.append([x_bnd_minTmp, x_bnd_maxTmp])
+                x0.append(x0Tmp)
 
             
         res = optimize.minimize(loss_fun_for_fitting, x0, method = mthod_o,  args=(t_mkt, zc_mkt, model_type), bounds = x_bnd)
@@ -779,9 +1117,9 @@ def  fitting(c_dates, c_values, opt_dict):
         dict_model_par['sigma'] = [res.x[3]]
     
     #--------------- MAKE GRAPH -------------------
-    make_graph = 0
+    make_graph = opt_dict['MakeGraph']
     
-    if (make_graph == 1):
+    if (make_graph == True):
 
         dataRef = c_dates[0]
 
@@ -795,14 +1133,13 @@ def  fitting(c_dates, c_values, opt_dict):
 
     return dict_model_par
 
-
 def convertNodeToMnth(nodeRef):
 
     dict_N2T = {} 
     dict_N2T['1M'] = 1 
     dict_N2T['3M'] = 3
     dict_N2T['6M'] = 6
-    dict_N2T['1Y'] = 1
+    dict_N2T['1Y'] = 12
     
     timeNode = dict_N2T[nodeRef]
 
@@ -1123,15 +1460,15 @@ def df_cmp(spot_rate, time_ref):
 
 def find_indx(x_target, x_list_ref):
 
-    ln = len(x_list_ref) - 1
+    ln = len(x_list_ref) 
 
-    for i in range(0, len(x_list_ref)):
+    for i in range(0, ln):
 
         if (x_target < x_list_ref[0]): 
             i_ref = None
             break
 
-        elif (x_target > x_list_ref[ln]) : 
+        elif (x_target > x_list_ref[ln-1]) : 
             i_ref = None
             break
 
@@ -1143,6 +1480,37 @@ def find_indx(x_target, x_list_ref):
         
         elif (x_list_ref[i] >= x_target):
             i_ref = i - 1
+            break
+            
+        else:
+
+            continue
+
+    return i_ref
+
+
+def find_indx_next(x_target, x_list_ref):
+
+    ln = len(x_list_ref) 
+
+    for i in range(0, ln):
+
+        if (x_target < x_list_ref[0]): 
+            i_ref = 0
+            break
+
+        elif (x_target > x_list_ref[ln-1]) : 
+            i_ref = ln -1
+            break
+
+         
+        elif (x_list_ref[i] == x_target) and (i == 0): 
+            i_ref = i
+            break
+
+        
+        elif (x_list_ref[i] >= x_target):
+            i_ref = i
             break
             
         else:
@@ -1183,15 +1551,15 @@ def find_indx_toll(x_target, x_list_ref, toll):
 
 def find_indx_n(x_target, x_list_ref):
 
-    ln = len(x_list_ref) - 1
+    ln = len(x_list_ref) 
 
-    for i in range(0, len(x_list_ref)):
+    for i in range(0, ln):
 
         if (x_list_ref[0] > x_target): 
             i_ref = None
             break
 
-        elif (x_list_ref[ln] < x_target): 
+        elif (x_list_ref[ln-1] < x_target): 
             i_ref = None
             break
  
@@ -1277,6 +1645,27 @@ def add_months(sourcedate, months):
     month = month%12 + 1
     day = min(sourcedate.day,calendar.monthrange(year,month)[1])
     return datetime.date(year,month,day)
+
+
+def fromDates2Times(date_list):
+
+    target_times = []
+    
+    n_dates = len(date_list)
+    
+    date_0 = date_list[0]
+    
+    for i in range(0, n_dates):
+
+    
+        dateTmp      = date_list[i]
+        diffdaysTmp  = (dateTmp - date_0).days
+        diffTimesTmp = diffdaysTmp/365.2425
+        
+        target_times.append(diffTimesTmp)
+        
+    return target_times
+
 
 
 def compute_df_future(seg1_times, seg1_val, seg1_df,  futures_rates, flag_futures_gap, futures_start_time, futures_end_time,  futures_end_df_x, flag_interp1, indx_ref):
@@ -1531,7 +1920,6 @@ def compute_first_df(seg1_df, seg1_dates, seg1_times, seg1_val, fix_time1, on_da
 
 def fwd_fun(x,n,m,f1, py_rate_m, time_new):
 
-    #%--------------------------------------------------------------------------
     f0 = 0
     for k in range(n,m):    
         
@@ -1539,7 +1927,6 @@ def fwd_fun(x,n,m,f1, py_rate_m, time_new):
     
     f = f1 - x
     
-    #%-------------------------------------------------------------------------
     return f
 
 
@@ -2451,24 +2838,14 @@ def boot3s_elab_v2(data_opt, data_raw):
         tenor_swap       = data_opt['TenorSwap']
         tenor_swap       = convertNodeToMnth(tenor_swap)
 
-    
-    
-    
-
     #%--------------------------------------------------------------------------
-    #%-------------- RETRIEVE OPTIONS SETUP -----------------------------------------
+    #%-------------- RETRIEVE OPTIONS SETUP ------------------------------------
     #%--------------------------------------------------------------------------
 
     setting_default = set_data_default()
 
     ref_date = data_opt['RefDate'] 
     
-    
-    
-    
-    #print 'tenor_swap: ', tenor_swap
-
-
     flag_convexity   = data_opt['Convexity']
     flag_futures_gap = data_opt['GapFutures']
     flag_method_swap = data_opt['SwapGapMethod']
@@ -2483,10 +2860,7 @@ def boot3s_elab_v2(data_opt, data_raw):
 
     mkt_code = data_opt['MKT']
     mkt_ref  = holidays.get_calendar(mkt_code)
-    
-    
-    
-        
+
     day_conv_tn = setting_default['BusConv']['TN']
     day_conv_on = setting_default['BusConv']['O/N']
 
@@ -4134,7 +4508,7 @@ def set_data_default():
     return data_default
 
 
-def set_data_opt():
+def set_data_opt(refDate):
     
     
     
@@ -4160,7 +4534,8 @@ def set_data_opt():
     data_opt['SwapGapMethod'] = 0 # 0 = Constant Forward Rate, 1 = Linear Swap Rate
     data_opt['InterpLinFutures'] = 1 # 1 = interp. esponenziale sui fattori di sconto, 0 = interp. line. sui tassi forward
 
-    data_opt['RefDate'] = datetime.date(2017, 02, 15)
+    data_opt['RefDate'] = refDate
+    #data_opt['RefDate'] = datetime.date(2017, 02, 15)
 
     data_opt['BusConv']['D'] = 'follow'
     data_opt['BusConv']['L'] = 'follow'
@@ -4179,6 +4554,825 @@ def set_data_opt():
 
     return data_opt
 
+
+
+def set_data_opt_for_cds():
+
+    # bench_boot_method 
+    # interp_method 
+    
+    opt_dict = {}
+
+    opt_dict['DataRef']        = datetime.date(2005, 12, 31)
+
+    opt_dict['MKT']            = 'de'
+    opt_dict['tenor']          = 3 # 
+    opt_dict['Basis']          = 'ACT/365' #ACT/365
+    opt_dict['interp']         = '2' # 
+    opt_dict['BusConv']        = 'modfollow'
+    opt_dict['fixingDays']     = 2
+    opt_dict['compounding']    = 0   #0 = semplice, 1 = composto, 2 = continuo
+    opt_dict['ReocveryRate']   = 0.4
+    opt_dict['hr_bootMethod']  = 1 #0 = LCS, 1 = CHR
+    opt_dict['Basis']          = 'ACT/360' 
+    opt_dict['BusConv']        = 'follow'
+
+
+    opt_dict['opt_path_graph']  =  'C:\\'
+    
+
+    return opt_dict
+
+
+def set_data_opt_for_fit(model_fit, flag_make_graph):
+    
+    """
+    {'fit_type': 'boot', 
+     'bound_max_cir': [0.02, 10.0, 1.0, 0.5], 
+     'bound_max_sve': [100.0, 100.0, 10.0, 10.0, 10.0, 10.0], 
+     'bound_min_cir': [0.0, 0.001, 0.005, 0.001], 
+     'interp': '0', 
+     'cir_params': ['r0', 'kappa', 'theta', 'sigma'], 
+     'opt_path_graph': 'C://', 
+     'sve_params': ['const1', 'const2', 'beta0', 'beta1', 'beta2', 'beta3'], 
+     'bound_min_sve': [0.001, 0.001, -0.05, -0.05, -0.05, -0.05], 
+     'opt_fwd_tenor': '1'}    
+
+    """
+    
+    opt_dict = {}
+    
+    opt_dict['MakeGraph'] = flag_make_graph
+    
+    opt_dict['interp'] = model_fit 
+    
+    """
+    opt_dict['interp'] == '0' # 'LIN'
+    opt_dict['interp'] == '1' # 'AVD'
+    opt_dict['interp'] == '2' # 'SVE'
+    opt_dict['interp'] == '3' # 'CIR'
+    """
+
+    opt_dict['opt_fwd_tenor']   = "1M"
+    
+    """ 
+    opt_dict['opt_fwd_tenor']   = "3M"
+    opt_dict['opt_fwd_tenor']   = "6M"
+    opt_dict['opt_fwd_tenor']   = "12M"
+    """
+    
+    opt_dict['opt_path_graph']  =  'C:\\'
+    
+    #opt_dict['fit_type']        = "boot"
+    opt_dict['fit_type']        = "py"
+    
+
+    
+    if (opt_dict['interp'] == '2'): #SVE
+    
+        bound_min_sve = [0.0001,  0.0001, -10.00, -10.050, -10.00, -10.00]
+        bound_max_sve = [100.0,    100.0,  10.00,   10.00,  10.00,  10.00]
+        bound_x0_sve  = [1.0,       10.0,  0.03,     0.03,   0.03,   0.03]
+
+        #bound_min_sve = [ 24.42054,  27.04635,  -0.05,  -0.05,  0.85558,  4.297894]
+        #bound_max_sve = [ 24.42054,  27.04635,  -0.05,  -0.05,  0.85558,  4.297894]
+        #bound_x0_sve  = [ 24.42054,  27.04635,  -0.05,  -0.05,  0.85558,  4.297894]
+        
+        #bound_min_sve  = [5.000,    7.000,    0.013,    -0.016,    -0.066,    0.080]
+        #bound_max_sve  = [5.000,    7.000,    0.013,    -0.016,    -0.066,    0.080]
+        #bound_x0_sve   = [5.000,    7.000,    0.013,    -0.016,    -0.066,    0.080]
+
+        opt_dict['bound_min_sve'] = bound_min_sve
+        opt_dict['bound_max_sve'] = bound_max_sve
+        opt_dict['x0']            = bound_x0_sve
+
+    elif (opt_dict['interp'] == '3'): #CIR
+
+        bound_min_cir = [  -0.1,  0.1, 0.001, 0.001]
+        bound_max_cir = [ 10.00, 10.0, 10.00, 1.000]
+        bound_x0_cir  = [0.0001,  1.0, 0.015,  0.01]
+
+        opt_dict['bound_min_cir'] = bound_min_cir
+        opt_dict['bound_max_cir'] = bound_max_cir
+        opt_dict['x0']            = bound_x0_cir
+
+    elif (opt_dict['interp'] == '4'): #NS
+
+        bound_min_ns = [0.0001,  -10.0, -10.0, -10.0]
+        bound_max_ns = [100,     +10.0, +10.0, +10.0]
+        bound_x0_ns  = [5.0001,  0.03, 0.03, 0.03]
+
+        opt_dict['bound_min_ns'] = bound_min_ns
+        opt_dict['bound_max_ns'] = bound_max_ns
+        opt_dict['x0']            = bound_x0_ns
+
+
+    else:
+        
+        pass
+
+    return opt_dict
+
+def set_opt_for_fit(fit_model, data_ref):
+    
+    
+    opt_dict = {}
+    
+    opt_dict['interp'] = fit_model
+    opt_dict['DataRef'] = data_ref
+    
+    opt_dict['MakeGraph'] = False
+    
+    
+    """
+    opt_dict['interp'] == '0' # 'LIN'
+    opt_dict['interp'] == '1' # 'AVD'
+    opt_dict['interp'] == '2' # 'SVE'
+    opt_dict['interp'] == '3' # 'CIR'
+    """
+
+    opt_dict['opt_fwd_tenor']   = "1M"
+    
+    """ 
+    opt_dict['opt_fwd_tenor']   = "3M"
+    opt_dict['opt_fwd_tenor']   = "6M"
+    opt_dict['opt_fwd_tenor']   = "12M"
+    """
+    
+    opt_dict['opt_path_graph']  =  'C:\\'
+    
+    #opt_dict['fit_type']        = "boot"
+    opt_dict['fit_type']        = "py"
+    
+
+    
+    if (opt_dict['interp'] == '2'): # 
+    
+        bound_min_sve = [0.001,  0.001, -0.05, -0.05, -0.05, -0.05]
+        bound_max_sve = [100.0,  100.0,  10.0,  10.0,  10.0,  10.0]
+        bound_x0_sve  = [  1.0,    1.0,  0.03,  0.03,  0.03,  0.03]
+
+        opt_dict['bound_min_sve'] = bound_min_sve
+        opt_dict['bound_max_sve'] = bound_max_sve
+        opt_dict['x0']        = bound_x0_sve
+
+    elif (opt_dict['interp'] == '3'): 
+
+        bound_min_cir = [0.01,   1.0,   0.01,   0.01]
+        bound_max_cir = [0.01, 1.0,  0.01, 0.01]
+        bound_x0_cir  = [0.01, 1.0, 0.01, 0.01]
+
+        opt_dict['bound_min_cir'] = bound_min_cir
+        opt_dict['bound_max_cir'] = bound_max_cir
+        opt_dict['x0']        = bound_x0_cir
+
+    else:
+        
+        pass
+
+    return opt_dict
+
+
+
+
+
+def computeDateOutputCDS(raw_data, data_opt):
+    
+    ln = len(raw_data['MatTimes'])
+    time_w_y   = raw_data['MatTimes'][ln-1]
+    n_steps = int(time_w_y)
+    ln = 31
+    
+    date_0 = data_opt['DataRef']
+    date_0 = dtime.fromordinal(date_0.toordinal())
+    
+    dateOut = []
+    timeOut = []
+    for i in range(0, ln):
+        
+        timeTmp = i
+        #timeTmp = int(raw_data['MatTimes'][i])
+        
+        dateTmp = date_0 + relativedelta(months=12*i)
+        #dateTmp = date_0 + relativedelta(months=12*timeTmp)
+        
+        dd = int(dateTmp.day)
+        mm = int(dateTmp.month)
+        yy = int(dateTmp.year)
+        
+        dateDateTmp = datetime.date(yy, mm, dd)
+        
+        dateOut.append(dateDateTmp)
+        timeOut.append(float(timeTmp))
+        
+    return  dateOut, timeOut
+
+
+def computeTimesFromDates(dateList):
+
+    matTimes = []
+    dateRef  = dateList[0]
+    
+    ln = len(dateList)
+    
+    matTimes.append(0.0)
+    
+    for i in range(1, ln):
+        
+        timeTmp = (dateList[i] - dateRef).days/365.2425
+
+        matTimes.append(timeTmp)
+
+    return matTimes
+
+
+def fromCurveToSpread(df_bench_values, zc_bench_dates, prms_bench, bench_model, py_risky_val, py_risky_dates, risky_model, targetDates, targetTimes):
+    
+    
+    dataRef = zc_bench_dates[0]
+    fitting_opt_dict = set_opt_for_fit(risky_model, dataRef)    
+    zc_bench_times   = fromDates2Times(zc_bench_dates)
+    py_risky_times   = fromDates2Times(py_risky_dates)
+
+    refDates = zc_bench_dates[0]
+    
+    prms_risky_for_py      = fitting(py_risky_dates, py_risky_val, fitting_opt_dict)
+    py_risky_val_n         = makeRatesFromModel(py_risky_times, py_risky_val, prms_risky_for_py, targetTimes, risky_model)
+    
+    
+    zc_risk_free           = makeRatesFromModel(zc_bench_times, df_bench_values, prms_bench, targetTimes, bench_model)
+    
+    pyFreq = 0.25
+    py_risk_free = computePYRates(zc_bench_times, df_bench_values, pyFreq, 0.0, targetTimes)
+    
+    py_spread = py_risky_val_n - py_risk_free
+    
+    
+    ln_spread = len(py_spread)
+    
+    py_spread_n = []
+    
+    for i in range(0, ln_spread):
+        
+        py_spreadTmp = py_spread[i]
+        
+        if (py_spreadTmp <= 0.0):
+            py_spreadTmp = 0.0
+        else:
+            py_spreadTmp = py_spreadTmp
+            
+        py_spread_n.append(py_spreadTmp)
+
+    py_spread_n = np.asarray(py_spread_n)
+        
+    py_risky_val_n = py_risk_free + py_spread_n
+    
+    data_opt_for_boot = set_data_opt()
+    data_opt_for_boot['RefDate'] = dataRef
+    data_opt_for_boot['SwapGapMethod'] = 1
+    
+    #n_rates = len(py_risky_val_n)
+    
+    target_dates = fromTimes2Dates(refDates, targetTimes)
+
+    #data_raw_risky = buildDataRawForBoot(target_dates, targetTimes, py_risky_val_n)
+    
+    
+    #--------------- IMPLEMENTA LA PARTE DI BOOT ----------------------
+    
+    zc_risky_val_n = py_risky_val_n
+        
+    zc_spread_n = zc_risky_val_n - zc_risk_free
+        
+        
+    return py_spread_n, zc_spread_n
+
+def bootstrap_lcs(cds_times, cds_values, cds_pay_times, RR, df_risk_free):
+    # la funzione riceve in input i fattori di sconto risk-free gia interpolati#
+
+    n_cf      = len(cds_pay_times)
+
+    
+    cds_val_n = np.interp(cds_pay_times, cds_times, cds_values)
+    
+    dt_pay = cds_pay_times[1:] - cds_pay_times[:n_cf-1]
+    dt_pay  = np.insert(dt_pay, 0, dt_pay[0])
+    
+    surv = np.zeros(n_cf)
+    hr   = np.zeros(n_cf)
+    
+    hr[0]   = 0.0
+    surv[0] = 1.0
+
+    hr[1]   = (1.0/dt_pay[0])*np.log(1.0 + (cds_val_n[1]*dt_pay[1])/(1.0 - RR))
+    hr[0]   = hr[1]
+    
+    surv[1] = surv[0]*(np.exp(-hr[1]*(dt_pay[1])))
+
+
+    #print ''
+    for i in range(2, n_cf):
+    #for i in range(2, 20):
+        
+        den1 = 0.0
+        #print 'RR:', RR
+
+        for k in range(1, i-1):
+            #den1 = den1 + (1.0 - RR)*(1.0 - np.exp(-hr[k]*dt_pay[k]) - cds_val_n[i]*dt_pay[k]*np.exp(-hr[k]*dt_pay[k-1]))*df_risk_free[k]*surv[k - 1]
+            den1 = den1 + (1.0 - RR)*(1.0 - np.exp(-hr[k]*dt_pay[k]) - cds_val_n[i]*dt_pay[k]*np.exp(-hr[k]*dt_pay[k-1]))*df_risk_free[k]*surv[k-1]
+
+            #if (i == 3):
+    
+            #    print '**********************'
+            #    print 'hr[k]: ', hr[k]
+            #    print 'dt_pay[k]: ', dt_pay[k]
+            #    print 'df_risk_free[k]: ', df_risk_free[k]
+            #    print 'surv[k - 1]: ', surv[k - 1]
+    
+            #    print 'cds_val_n: ', cds_val_n[i]
+                
+        
+        #for k=2:i-1
+        #    den1 = den1 + (1.0 - RR)*(1.0 - np.exp(-h[k]*dt_pay[k]) - cds_interp(i)*delta_t(k)*np.exp(-h(k)*dt_pay[k-1]))*df(k)*s(k-1)
+
+            #den1 = den1 + (1.0 - RR)*(1.0 - np.exp(-hr[k]*(td_pay[k])) - cds_interp(i)*delta_t(k)*exp(-h(k)*(times(k)-times(k-1)))) * discount_factors(k) * s(k-1);
+                        
+        
+        #print 'df_risk_free[i]: ', df_risk_free[i]
+        
+        num  = (cds_val_n[i]*dt_pay[i] + (1 - RR)*surv[i - 1])*df_risk_free[i]
+        den2 = (1.0 - RR)*surv[i - 1]*df_risk_free[i]
+
+        
+        den  = den1 + den2
+        u_dt = 1.0/dt_pay[i]
+        
+        hr[i] = u_dt*np.log(num/den)
+
+        surv[i] = surv[i - 1]*np.exp(-hr[i]*dt_pay[i])
+
+
+    return surv, hr
+    
+
+
+
+
+def bootstrap_chr(maturities_cds, adjusted_cds, recovery_rate, times, discount_factors):
+                                            
+    # numero di flussi di cassa
+    n_cf = len(times) 
+                                                    
+    # Inizializzo variabili
+    h = np.zeros(n_cf)
+    #exit_flag = 5.0*np.ones(n_cf)
+    s = np.zeros(n_cf)
+    
+    # Imposto i dati iniziali
+    s[0] = 1.0
+    delta_t = times[1:] - times[:n_cf-1]
+    delta_t = np.insert(delta_t, 0, 0)
+    
+    #k = find(maturities_cds(1)>times,1,'last');
+    k =  find_indx_next(maturities_cds[0], times)
+
+    # trovo l'hazard rate costante fino alla prima maturity
+    #options = optimset('fzero');
+    h_star = 0.007
+        
+    h[1] = optimize.newton(func_h2, h_star, args=(recovery_rate,times[:k+1],discount_factors[:k+1],adjusted_cds[0],delta_t[:k+1]))
+    #[h(2),exit_flag(2)] = fzero(@func_h2,h_star,options,recovery_rate,times(1:k),discount_factors(1:k),adjusted_cds(1),delta_t(1:k))
+    
+    #h(2) = 1/times(2)*log(1+adjusted_cds(1)*delta_t(2)/(1-recovery_rate));
+    h[0]= h[1]
+    s[1] = s[0]*np.exp(-h[1]*(times[1]-times[0]))
+
+    for i in range(2,k+1):
+            h[i]=h[1]
+            s[i] = s[i-1]*np.exp( -h[1]*(times[i]-times[i-1]))
+
+
+    
+    j = k
+    for i in range(k+1, n_cf):
+    #for i in range(k+1, n_cf+1):
+
+        if (i!=j+1):
+            continue
+        n = i-1
+        s_n = s[i-1]
+
+        #m = find(maturities_cds>times(i),1,'first')
+        m =  find_indx_next(times[i], maturities_cds)
+
+        if (m == None):
+        #if (m.size == 0):
+            h[i] = h[i-1]
+            #exit_flag[i]=exit_flag[i-1]
+            s[i] = s_n*(np.exp(-h[i]*(times[i]-times[n])))
+            continue
+        
+        cds_m = adjusted_cds[m]
+        
+        #j = find(maturities_cds(m)>times,1,'last')
+        
+        if (maturities_cds[m] > times[len(times)-1]):
+            j = len(times)-1
+        else:
+            j =  find_indx_next(maturities_cds[m], times)
+            #j = j - 1
+
+        b1 = 0
+        b2 = 0
+        
+        for k in range(1,n+1):
+            b1 = b1 + delta_t[k]*discount_factors[k]*s[k]
+            b2 = b2 + discount_factors[k]*(s[k-1]- s[k])
+
+        b = cds_m*b1 - (1.0 - recovery_rate)*b2
+        #options = optimset('fzero')
+        
+       
+        
+        #h[i] = optimize.newton(func_chr, h[i-1], args=(b,recovery_rate,s_n,times[n:j+1],discount_factors[n+1:j+1],cds_m,delta_t[n:j]))
+        h[i] = optimize.newton(func_chr, h[i-1], args=(b,recovery_rate,s_n,times[n:j+1],discount_factors[n+1:j+1],cds_m,delta_t[n:j]))
+
+        #[h(i),exit_flag(i)] = fzero(@func_chr,h(i-1),options,b,recovery_rate,s_n,times(n:j),discount_factors(n+1:j),cds_m,delta_t(n:j-1));
+        
+        s[i] = s_n*np.exp(-h[i]*(times[i]-times[i-1]))
+
+        for k in range(n+1,j+1):
+            h[k] = h[i]
+            #exit_flag[k] = exit_flag[i]
+            s[k] = s_n*np.exp( -h[i]*(times[k]-times[n]))
+          
+    
+    
+    
+    t_last = times[len(times)-1]
+    t_end  = 30.0
+    dt     = 0.25
+
+    n_to_end = int((t_end - t_last)/dt) 
+
+    h_ref = h[len(times)-1]
+    s_n   = s[len(times)-1]
+
+    for k in range(1, n_to_end + 1):
+        h = np.append(h, h_ref)
+        tTmp = t_last + k*dt
+        times = np.append(times, tTmp)
+        
+        sTmp = s_n*np.exp( -h_ref*(tTmp - t_last))
+        s    = np.append(s, sTmp)
+
+
+
+    surv_p = s
+    hazard_rates = h
+
+    
+    #--------------------------------------------------------------------------
+    #--------------------------------------------------------------------------
+    # function: func_h2
+    # funzione di cui si vuole trovare una radice: cds_spread1 - a = 0
+    
+    #--------------------------------------------------------------------------
+    #--------------------------------------------------------------------------
+    # function: func_chr
+    # funzione di cui si vuole trovare una radice: b - a = 0
+    
+
+    return surv_p, hazard_rates, times
+
+
+
+def computePYRates(time_ref, df_ref, pyFreq, time_0, matTime):
+
+    
+
+    if (type(matTime) == list):
+
+        py_out = []
+        ln = len(matTime)
+        for i in range(0, ln):
+
+
+            matTimeTmp = matTime[i]
+            if (matTimeTmp < pyFreq): matTimeTmp = pyFreq
+
+            py_outTmp  = computePYRate(time_ref, df_ref, pyFreq, time_0, matTimeTmp)
+            py_out.append(py_outTmp)
+
+    else:    
+        py_outTmp  = computePYRate(time_ref, df_ref, pyFreq, time_0, matTime)
+        py_out = py_outTmp
+
+    py_out = np.asanyarray(py_out)
+    
+    return py_out
+
+def func_h2(hr,cds_rr,t,z,cds_spread,delta_t):
+
+    dummy1 = z[1:]*np.exp(-hr*(t[0:-1]-t[0]))*(1-np.exp(-hr*(t[1:]-t[0:-1])))
+    dummy2 = z[1:]*delta_t[1:]*np.exp(-hr*(t[1:]-t[0]))
+    
+    f = cds_spread - (1-cds_rr) * sum(dummy1)/sum(dummy2)
+    
+    return f
+
+def computePYRate(refTimes, refDiscounts, pyFreq, time_0, matTime):
+    
+    
+    n_payments = int(matTime/pyFreq)
+    
+    
+    refRates = np.zeros(len(refTimes))
+    refRates[1:] = -np.log(refDiscounts[1:])/refTimes[1:]
+    refRates[0] = refRates[1]
+    
+    
+    r_0   = np.interp(time_0, refTimes, refRates)
+    r_end = np.interp(matTime, refTimes, refRates)
+
+    #z_0 = np.exp(-r_0*time_0)
+    #z_end = np.exp(-r_end*matTime)
+    
+    n_0 = int(time_0/pyFreq)
+    z_0   = 1.0/(1.0 + pyFreq*r_0)**n_0
+    z_end = 1.0/(1.0 + pyFreq*r_end)**n_payments
+    
+    Ann = 0
+    for i in range(1, n_payments+1):
+        
+        dtTmp = pyFreq
+        t_i = dtTmp*i
+        r_i = np.interp(t_i, refTimes, refRates)
+        z_i = 1.0/(1.0 + dtTmp*r_i)**i
+        #z_i = np.exp(-r_i*t_i)
+        
+        annTmp = float(z_i*dtTmp)
+        Ann =  Ann + annTmp
+
+    if (n_payments == 1):
+        py_out = r_0
+
+    else:
+        py_out = (z_0 - z_end)/Ann
+    
+    return py_out
+
+def func_chr(hr,b,cds_rr,s_n,t,z,cds_m,delta_t):
+    
+    dummy1 = 0
+    dummy2 = 0
+    
+    for i in range(0,len(t)-1):
+        dummy1 = dummy1 + ( np.exp(-hr*(t[i]-t[0])) - np.exp(-hr*(t[i+1]-t[0])) )*z[i]  
+        dummy2 = dummy2 + delta_t[i]*z[i]*np.exp(-hr*(t[i+1]-t[0]))
+    
+    f = b - (1-cds_rr)*s_n*dummy1 + s_n*cds_m*dummy2
+    
+    return f
+
+
+def fromTimes2Dates(refDates, times_list):
+
+    target_dates = []
+    
+    n_times = len(times_list)
+    
+    
+    for i in range(0, n_times):
+    
+        timeTmp = times_list[i]
+        daysTmp = int(365.2425*timeTmp)
+        
+        target_datesTmp = refDates  + datetime.timedelta(days=daysTmp)
+        target_dates.append(target_datesTmp)
+        
+    return target_dates
+
+
+
+def boot_cds(opt_dict, raw_data, bench_data, swap_data):
+    
+
+    output_data = {}
+    
+    #--> definisco struttura output: lista date
+    #outputDates
+    
+    dateOut, timeOut = computeDateOutputCDS(raw_data, opt_dict)
+    benchTimes       = computeTimesFromDates(bench_data['MatDate'])
+    
+    #--> interpolo la curva dei cds sulle scadenze di OUTPUT
+    # CDS_NEW
+    
+    cds_times_n = timeOut
+    cds_values  = raw_data['ValoreNodo']
+    cds_times   = raw_data['MatTimes']
+    
+    cds_values  = np.asarray(cds_values)/10000.0
+    
+    cds_val_n = np.interp(cds_times_n, cds_times, cds_values)
+
+    #--> costruisco i tassi PY della curva benchmark alle scadenze delle date di OUTPUT
+    #PY_NEW
+    
+    
+    benchDf      = bench_data['DiscountFactor']
+    prmsBench    = bench_data['prms']
+    zcBenchDates = bench_data['MatDate']
+    
+    model_risky  = bench_data['Model']
+    model_rf     = bench_data['Model']
+    
+    RR = opt_dict['ReocveryRate']
+
+    model_risky = str(model_risky)
+    model_rf    = str(model_rf)
+    
+    refDate = zcBenchDates[0]
+
+    
+    time_0 = 0.0
+    
+    cds_pay_freq = opt_dict['tenor']/12.0
+    pyFreq = cds_pay_freq
+    
+    
+    #rr_tmp = -np.log(benchDf)/benchTimes
+    
+    py_bench_rates = computePYRates(benchTimes, benchDf, pyFreq, time_0, timeOut)
+    
+    benchDf = np.asarray(benchDf)
+    benchTimes = np.asarray(benchTimes)
+
+    benchZcRates = -1.0/benchTimes*np.log(benchDf)
+    benchZcRates[0] = benchZcRates[1]
+    
+    tipo_curva_bench = bench_data['Type']
+    
+    if(tipo_curva_bench != 'swap'):
+
+        swapTimes_risk_free = computeTimesFromDates(swap_data['MatDate'])
+        swapDf_risk_free    = swap_data['DiscountFactor']
+
+        py_swap_rates   = computePYRates(swapTimes_risk_free, swapDf_risk_free, pyFreq, time_0, timeOut)
+
+        py_spread_adj   = py_swap_rates - py_bench_rates
+        cds_adj         = cds_val_n + py_spread_adj
+        cds_val_n       = cds_adj
+        
+
+    py_risky = cds_val_n + py_bench_rates
+    
+    py_risky_times = timeOut
+    py_risky_dates = dateOut
+    
+    model_risky = '0'
+    
+    pySpread, zcSpread = fromCurveToSpread(benchDf, zcBenchDates, prmsBench, model_rf, py_risky, py_risky_dates, model_risky, dateOut, timeOut)
+    
+      
+    # calcolo numero di flussi di cassa
+    
+    ln = len(cds_times)
+    n_cf = int(cds_times[ln-1]*(1.0/cds_pay_freq))
+    
+
+    cds_pay_dates = []
+    
+    mkt_code = opt_dict['MKT']
+    basis_cds = opt_dict['Basis']
+    day_conv_cds = opt_dict['BusConv'] 
+
+    #from datetime import datetime
+
+    mkt_ref  = holidays.get_calendar(mkt_code)
+
+    for i in range(0, n_cf):
+
+        cds_pay_dateTmp = refDate + relativedelta(months=int(cds_pay_freq*12*i))      
+        #cds_pay_dateTmp = refDate + datetime.timedelta(weeks=int(cds_pay_freq*12*4*i))
+        cds_pay_dateTmp = busdayrule.rolldate(cds_pay_dateTmp, mkt_ref, day_conv_cds)
+
+        cds_pay_dates.append(cds_pay_dateTmp)
+        
+    cds_pay_times = daycount.yearfractions(cds_pay_dates, basis_cds)
+    cds_pay_times = np.asarray(cds_pay_times)
+
+    boot_method   = opt_dict['hr_bootMethod']
+    
+    
+    benchZcRates_n = np.interp(cds_pay_times, benchTimes, benchZcRates)
+    benchDf_n = np.exp(-benchZcRates_n*cds_pay_times)
+    df_risk_free = benchDf_n
+    
+    dt = 0.25
+    times_n = []
+    t_last = np.around(cds_pay_times[len(cds_pay_times)-1], decimals = 0)
+    #n_t = int(t_last/dt)
+
+    n_t = int(t_last/dt)    
+    for i in range(0, n_t+1):
+        
+        tTmp = dt*i
+        times_n.append(tTmp)
+        
+    
+    log_z = -np.log(df_risk_free[1:])/cds_pay_times[1:]
+    log_z_int    = np.interp(times_n, cds_pay_times[1:], log_z)
+    df_risk_free = np.exp(-log_z_int*times_n)
+    
+    cds_pay_times = times_n
+    cds_pay_times = np.array(times_n)
+
+
+    boot_method == 1
+    
+    if (boot_method == 0):
+                        
+        surv_prob_all, hr_values_all = bootstrap_lcs(cds_times_n, cds_val_n, cds_pay_times, RR, df_risk_free)
+
+        log_surv = np.log(surv_prob_all)
+
+        hr_values   = np.interp(cds_times_n, cds_pay_times, hr_values_all)
+        log_surv    = np.interp(cds_times_n, cds_pay_times, log_surv)
+        
+        surv_prob = np.exp(log_surv) 
+
+        """
+        fileOutSurv = 'dataSurv_lcs_v0.txt'
+        fileOutHR   = 'dataaH_lcs_v0.txt'
+        
+        dumpDataOnFile(cds_times_n, surv_prob, fileOutSurv)
+        dumpDataOnFile(cds_times_n, hr_values, fileOutHR)
+        """
+            
+    elif (boot_method == 1):
+        
+        cds_pay_times = np.array(cds_pay_times)
+
+        df_risk_free = np.exp(-cds_pay_times*0.01)
+
+        ln = len(cds_pay_times)
+        surv_prob_all, hr_values_all, times_n = bootstrap_chr(cds_times, cds_values, RR, cds_pay_times, df_risk_free)
+        
+        hr_values   = np.interp(cds_times_n, times_n, hr_values_all)
+        surv_prob   =  np.interp(cds_times_n, times_n, surv_prob_all)
+
+        
+        """
+        fileOutHR         = 'output_test/dataH_chr_v2.txt'
+        fileOutSurv       = 'output_test/dataSurv_chr_v2.txt'
+        fileOutZCSpread   = 'output_test/dataSpread_zc_v2.txt'
+        fileOutPYSpread   = 'output_test/dataSpread_py_v2.txt'
+        fileOutMDefault   = 'output_test/dataMDefault_py_v2.txt'
+        """
+
+
+        """     
+        fileOutHR         = 'output_test/dataH_chr_flat_v0.txt'
+        fileOutSurv       = 'output_test/dataSurv_chr_flat_v0.txt'
+        fileOutZCSpread   = 'output_test/dataSpread_zc_flat_v0.txt'
+        fileOutPYSpread   = 'output_test/dataSpread_py_flat_v0.txt'
+        fileOutMDefault   = 'output_test/dataMDefault_py_flat_v0.txt'
+        """
+        
+        """
+        dumpDataOnFile(cds_times_n, surv_prob, fileOutSurv)
+        dumpDataOnFile(cds_times_n, hr_values, fileOutHR)
+        dumpDataOnFile(cds_times_n, zcSpread, fileOutZCSpread)
+        dumpDataOnFile(cds_times_n, pySpread, fileOutPYSpread)
+        """
+        
+    else:
+        
+        return 'metodo non gestito!!!'
+
+
+    # calcolo le probabilita' marginali di default
+    
+    
+    ln = len(surv_prob)
+    marg_d   = 1.0 - surv_prob[1:ln]/surv_prob[0:ln-1]
+    marg_d_n = np.insert(marg_d, 0, 0)
+
+    #dumpDataOnFile(cds_times_n, marg_d_n, fileOutMDefault)
+
+    output_data['outputDates']     = dateOut
+    output_data['zcSpread']        = zcSpread
+    output_data['pySpread']        = pySpread
+    output_data['hazardRate']      = hr_values
+    output_data['survProbCum']     = surv_prob
+    output_data['marginalDefault'] = marg_d_n
+    
+    return output_data     
+    
+
+    #------ set up Output---------------------
 
 
 
