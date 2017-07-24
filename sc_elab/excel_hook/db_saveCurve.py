@@ -232,7 +232,6 @@ def saveParmsOnDB(curve, cursor):
 # ---
 from connection import Connection
 def saveInterpolationParmsOnDb(cc):
-
     connection = Connection()
     c = connection.db_anag()
 
