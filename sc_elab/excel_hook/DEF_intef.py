@@ -1,11 +1,13 @@
 import sys
 import os
 
-FORMATT = "dd/mm/yyyy"
+FORMATT = "gg/mm/aaaa"
 
-fitt_translate ={'0' : 'linear', '1':'AVD', '2':'SVE', '3':'CIR' }
+fitt_translate ={'0' : 'linear', '1':'AVD', '2':'SVE', '3':'CIR', '4':'NS' }
 
-nameSheetCurve     = 'SwapCurve'
-nameSheetBootstrap = 'ElabSwapCurve'
+nameSheetCurve         = 'SwapCurve'
+nameSheetBootstrap     = 'ElabSwapCurve'
+nameSheetCDSBootSurv   = 'Surv Prob CDS'
+nameSheetCDSBootSpread = 'Spread CDS'
 
 nameSheetCDS     = 'CDS'

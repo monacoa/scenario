@@ -83,14 +83,16 @@ class  W_boot_opt(LabelFrame):
 
         self.config(text="Set Bootstrap Options:", width=400, height=200)
         #--- Boot swaps rates
-        T1 = Label(self,height=1, width=30, text = "Bootstrap method (filling):").grid(row=0, sticky = "e")
-        self.variable1 = StringVar(self)
-        self.variable1.set("(0) Costant Fwd Rate")  # default value
-        w1 = OptionMenu(self, self.variable1, "(0) Costant Fwd py Rate", "(1) Linear py Rate")
-        w1.grid(row=0, column=1)
-        w1.config(width=30)
 
         if type == "SWP":
+
+            T1 = Label(self,height=1, width=30, text = "Bootstrap method (filling):").grid(row=0, sticky = "e")
+            self.variable1 = StringVar(self)
+            self.variable1.set("(0) Costant Fwd Rate")  # default value
+            w1 = OptionMenu(self, self.variable1, "(0) Costant Fwd py Rate", "(1) Linear py Rate")
+            w1.grid(row=0, column=1)
+            w1.config(width=30)
+            
             T2 = Label(self, height=1, width=30, text="Futures' Gap:").grid(row=1, sticky="e")
             self.variable2 = StringVar(self)
             self.variable2.set("(1) Previous Spot Rate")
@@ -120,17 +122,28 @@ class  W_boot_opt(LabelFrame):
             w5.config(width=30)
 
         elif type == "CDS":
-            T6 = Label(self, height=1, width=30, text="Interpolation Type:").grid(row=1, sticky="e")
+            
+            T1 = Label(self,height=1, width=30, text = "Hazard Rate interpolation model:").grid(row=0, sticky = "e")
+            self.variable1 = StringVar(self)
+            self.variable1.set("(0) Linear")  # default value
+            w1 = OptionMenu(self, self.variable1,  "(0) LIN", "(1) AVD", "(2) SVE", "(3) CIR", "(4) NS")
+            w1.grid(row=0, column=1)
+            w1.config(width=30)
+            
+            
+            T6 = Label(self, height=1, width=30, text="Bench. interpolation model:").grid(row=1, sticky="e")
             self.variable6 = StringVar(self)
             self.variable6.set("(0) Linear")  # default value
-            w6 = OptionMenu(self, self.variable6, "(0) Linear", "(1) SVE")
+            w6 = OptionMenu(self, self.variable6, "(0) LIN", "(1) AVD", "(2) SVE", "(3) CIR", "(4) NS")
             w6.grid(row=1, column=1)
             w6.config(width=30)
+
+            
             # ---
             T7 = Label(self, height=1, width=30, text="Bootstrap Method for HR:").grid(row=2, sticky="e")
             self.variable7 = StringVar(self)
             self.variable7.set("(0) Constant Hazard Rate")  # default value
-            w7 = OptionMenu(self, self.variable7, "(0) Constant Hazard Rate", "(1) Linear Credit spread")
+            w7 = OptionMenu(self, self.variable7, "(0) Constant Hazard Rate", "(0) Linear Credit spread")
             w7.grid(row=2, column=1)
             w7.config(width=30)
             # ---

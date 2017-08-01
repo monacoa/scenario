@@ -112,6 +112,8 @@ def segmentoSwapCurve(xla, rangeS, code, segm):
                 f += 1
             else :
                 a.Value = ll[j]
+                #print 'a: ', a
+                #print 'a.NumberFormat: ', a.NumberFormat
                 if (type(ll[j]) == datetime.date) or (type(ll[j]) == datetime.datetime): a.NumberFormat = FORMATT
                 if (type(ll[j]) == float)         : a.NumberFormat = "0.00"
             a.HorizontalAlignment = const.xlCenter

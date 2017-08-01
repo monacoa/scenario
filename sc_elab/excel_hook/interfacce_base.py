@@ -112,6 +112,7 @@ def load_cds_curve_from_db(control):
 #=======================================================================================================================
 
 from xls_bootCurve import writeBootstrapResOnXls
+from xls_bootCurve import writeCDSBootstrapRes1OnXls, writeCDSBootstrapRes2OnXls
 from xls_swapCurve import readCurveFromXls
 
 from W_bootstrapCurve import W_bootstrapSelection
@@ -167,8 +168,11 @@ def bootstrap_from_xls(control):
 
     curve        = readCurveFromXls(xla, curveDes, curvePos, nameSheet)
     codeL, codeR = curve.getCurveCode()
+    
     boot_out     = curve.bootstrap(data_opt)
-    print "risultati bootstrap:", boot_out
+    #print "risultati bootstrap:", boot_out
+    print 'YYYYYYYYYYYYYYYYYY'
+    
 
     if boot_out == None:
         # significa che ho intercettato un errore!
@@ -230,6 +234,21 @@ def fitting_from_xls(control):
     opt_dict['bound_max_sve'].append( float(W.new_window.new_window.SVE_b2max.get().strip("")))
     opt_dict['bound_max_sve'].append( float(W.new_window.new_window.SVE_b3max.get().strip("")))
 
+    opt_dict['bound_min_ns'] = []
+    opt_dict['bound_max_ns'] = []
+    opt_dict['ns_params']    = ['const1', 'beta0', 'beta1', 'beta2']
+    
+    opt_dict['bound_min_ns'].append( float(W.new_window.new_window.NS_c1min.get().strip("")))
+    opt_dict['bound_min_ns'].append( float(W.new_window.new_window.NS_b0min.get().strip("")))
+    opt_dict['bound_min_ns'].append( float(W.new_window.new_window.NS_b1min.get().strip("")))
+    opt_dict['bound_min_ns'].append( float(W.new_window.new_window.NS_b2min.get().strip("")))
+
+    opt_dict['bound_max_ns'].append( float(W.new_window.new_window.NS_c1max.get().strip("")))
+    opt_dict['bound_max_ns'].append( float(W.new_window.new_window.NS_b0max.get().strip("")))
+    opt_dict['bound_max_ns'].append( float(W.new_window.new_window.NS_b1max.get().strip("")))
+    opt_dict['bound_max_ns'].append( float(W.new_window.new_window.NS_b2max.get().strip("")))
+
+    
     opt_dict['bound_min_cir'] = []
     opt_dict['bound_max_cir'] = []
     opt_dict['cir_params'] =['r0', 'kappa', 'theta', 'sigma']
@@ -348,50 +367,103 @@ def bootstrap_cds_from_xls(control):
     distance = 5
 
     curveL = readCurvesNames(xla,s,rangeStart,"o", distance)
-    print "CURVEL:", curveL
-
 
     root = Tk()
     W = W_bootstrapSelection(root, curveL = curveL, type = "CDS")
     root.mainloop()
 
-
     curveDes = W.curve
     curvePos = W.pos
+    
 
-    print "curve des:", curveDes
-    print "position:", curvePos
-
-    #opts
     opt_boot_meth   = (str(W.new_window.variable1.get()).strip(""))[1]
-    opt_interp      = (str(W.new_window.variable6.get()).strip(""))[1]
+    opt_rf_interp   = (str(W.new_window.variable6.get()).strip(""))[1]
     opt_hr_interp   = (str(W.new_window.variable7.get()).strip(""))[1]
 
-
-    str_boot_opt = opt_boot_meth+","+opt_interp + "," + opt_hr_interp
+    str_boot_opt = opt_boot_meth+","+opt_rf_interp + "," + opt_hr_interp
     data_opt                    = {}
+    
+    data_opt['hr_bootMethod']  = opt_boot_meth #0 = LCS, 1 = CHR
+    data_opt['bench_interp']   = opt_rf_interp
+    data_opt['hr_interp']      = opt_hr_interp
+    
+    curve_xl        = readCurveFromXls(xla, curveDes, curvePos, nameSheet, "CDS")
 
-    data_opt['BootstrapMethod']      = opt_boot_meth
-    data_opt['Interpolation']        = opt_interp
-    data_opt['HR_interpolation']     = opt_hr_interp
+    opt_download = {}
+    
+    interp_rf_model = curve_xl.mapCodeModelInv(opt_rf_interp)
+    
 
 
-    print "DATA OPT:", data_opt
-    curve        = readCurveFromXls(xla, curveDes, curvePos, nameSheet, "CDS")
-    curve.show()
-    zzzzzzz
+    opt_download['refDate'] = curve_xl.ref_date
+    opt_download['valuta'] = curve_xl.curr
+    opt_download['rating'] = curve_xl.rating
+    opt_download['seniority'] = curve_xl.seniority
 
-    '''
-    boot_out     = curve.bootstrap(data_opt)
-    print "risultati bootstrap:", boot_out
+    opt_download['tipo_modello'] = interp_rf_model
 
+
+    codeBenchList = ['%LS', '%DS', '%LFS', '%DFS']
+
+    for codeTmp in codeBenchList:
+
+        opt_download['codeSeg'] = codeTmp
+        flag_loaded = curve_xl.loadBenchDataFromDB(opt_download)
+        if (flag_loaded == 1):
+            break
+    
+    
+    
+    if flag_loaded == 0:
+        # significa che ho intercettato un errore!
+        root = Tk()
+        root.withdraw()
+        msg0 = "Curva benchmark associata al modello %s non presente alla data del %s, cambia modello o data!!" %(interp_rf_model, curve_xl.ref_date)
+        tkMessageBox.showinfo("Attenzione!!", msg0)
+
+        root.destroy()
+        return
+
+    
+
+    data_opt['DataRef']        = curve_xl.ref_date
+    data_opt['RecoveryRate'] = float(curve_xl.recovery)/100.0
+    data_opt['opt_path_graph']  =  'C:\\'
+    
+    yy = str(curve_xl.ref_date.year) 
+    gg = str(curve_xl.ref_date.day)
+    mm = str(curve_xl.ref_date.month)
+    yy = yy[1:]
+
+
+    curve_xl.ref_date
+
+    opt_boot_meth_s = curve_xl.mapBootCDS(int(opt_boot_meth))
+    
+    codice_curva = 'CSN3' + curve_xl.curr + 'HR' +'BLM' + '0' + yy + mm + gg + 'CFRIL' + 'SW' + opt_boot_meth_s
+
+    curve_xl.cds_boot_method    = data_opt['hr_bootMethod']
+    curve_xl.rf_interp_type     = data_opt['bench_interp']  
+    curve_xl.recovery           = data_opt['RecoveryRate']
+
+
+    # -------------- elaborazione ---------------------------
+    boot_out     = curve_xl.bootstrap(data_opt)
+    print 'boot_out: ', boot_out
+    
+    #boot_out['CodiceCurva'] = 'XXX'
+
+    
     if boot_out == None:
         # significa che ho intercettato un errore!
         root = Tk()
         root.withdraw()
-        msg = "Unable to perform curve bootstrap!"
+        msg = "Unable to perform CDS bootstrap!"
         tkMessageBox.showinfo("ERROR!", msg)
         root.destroy()
         return
-    writeBootstrapResOnXls(curve, xla, str_boot_opt,boot_out, codeL, codeR)
-    '''
+    
+    writeCDSBootstrapRes1OnXls(curve_xl, xla, str_boot_opt, boot_out, codice_curva)
+    writeCDSBootstrapRes2OnXls(curve_xl, xla, str_boot_opt, boot_out, codice_curva)
+    
+   

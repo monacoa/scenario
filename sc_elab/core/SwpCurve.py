@@ -8,6 +8,7 @@ import datetime
 from dateutil.relativedelta import relativedelta
 import sc_elab.core.funzioni_base as fb
 from DEF_core import dict_segm2,dict_segm
+import numpy as np
 
 
 def revDict(do):
@@ -324,8 +325,8 @@ class Curve(object):
         elif self.curr=='CAD':
             self.cal = 'ca'
         else:
-           self.cal = 'us'
-           self.floater_tenor = "3M"
+            self.cal = 'us'
+            self.floater_tenor = "3M"
         #----
 
         if self.quotation == "MID":
@@ -490,6 +491,7 @@ class Curve(object):
         c_dates = raw_data['MatDate']
         c_rates = raw_data['ValoreNodo']
         
+        c_rates = np.array(c_rates)/100.0
         
         return fb.fitting(c_dates, c_rates, optDict)
 
@@ -520,6 +522,9 @@ class BootstrappedCurve(Curve):
         
         c_dates = self.boot_dates
         c_rates = self.boot_rates
+        
+        c_rates = np.array(c_rates)
+        c_rates = c_rates/100.0
 
         return fb.fitting(c_dates, c_rates, optDict)
 
@@ -559,7 +564,16 @@ class CdsCurve(Curve):
         Curve.__init__(self)
         self.tags           = []
         self.mats           = []
+        self.dates          = []
         self.values         = []
+        self.bench_dates    = []
+        self.bench_values   = []
+        self.bench_df_val   = []
+        self.bench_type     = ""
+        self.risk_free_dates= []
+        self.risk_free_df_val  = []
+        self.bench_model = ""
+        self.bench_prms = {}
         self.ratingProvider = ""
         self.sectorProvider = ""
         self.type           = "CDS"
@@ -572,7 +586,9 @@ class CdsCurve(Curve):
         self.rendimento = ""
         self.node_type = ""
         self.emittente = ""
-
+        self.cds_boot_method =  ""
+        self.rf_interp_type = ""  
+   
 
     def show(self):
         Curve.show(self)
@@ -596,6 +612,51 @@ class CdsCurve(Curve):
         print "End Show CDS Vars"
         print "------------------------------"
 
+
+    def mapBootCDS(self, code_m):
+
+        dict_bcode      = {}
+        dict_bcode[0] = 'LCS'
+        dict_bcode[1] = 'CHR'
+        try:        
+            code_bf = dict_bcode[code_m]
+        except:
+            code_bf = 'CHR'
+        
+        return code_bf
+
+    def mapCodeModelInv(self, code_0):
+        
+        dict_codeInv = {}
+        dict_codeInv['0'] = 'LIN'
+        dict_codeInv['1'] = 'AVD'
+        dict_codeInv['2'] = 'SVE'
+        dict_codeInv['3'] = 'CIR'
+        dict_codeInv['4']  = 'NS'
+        
+        try:        
+            code_f = dict_codeInv[code_0]
+        except:
+            code_f = 'LIN'
+        
+        return code_f
+
+
+    def mapCodeModel(self, code_0):
+        
+        dict_code = {}
+        dict_code['LIN'] = '0'
+        dict_code['AVD'] = '1'
+        dict_code['SVE'] = '2'
+        dict_code['CIR'] = '3'
+        dict_code['NS']  = '4'
+        
+        try:        
+            code_f = dict_code[code_0]
+        except:
+            code_f = '0'
+        
+        return code_f
 
     def loadDataFromDB(self):
         self.description.strip()
@@ -795,8 +856,256 @@ class CdsCurve(Curve):
 
         self.show()
 
-    def getCurveCode (self):
-        # ---
-        # per le curve cds il codice si trova sul db
-        # ---
-        qry
+
+
+    def loadBenchDataFromDB(self, opt_download):
+        
+        self.description.strip()
+        con = Connection()
+        c_a = con.db_anag()
+
+        ref_date   = opt_download['refDate']
+        codeSeg      = opt_download['codeSeg']
+        tipo_modello = opt_download['tipo_modello']
+        valuta = opt_download['valuta']
+
+        tipo_scarico = 0
+        quotazioni = 'MID'
+        fonte_dato = 'Bloomberg'
+        
+        dummy_curva = " (CODICE_CURVA NOT LIKE 'PDELTA%' AND CODICE_CURVA NOT LIKE 'MDELTA%')"
+        dummy_model = " (CODICE_MODELLO NOT LIKE 'PDELTA%' AND CODICE_MODELLO NOT LIKE 'MDELTA%')"
+
+
+        SS1 = 'PDELTA%' 
+        SS2 = 'MDELTA%' 
+
+        # RECUPERO CODICE CURVA BENCHMARK            
+
+        qry0 = """
+                SELECT CODICE_CURVA FROM MKT_Curve WHERE
+                CODICE_EMITTENTE = 999 
+                AND FONTE_DATO = '%s'
+                AND QUOTAZIONE = '%s'
+                AND TIPO_CURVA = 'SWAP' 
+                AND TIPO_SCARICO = '%s' 
+                AND DATA_RIF = '%s' 
+                AND VALUTA = '%s' 
+                AND TIPO_NODO = 'Discount Factor'
+                AND CODICE_CURVA like '%s'      
+                AND CODICE_CURVA not like '%s'
+                AND CODICE_CURVA not like '%s'
+                
+            """  %(fonte_dato, quotazioni, tipo_scarico, ref_date, valuta, codeSeg, SS1, SS2)
+
+        c_a.execute(qry0)
+        res = c_a.fetchall()
+        
+        if len(res) != 0:
+            code_curve = res[0][0]
+        else:
+            return 0
+
+        # RECUPERO CURVA BENCHMARK            
+        qry1 = "SELECT TERM, VALORE FROM MKT_Curve_D WHERE CODICE_CURVA = '%s' ORDER BY TERM" %code_curve
+
+        c_a.execute(qry1)
+        res = c_a.fetchall()
+        #print 'res: ', res
+        
+        valueList = []
+        matDateList = []
+        
+        for i in range(0, len(res)):
+            
+            resDateTmp = res[i][0]
+            resValueTmp = res[i][1]
+            
+            matDateList.append(resDateTmp)
+            valueList.append(resValueTmp)
+        
+        self.bench_dates = matDateList
+        self.bench_df_val = valueList
+        
+        
+        #print 'self.bench_dates: ', self.bench_dates
+        #print 'ln: ', len(self.bench_dates)
+
+        #fb.FQ(999)
+        
+        #------------------------------------------
+        
+        
+        qry2 = """
+            SELECT CODICE_MODELLO, DESCRIZIONE FROM MKT_ParametriInterp
+            WHERE CODICE_EMITTENTE = 999 
+            AND FONTE_DATO = '%s'
+            AND QUOTAZIONE = '%s'
+            AND TIPO_CURVA = 'SWAP' 
+            AND TIPO_SCARICO = '%s'
+            AND DATA_RIF = '%s'
+            AND VALUTA = '%s'
+            AND TIPO_MODELLO = '%s'
+            AND CODICE_MODELLO like '%s'
+            AND CODICE_MODELLO not like '%s'
+            AND CODICE_MODELLO not like '%s'
+            
+        
+        """  %(fonte_dato, quotazioni, tipo_scarico, ref_date, valuta, tipo_modello, codeSeg, SS1, SS2)
+        #print qry2
+        c_a.execute(qry2)
+        res = c_a.fetchall()
+
+        if len(res) != 0:
+            codice_modello = res[0][0]
+            des_modello  = res[0][1]
+        else:
+            return 0
+        #print 'code_modello: ', code_modello
+        #print 'des_modello: ', des_modello
+        
+        qry3 = """
+                SELECT VALORE FROM MKT_ParametriInterp_D WHERE 
+                CODICE_MODELLO = '%s'
+                ORDER BY CODICE_PARAMETRO
+            """  %(codice_modello)
+
+        c_a.execute(qry3)
+        res = c_a.fetchall()
+
+        if len(res) != 0:
+            pass
+        else:
+            return 0        
+        
+        mdl_prms_list = []
+        for i in range(0, len(res)):
+            
+            parTmp = res[i][0]
+            mdl_prms_list.append(parTmp)
+        
+        
+        prms_dict = fb.packModelPrms(tipo_modello, self.bench_dates, mdl_prms_list)
+        
+        self.bench_prms = prms_dict       
+        self.bench_model = tipo_modello
+        
+        return 1
+
+        
+        
+        
+        
+        
+
+
+
+    def bootstrap(self, data_opt):
+        
+        # SETUP DATA OPT
+        # SETUP DATA BENCH
+        # SETUP DATA SWAP
+        
+        data_opt['Basis'  ]    = {}
+        data_opt['BusConv']    = {}
+        data_opt['RegimeRate'] = {}
+
+        #name = 'sn'
+        #code = 'XXX'
+
+        #s = self.segms[name]
+        #==========
+        """
+        raw_data = {}
+        raw_data ['UsaNodo']     = []
+        raw_data['Nodo']         = []
+        raw_data['ValoreNodo']   = []
+        raw_data['TipoSegmento'] = []
+        raw_data['MatDate']      = []
+        """
+
+
+        data_opt['MKT']     = self.cal
+        data_opt['RefDate'] = self.ref_date
+
+
+        data_opt['tenor']          = 3 # 
+        data_opt['Basis']          = 'ACT/365' #ACT/365
+        data_opt['interp']         = '2' # 
+        data_opt['BusConv']        = 'modfollow'
+        data_opt['fixingDays']     = 2
+        data_opt['compounding']    = 0   #0 = semplice, 1 = composto, 2 = continuo
+        data_opt['ReocveryRate']   = 0.4
+        data_opt['hr_bootMethod']  = 1 #0 = LCS, 1 = CHR
+        data_opt['Basis']          = 'ACT/360' 
+        data_opt['BusConv']        = 'follow'
+        
+        
+        #data_raw_swp.keys():  ['ValoreNodo', 'MatDate', 'Basis']
+        #data_raw_bench.keys():  ['Basis', 'ValoreNodo', 'MatDate', 'prms', 'Model', 'Type']
+        #-->data_raw_cds.keys():  ['MatTimes', 'Nodo', 'ValoreNodo'], ok        
+         
+         
+        data_raw_cds = {}
+        data_raw_cds['ValoreNodo']  = self.values 
+        data_raw_cds['MatTimes']    = self.mats
+        data_raw_cds['Nodo']        = self.tags
+        
+
+        """
+        data_raw_bench = {}
+        data_raw_bench['XXX'] = self.values 
+        data_raw_bench['YYY'] = self.dates 
+
+        data_raw_swp = {}
+        data_raw_swp['XXX'] = self.values 
+        data_raw_swp['YYY'] = self.dates
+        """
+
+        data_raw_bench = {}
+        data_raw_swp = {}
+
+
+        
+        data_raw_bench['MatDate']    =self.bench_dates
+        data_raw_bench['ValoreNodo'] =self.bench_values
+        data_raw_bench['DiscountFactor'] =self.bench_df_val
+        data_raw_bench['Model'] = self.mapCodeModel(self.bench_model)
+        data_raw_bench['prms'] =self.bench_prms
+        data_raw_bench['Type'] = self.bench_type
+        
+        data_raw_swp['MatDate']    =self.risk_free_dates
+        data_raw_swp['DiscountFactor'] =self.risk_free_df_val
+
+        data_raw_swp = data_raw_bench
+
+        
+        res = fb.boot_cds(data_opt, data_raw_cds, data_raw_bench, data_raw_swp)
+
+        try:
+            res = fb.boot_cds(data_opt, data_raw_cds, data_raw_bench, data_raw_swp)
+            #res = fb.boot3s_elab_v2(data_opt, raw_data)
+        except ValueError as ve:
+            from Tkinter import *
+            import tkMessageBox
+            root = Tk()
+            root.withdraw()
+            msg = ve.message #"Missing input sheet for Swap Curves in your workbook... \nNothing to do for me!"
+            tkMessageBox.showinfo("Warning!", msg)
+            root.destroy()
+            return None
+        return res
+
+
+    def getCurveCode(self):
+        codeL   = "C"
+        codeL  += self.curr
+        codeR   = "ZC"
+        codeR  += "BLM0" if self.source=='Bloomberg'  else "OTH"
+        dd      = "%02d"%self.ref_date.day
+        mm      = "%02d"%self.ref_date.month
+        yy      = (str(self.ref_date.year))
+        codeR  += dd+mm+yy[-2:]
+        return codeL, codeR
+
+

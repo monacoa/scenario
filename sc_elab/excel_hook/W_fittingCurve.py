@@ -337,7 +337,7 @@ class W_fit_opt(LabelFrame):
         T1 = Label(master_frame, height=1, width=30, text="Interpolation Type:").grid(row=0, sticky="e")
         self.variable1 = StringVar(self)
         self.variable1.set("(0) Linear")  # default value
-        w1 = OptionMenu(master_frame, self.variable1, "(0) Linear", "(1) Adam Van Deventer", "(2) Svensson", "(3) CIR")
+        w1 = OptionMenu(master_frame, self.variable1, "(0) Linear", "(1) Adam Van Deventer", "(2) Svensson", "(4) Nelson Siegel")
         w1.grid(row=0, column=1)
         w1.config(width=30)
 
@@ -391,7 +391,30 @@ class W_fit_opt(LabelFrame):
         self.CIR_sigmamax = StringVar(self)
         createInsertRange(self.CIR_sigmamin, self.CIR_sigmamax, 5, param_frame, "sigma")
 
-        # ------- SVD SECTION
+        # ------- NS SECTION
+        tl1 = Label(param_frame, height=2, width=30, text="Modello NS").grid(row=0, column=0)
+
+        i1 = Label(param_frame, height=1, width=30, text="min").grid(row=1, column=0)
+        i2 = Label(param_frame, height=1, width=30, text="param").grid(row=1, column=1)
+        i3 = Label(param_frame, height=1, width=30, text="max").grid(row=1, column=2)
+        # ---
+        self.NS_b0min = StringVar(self)
+        self.NS_b0max = StringVar(self)
+        createInsertRange(self.NS_b0min, self.NS_b0max, 10, param_frame, "beta0")
+        self.NS_b1min = StringVar(self)
+        self.NS_b1max = StringVar(self)
+        createInsertRange(self.NS_b1min, self.NS_b1max, 11, param_frame, "beta1")
+        self.NS_b2min = StringVar(self)
+        self.NS_b2max = StringVar(self)
+        createInsertRange(self.NS_b2min, self.NS_b2max, 12, param_frame, "beta2")
+        self.NS_c1min = StringVar(self)
+        self.NS_c1max = StringVar(self)
+        createInsertRange(self.NS_c1min, self.NS_c1max, 14, param_frame, "const1")
+
+        #self.nb.pack(fill=BOTH, padx=2, pady=3)
+
+
+        # ------- SVD SECTION ---------------------------------------------------------------
         tl1 = Label(param_frame, height=2, width=30, text="Modello SVE").grid(row=7, column=0)
 
         i1 = Label(param_frame, height=1, width=30, text="min").grid(row=9, column=0)
@@ -420,21 +443,46 @@ class W_fit_opt(LabelFrame):
         self.nb.pack(fill=BOTH, padx=2, pady=3)
 
         # -- set default values
+        
+        #bound_min_sve = [0.0001,  0.0001, -10.00, -10.00, -10.00, -10.00]
+        #bound_max_sve = [10.0,     50.0,  10.03,   10.0,   10.5,   10.0]
+
+        
 
         self.variable5.set("C://")
-        self.SVE_b0min.set("-0.05")
-        self.SVE_b0max.set("10.0")
-        self.SVE_b1min.set("-0.05")
+
+        #-----------------------------------------
+        self.NS_b0min.set("-10.0")
+        self.NS_b0max.set("10.03")
+
+        self.NS_b1min.set("-10.0")
+        self.NS_b1max.set("10.0")
+        
+        self.NS_b2min.set("-10.0")
+        self.NS_b2max.set("10.5")
+        
+        self.NS_c1min.set("0.0001")
+        self.NS_c1max.set("10.0")
+        
+        #-----------------------------------------
+        self.SVE_b0min.set("-10.0")
+        self.SVE_b0max.set("10.03")
+
+        self.SVE_b1min.set("-10.0")
         self.SVE_b1max.set("10.0")
-        self.SVE_b2min.set("-0.05")
-        self.SVE_b2max.set("10.0")
-        self.SVE_b3min.set("-0.05")
+        
+        self.SVE_b2min.set("-10.0")
+        self.SVE_b2max.set("10.5")
+        
+        self.SVE_b3min.set("-10.0")
         self.SVE_b3max.set("10.0")
-        self.SVE_c1min.set("0.001")
-        self.SVE_c1max.set("100.0")
-        self.SVE_c2min.set("0.001")
-        self.SVE_c2max.set("100.0")
-        # --
+        
+        self.SVE_c1min.set("0.0001")
+        self.SVE_c1max.set("10.0")
+        
+        self.SVE_c2min.set("0.0001")
+        self.SVE_c2max.set("50.0")
+        # --------------------------------------------------
         self.CIR_r0min.set("0.0")
         self.CIR_r0max.set("0.02")
         self.CIR_kmin.set("0.001")

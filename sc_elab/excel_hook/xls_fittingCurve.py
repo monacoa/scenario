@@ -19,6 +19,8 @@ def writeFittingResLinear(xla, s, r, Attributi, res):
     # ---
     text = "PIL" + Attributi['Currency']+ Attributi['Return'] + "BLM" + str(Attributi['Date Ref'])[8:10] + str(Attributi['Date Ref'])[5:7] + str(Attributi['Date Ref'])[2:4]+ "_" +Attributi['Segms']
 
+
+    dateRef = Attributi['Date Ref']
     ra = intestazioneSwapCurveSegmenti(xla, "", r, Attributi, nCols=2, text = text)
     r = s.Range(ra)
     topLeftRow = r.Row
@@ -29,15 +31,15 @@ def writeFittingResLinear(xla, s, r, Attributi, res):
     xla.Cells(topLeftRow - 1, topLeftCol + 1).HorizontalAlignment = const.xlCenter
     xla.Cells(topLeftRow - 1, topLeftCol + 2).Value = "b"
     xla.Cells(topLeftRow - 1, topLeftCol + 2).HorizontalAlignment = const.xlCenter
-    nRows = len(res['Dates'])
-    drawBox(xla, const.xlMedium, topLeftRow - 1, topLeftCol, topLeftRow + nRows - 1, topLeftCol + 2)
+    nRows = len(res['Dates']) + 2
+    drawBox(xla, const.xlMedium, topLeftRow - 1, topLeftCol, topLeftRow + nRows - 2, topLeftCol + 2)
     drawLine(xla, topLeftRow - 1, topLeftCol, topLeftRow - 1, topLeftCol + 2, "o", const.xlThin)
     for i in range(nRows):
-        date = res['Dates'][i]
-        xla.Cells(topLeftRow + i, topLeftCol).Value = date
         xla.Cells(topLeftRow + i, topLeftCol).NumberFormat = FORMATT
         xla.Cells(topLeftRow + i, topLeftCol).HorizontalAlignment = const.xlCenter
         if (i > 0):
+            date = res['Dates'][i-1]
+            xla.Cells(topLeftRow + i, topLeftCol).Value = date
             a = res['a'][i-1]
             b = res['b'][i-1]
             xla.Cells(topLeftRow + i, topLeftCol + 1).Value = a
@@ -46,6 +48,9 @@ def writeFittingResLinear(xla, s, r, Attributi, res):
             xla.Cells(topLeftRow + i, topLeftCol + 2).Value = b
             xla.Cells(topLeftRow + i, topLeftCol + 2).NumberFormat = "0.0000"
             xla.Cells(topLeftRow + i, topLeftCol + 2).HorizontalAlignment = const.xlCenter
+        else:
+            xla.Cells(topLeftRow + i, topLeftCol).Value = dateRef
+            
 
 
 def writeFittingResAVD(xla, s, r, Attributi, res):
@@ -56,6 +61,7 @@ def writeFittingResAVD(xla, s, r, Attributi, res):
 
     ra = intestazioneSwapCurveSegmenti(xla, "", r, Attributi, nCols=2, text = text )
     r = s.Range(ra)
+    dateRef = Attributi['Date Ref']
     topLeftRow = r.Row
     topLeftCol = r.Column
     xla.Cells(topLeftRow - 1, topLeftCol).Value = "Date"
@@ -71,20 +77,22 @@ def writeFittingResAVD(xla, s, r, Attributi, res):
     xla.Cells(topLeftRow - 1, topLeftCol + 5).Value = "e"
     xla.Cells(topLeftRow - 1, topLeftCol + 5).HorizontalAlignment = const.xlCenter
 
-    nRows = len(res['Dates'])
-    drawBox(xla, const.xlMedium, topLeftRow - 1, topLeftCol, topLeftRow + nRows - 1, topLeftCol + 5)
+    nRows = len(res['Dates']) + 2
+    drawBox(xla, const.xlMedium, topLeftRow - 1, topLeftCol, topLeftRow + nRows - 2, topLeftCol + 5)
     drawLine(xla, topLeftRow - 1, topLeftCol, topLeftRow - 1, topLeftCol + 5, "o", const.xlThin)
     for i in range(nRows):
-        date = res['Dates'][i]
-        xla.Cells(topLeftRow + i, topLeftCol).Value = date
+        #date = res['Dates'][i]
+        #xla.Cells(topLeftRow + i, topLeftCol).Value = date
         xla.Cells(topLeftRow + i, topLeftCol).NumberFormat = FORMATT
         xla.Cells(topLeftRow + i, topLeftCol).HorizontalAlignment = const.xlCenter
         if (i > 0):
+            date = res['Dates'][i - 1]
             a = res['a'][i - 1]
             b = res['b'][i - 1]
             c = res['c'][i - 1]
             d = res['d'][i - 1]
             e = res['e'][i - 1]
+            xla.Cells(topLeftRow + i, topLeftCol).Value = date
             xla.Cells(topLeftRow + i, topLeftCol + 1).Value = a
             xla.Cells(topLeftRow + i, topLeftCol + 1).NumberFormat = "0.0000"
             xla.Cells(topLeftRow + i, topLeftCol + 1).HorizontalAlignment = const.xlCenter
@@ -100,6 +108,8 @@ def writeFittingResAVD(xla, s, r, Attributi, res):
             xla.Cells(topLeftRow + i, topLeftCol + 5).Value = e
             xla.Cells(topLeftRow + i, topLeftCol + 5).NumberFormat = "0.0000"
             xla.Cells(topLeftRow + i, topLeftCol + 5).HorizontalAlignment = const.xlCenter
+        else:
+            xla.Cells(topLeftRow + i, topLeftCol).Value = dateRef
 
 
 def writeFittingResSVE(xla, s, r, Attributi, res):
@@ -156,6 +166,47 @@ def writeFittingResSVE(xla, s, r, Attributi, res):
     xla.Cells(topLeftRow, topLeftCol+5).Value = beta3
     xla.Cells(topLeftRow, topLeftCol+5).NumberFormat = "0.0000"
     xla.Cells(topLeftRow, topLeftCol+5).HorizontalAlignment = const.xlCenter
+
+def writeFittingResNS(xla, s, r, Attributi, res):
+    text = "PIS" + Attributi['Currency'] + Attributi['Return'] +"BLM" + str(Attributi['Date Ref'])[8:10] + str(Attributi['Date Ref'])[5:7] + str( Attributi['Date Ref'])[2:4] + "_" + Attributi['Segms']
+    ra = intestazioneSwapCurveSegmenti(xla, "", r, Attributi, nCols=2, text = text)
+    r = s.Range(ra)
+
+    topLeftRow = r.Row
+    topLeftCol = r.Column
+    xla.Cells(topLeftRow - 1, topLeftCol).Value = "const1"
+    xla.Cells(topLeftRow - 1, topLeftCol).HorizontalAlignment = const.xlCenter
+    xla.Cells(topLeftRow - 1, topLeftCol + 1).Value = "beta 0"
+    xla.Cells(topLeftRow - 1, topLeftCol + 1).HorizontalAlignment = const.xlCenter
+    xla.Cells(topLeftRow - 1, topLeftCol + 2).Value = "beta 1"
+    xla.Cells(topLeftRow - 1, topLeftCol + 2).HorizontalAlignment = const.xlCenter
+    xla.Cells(topLeftRow - 1, topLeftCol + 3).Value = "beta 2"
+    xla.Cells(topLeftRow - 1, topLeftCol + 3).HorizontalAlignment = const.xlCenter
+
+    nRows = 1
+    drawBox(xla, const.xlMedium, topLeftRow - 1, topLeftCol, topLeftRow + nRows - 1, topLeftCol + 3)
+    drawLine(xla, topLeftRow - 1, topLeftCol, topLeftRow - 1, topLeftCol + 3, "o", const.xlThin)
+
+    const1 = res['const1']
+    beta0  = res['beta0']
+    beta1  = res['beta1']
+    beta2  = res['beta2']
+
+    xla.Cells(topLeftRow , topLeftCol ).Value = const1
+    xla.Cells(topLeftRow , topLeftCol ).NumberFormat = "0.0000"
+    xla.Cells(topLeftRow , topLeftCol ).HorizontalAlignment = const.xlCenter
+
+    xla.Cells(topLeftRow, topLeftCol+1).Value = beta0
+    xla.Cells(topLeftRow, topLeftCol+1).NumberFormat = "0.0000"
+    xla.Cells(topLeftRow, topLeftCol+1).HorizontalAlignment = const.xlCenter
+
+    xla.Cells(topLeftRow, topLeftCol+2).Value = beta1
+    xla.Cells(topLeftRow, topLeftCol+2).NumberFormat = "0.0000"
+    xla.Cells(topLeftRow, topLeftCol+2).HorizontalAlignment = const.xlCenter
+
+    xla.Cells(topLeftRow, topLeftCol+3).Value = beta2
+    xla.Cells(topLeftRow, topLeftCol+3).NumberFormat = "0.0000"
+    xla.Cells(topLeftRow, topLeftCol+3).HorizontalAlignment = const.xlCenter
 
 
 def writeFittingResCIR(xla, s, r, Attributi, res):
@@ -253,6 +304,7 @@ def writeFittingBootResOnXls(crv, xla, opt_dict, res, pos):
     elif    opt_dict['interp'] == '1':  writeFittingResAVD(xla, s, r, Attributi, res)
     elif    opt_dict['interp'] == '2':  writeFittingResSVE(xla, s, r, Attributi, res)
     elif    opt_dict['interp'] == '3':  writeFittingResCIR(xla, s, r, Attributi, res)
+    elif    opt_dict['interp'] == '4':   writeFittingResNS(xla, s, r, Attributi, res)
 
 def writeFittingPyResOnXls(crv, xla, opt_dict, res, pos):
 
@@ -305,6 +357,10 @@ def writeFittingPyResOnXls(crv, xla, opt_dict, res, pos):
     print opt_dict['interp'], type(opt_dict['interp'])
     if      opt_dict['interp'] == '0':  writeFittingResLinear(xla, s, r, Attributi, res)
     elif    opt_dict['interp'] == '1':  writeFittingResAVD(xla, s, r, Attributi, res)
+    elif    opt_dict['interp'] == '2':  writeFittingResSVE(xla, s, r, Attributi, res)
+    elif    opt_dict['interp'] == '3':  writeFittingResCIR(xla, s, r, Attributi, res)
+    elif    opt_dict['interp'] == '4':  writeFittingResNS(xla, s, r, Attributi, res)
+
     else:                               writeFittingResSVE(xla, s, r, Attributi, res)
 
 
@@ -370,7 +426,7 @@ def readParms(xla, r, cc):
         i = 0
         print "CODE:", code
         #se non sono nel caso sve o cir, devo leggere le date
-        if ((code.upper()) != 'S') and ((code.upper()) != 'C'):
+        if ((code.upper()) != 'S') and ((code.upper()) != 'C') and ((code.upper()) != 'N'):
             dd = rp.Value
             cc.interp_dates.append(datetime.date(year = dd.year, month = dd.month, day = dd.day))
             i = 1
