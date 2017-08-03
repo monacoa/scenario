@@ -4,6 +4,8 @@ from Tkinter import *
 import tkMessageBox
 from db_qrys import getCurvesListFromDb, getDatesListFromDb
 from sc_elab.core.SwpCurve import *
+from sc_elab.core.BondPortfolio import *
+
 from win32com.client import constants as const
 
 
@@ -13,8 +15,12 @@ from win32com.client import constants as const
 # =======================================================================================================================
 
 from W_swapCurve import W_curveType,W_curveDate
+from W_bondPortfolio import W_bondType,W_bondDate
+
 from xls_swapCurve import writeCurveOnXls
-from DEF_intef import nameSheetCurve, nameSheetCDS
+from xls_bondPortfolio import writePortfoliOnXls
+
+from DEF_intef import nameSheetCurve, nameSheetCDS, nameSheetBond
 
 @xl_func
 def load_swap_curve_from_db(control):
@@ -105,6 +111,48 @@ def load_cds_curve_from_db(control):
     cc.sectorProvider = app.new_window.new_window.sector.get()
     cc.loadDataFromDB()
     writeCurveOnXls(cc, nameSheet, xla, curve_type)
+
+#=======================================================================================================================
+# punto di ingresso per load BondData
+# =======================================================================================================================
+
+@xl_func
+def load_bond_data_from_db(control):
+    
+    root = Tk()
+    data_type = "BOND"
+    
+    
+
+    app =  W_bondDate(master = root, parent = None, type = data_type)
+    root.mainloop()
+
+    bond_des = app.new_window.bond
+    bond_date= app.date
+
+    xla  = xl_app()
+    book = xla.ActiveWorkbook
+    # -----
+    # creo foglio nameSheetCurve se non esiste
+    # -----
+    nameSheet = nameSheetBond
+    try:
+        s = book.Sheets(nameSheet)
+        s.Activate()
+    except:
+        s = book.Sheets.Add()
+        s.Name = nameSheet
+        # ------------------
+    cc = BondPortfolio()
+
+    cc.ref_date       = datetime.date(day=int(bond_date[-2:]), month=int(bond_date[5:7]), year=int(bond_date[:4]))
+    cc.description    = bond_des
+    
+
+    #cc.ratingProvider = app.new_window.new_window.rating.get()
+    #cc.sectorProvider = app.new_window.new_window.sector.get()
+    cc.loadDataFromDB(bond_date)
+    writePortfoliOnXls(cc, nameSheet, xla, data_type)
 
 
 #=======================================================================================================================
@@ -207,9 +255,6 @@ def fitting_from_xls(control):
     curvePos = W.new_window.pos
     fit_type = W.fit_type
 
-    print "des:", curveDes
-    print "pos:", curvePos,  type(curvePos)
-    print "TYPE", fit_type
 
     opt_dict = {}
     opt_dict['interp']          = (str(W.new_window.new_window.variable1.get()).strip(""))[1]
@@ -278,6 +323,93 @@ def fitting_from_xls(control):
         res         = Bcurve.fittingFromPY(opt_dict)
         writeFittingPyResOnXls(Bcurve, xla, opt_dict, res, curvePos)
 
+#=======================================================================================================================
+# punto di ingresso per bond fitting
+#=======================================================================================================================
+
+from W_fittingCurve import W_fittingType
+from xls_bootCurve import readBootstrappedCurveFromXls
+from xls_fittingCurve import writeFittingBootResOnXls, writeFittingPyResOnXls
+from DEF_intef import nameSheetBootstrap
+
+@xl_func
+def bond_fitting_from_xls(control):
+
+    root = Tk()
+    W = W_fittingType(root)
+    root.mainloop()
+
+    curveDes = W.new_window.curve
+    curvePos = W.new_window.pos
+    fit_type = W.fit_type
+
+
+    opt_dict = {}
+    opt_dict['interp']          = (str(W.new_window.new_window.variable1.get()).strip(""))[1]
+    opt_dict['opt_fwd_tenor']   = (str(W.new_window.new_window.variable2.get()).strip(""))[1]
+    opt_dict['opt_path_graph']  =  W.new_window.new_window.variable5.get()
+    opt_dict['fit_type']        = fit_type
+
+    opt_dict['bound_min_sve'] = []
+    opt_dict['bound_max_sve'] = []
+    opt_dict['sve_params']    = ['const1', 'const2', 'beta0', 'beta1', 'beta2', 'beta3']
+    opt_dict['bound_min_sve'].append( float(W.new_window.new_window.SVE_c1min.get().strip("")))
+    opt_dict['bound_min_sve'].append( float(W.new_window.new_window.SVE_c2min.get().strip("")))
+    opt_dict['bound_min_sve'].append( float(W.new_window.new_window.SVE_b0min.get().strip("")))
+    opt_dict['bound_min_sve'].append( float(W.new_window.new_window.SVE_b1min.get().strip("")))
+    opt_dict['bound_min_sve'].append( float(W.new_window.new_window.SVE_b2min.get().strip("")))
+    opt_dict['bound_min_sve'].append( float(W.new_window.new_window.SVE_b3min.get().strip("")))
+
+    opt_dict['bound_max_sve'].append( float(W.new_window.new_window.SVE_c1max.get().strip("")))
+    opt_dict['bound_max_sve'].append( float(W.new_window.new_window.SVE_c2max.get().strip("")))
+    opt_dict['bound_max_sve'].append( float(W.new_window.new_window.SVE_b0max.get().strip("")))
+    opt_dict['bound_max_sve'].append( float(W.new_window.new_window.SVE_b1max.get().strip("")))
+    opt_dict['bound_max_sve'].append( float(W.new_window.new_window.SVE_b2max.get().strip("")))
+    opt_dict['bound_max_sve'].append( float(W.new_window.new_window.SVE_b3max.get().strip("")))
+
+    opt_dict['bound_min_ns'] = []
+    opt_dict['bound_max_ns'] = []
+    opt_dict['ns_params']    = ['const1', 'beta0', 'beta1', 'beta2']
+    
+    opt_dict['bound_min_ns'].append( float(W.new_window.new_window.NS_c1min.get().strip("")))
+    opt_dict['bound_min_ns'].append( float(W.new_window.new_window.NS_b0min.get().strip("")))
+    opt_dict['bound_min_ns'].append( float(W.new_window.new_window.NS_b1min.get().strip("")))
+    opt_dict['bound_min_ns'].append( float(W.new_window.new_window.NS_b2min.get().strip("")))
+
+    opt_dict['bound_max_ns'].append( float(W.new_window.new_window.NS_c1max.get().strip("")))
+    opt_dict['bound_max_ns'].append( float(W.new_window.new_window.NS_b0max.get().strip("")))
+    opt_dict['bound_max_ns'].append( float(W.new_window.new_window.NS_b1max.get().strip("")))
+    opt_dict['bound_max_ns'].append( float(W.new_window.new_window.NS_b2max.get().strip("")))
+
+    
+    opt_dict['bound_min_cir'] = []
+    opt_dict['bound_max_cir'] = []
+    opt_dict['cir_params'] =['r0', 'kappa', 'theta', 'sigma']
+    opt_dict['bound_min_cir'].append( float(W.new_window.new_window.CIR_r0min.get().strip("")))
+    opt_dict['bound_min_cir'].append( float(W.new_window.new_window.CIR_kmin.get().strip("")))
+    opt_dict['bound_min_cir'].append( float(W.new_window.new_window.CIR_thetamin.get().strip("")))
+    opt_dict['bound_min_cir'].append( float(W.new_window.new_window.CIR_sigmamin.get().strip("")))
+
+    opt_dict['bound_max_cir'].append( float(W.new_window.new_window.CIR_r0max.get().strip("")))
+    opt_dict['bound_max_cir'].append( float(W.new_window.new_window.CIR_kmax.get().strip("")))
+    opt_dict['bound_max_cir'].append( float(W.new_window.new_window.CIR_thetamax.get().strip("")))
+    opt_dict['bound_max_cir'].append( float(W.new_window.new_window.CIR_sigmamax.get().strip("")))
+
+    #---
+    xla = xl_app()
+    book = xla.ActiveWorkbook
+
+    if fit_type == "boot":
+        nameSheet   = nameSheetBootstrap
+        Bcurve      = readBootstrappedCurveFromXls(xla, curveDes, curvePos, nameSheet)
+        res         = Bcurve.fittingFromBoot(opt_dict)
+        writeFittingBootResOnXls(Bcurve, xla, opt_dict, res, curvePos)
+    else:
+        nameSheet   = nameSheetCurve
+        Bcurve      = readCurveFromXls(xla, curveDes, curvePos, nameSheet)
+        Bcurve.show()
+        res         = Bcurve.fittingFromPY(opt_dict)
+        writeFittingPyResOnXls(Bcurve, xla, opt_dict, res, curvePos)
 
 #=======================================================================================================================
 # punto di ingresso per SAVE

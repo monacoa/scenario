@@ -9,5 +9,8 @@ nameSheetCurve         = 'SwapCurve'
 nameSheetBootstrap     = 'ElabSwapCurve'
 nameSheetCDSBootSurv   = 'Surv Prob CDS'
 nameSheetCDSBootSpread = 'Spread CDS'
+nameSheetBondFittig    = 'Bond fitting'
+nameSheetResBondFittig    = 'Results Bond fitting'
 
 nameSheetCDS     = 'CDS'
+nameSheetBond     = 'Bond data'

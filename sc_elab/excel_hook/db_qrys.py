@@ -51,6 +51,40 @@ def getCurvesListFromDb(curve_date, type):
     return ll
     # -----------
 
+def getBondListFromDb(bond_date, type):
+
+    c_date_qry = str(bond_date).replace("-", "")
+    con = Connection()
+    
+    
+    c_anag = con.db_data()
+    
+
+    
+    qry = '''
+          SELECT DISTINCT Descrizione FROM view_Bond_master  WHERE Data = '%s' 
+          ''' %(c_date_qry)
+          
+          
+    print "qry:", qry
+    c_anag.execute(qry)
+    res = c_anag.fetchall()
+    print 'risultato qry: ', res
+    ll = []
+    k = 0
+    for c in res:
+        print "c", c
+        bond_des = str(c[0])
+        id    = k + 1
+        a =[bond_des,id]
+        
+        ll.append(a)
+        print "ll", ll
+    con.close()
+    return ll
+    # -----------
+
+
 
 def getDatesListFromDb(type):
     cn  = Connection()
@@ -72,6 +106,14 @@ def getDatesListFromDb(type):
                     )
                     order by Data desc
                     '''
+
+    elif type == "BOND":
+        qry = '''
+                    select distinct Data from view_Bond_master where EMITTENTE 
+                    is not Null order by Data desc
+                    '''
+
+
 
     cur.execute(qry)
     res         = cur.fetchall()

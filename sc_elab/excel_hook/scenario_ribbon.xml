@@ -13,6 +13,10 @@
                     <button id="load_cds_curve" label="Load" image=".\fig\bottone_rosso.jpg" onAction="sc_elab.excel_hook.interfacce_base.load_cds_curve_from_db" />
                     <button id="bootstrap_cds" label="Bootstrap" image=".\fig\bottone_rosso.jpg" onAction="sc_elab.excel_hook.interfacce_base.bootstrap_cds_from_xls" />
                 </group>
+                <group id="Bond_Curves" label="Bond Data">
+                    <button id="load_bond_data" label="Load" image=".\fig\bottone_rosso.jpg" onAction="sc_elab.excel_hook.interfacce_base.load_bond_data_from_db" />
+                    <button id="bond_fitting" label="Bond fitting" image=".\fig\bottone_rosso.jpg" onAction="sc_elab.excel_hook.interfacce_base.bond_fitting_from_xls" />
+                </group>
 			</tab>
         </tabs>
     </ribbon>
