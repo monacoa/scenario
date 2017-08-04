@@ -7,6 +7,9 @@ from sc_elab.core.SwpCurve import *
 from sc_elab.core.BondPortfolio import *
 
 from win32com.client import constants as const
+from sc_elab.core import funzioni_base as fb
+from sc_elab.core import funzioni_bond_fitting as bf
+
 
 
 
@@ -18,9 +21,10 @@ from W_swapCurve import W_curveType,W_curveDate
 from W_bondPortfolio import W_bondType,W_bondDate
 
 from xls_swapCurve import writeCurveOnXls
-from xls_bondPortfolio import writePortfoliOnXls
+from xls_bondPortfolio import writePortfoliOnXls,readPortfolioFromXls
 
 from DEF_intef import nameSheetCurve, nameSheetCDS, nameSheetBond
+import sc_elab
 
 @xl_func
 def load_swap_curve_from_db(control):
@@ -163,6 +167,8 @@ from xls_bootCurve import writeBootstrapResOnXls
 from xls_bootCurve import writeCDSBootstrapRes1OnXls, writeCDSBootstrapRes2OnXls
 from xls_swapCurve import readCurveFromXls
 
+from xls_bondPortfolio import writeBondFittingRes1OnXls, writeBondFittingRes2OnXls
+
 from W_bootstrapCurve import W_bootstrapSelection
 import ctypes
 @xl_func
@@ -214,7 +220,7 @@ def bootstrap_from_xls(control):
     data_opt['FutureTenor']     = 90
     data_opt['Path']            = opt_path_graph
 
-    curve        = readCurveFromXls(xla, curveDes, curvePos, nameSheet)
+    curve        = readPortfolioFromXls(xla, curveDes, curvePos, nameSheet)
     codeL, codeR = curve.getCurveCode()
     
     boot_out     = curve.bootstrap(data_opt)
@@ -335,81 +341,177 @@ from DEF_intef import nameSheetBootstrap
 @xl_func
 def bond_fitting_from_xls(control):
 
+
+    nameSheet = nameSheetBond
+    xla       = xl_app()
+    book      = xla.ActiveWorkbook
+    try:
+        s = book.Sheets(nameSheet)
+        s.Activate()
+    except:
+        root = Tk()
+        msg = "Non e presente il foglio dei dati relativi ai Bond!!"
+        tkMessageBox.showinfo("Warning!", msg)
+        root.destroy()
+        return
+
+    rangeStart = "B2"
+    distance = 2
+
+    curveL = readCurvesNames(xla,s,rangeStart,"v", distance, 0)
+    print 'curveL: ',curveL
     root = Tk()
-    W = W_fittingType(root)
+    W = W_bootstrapSelection(root, curveL = curveL, type = "BOND") # da modificare 
     root.mainloop()
 
-    curveDes = W.new_window.curve
-    curvePos = W.new_window.pos
-    fit_type = W.fit_type
-
-
-    opt_dict = {}
-    opt_dict['interp']          = (str(W.new_window.new_window.variable1.get()).strip(""))[1]
-    opt_dict['opt_fwd_tenor']   = (str(W.new_window.new_window.variable2.get()).strip(""))[1]
-    opt_dict['opt_path_graph']  =  W.new_window.new_window.variable5.get()
-    opt_dict['fit_type']        = fit_type
-
-    opt_dict['bound_min_sve'] = []
-    opt_dict['bound_max_sve'] = []
-    opt_dict['sve_params']    = ['const1', 'const2', 'beta0', 'beta1', 'beta2', 'beta3']
-    opt_dict['bound_min_sve'].append( float(W.new_window.new_window.SVE_c1min.get().strip("")))
-    opt_dict['bound_min_sve'].append( float(W.new_window.new_window.SVE_c2min.get().strip("")))
-    opt_dict['bound_min_sve'].append( float(W.new_window.new_window.SVE_b0min.get().strip("")))
-    opt_dict['bound_min_sve'].append( float(W.new_window.new_window.SVE_b1min.get().strip("")))
-    opt_dict['bound_min_sve'].append( float(W.new_window.new_window.SVE_b2min.get().strip("")))
-    opt_dict['bound_min_sve'].append( float(W.new_window.new_window.SVE_b3min.get().strip("")))
-
-    opt_dict['bound_max_sve'].append( float(W.new_window.new_window.SVE_c1max.get().strip("")))
-    opt_dict['bound_max_sve'].append( float(W.new_window.new_window.SVE_c2max.get().strip("")))
-    opt_dict['bound_max_sve'].append( float(W.new_window.new_window.SVE_b0max.get().strip("")))
-    opt_dict['bound_max_sve'].append( float(W.new_window.new_window.SVE_b1max.get().strip("")))
-    opt_dict['bound_max_sve'].append( float(W.new_window.new_window.SVE_b2max.get().strip("")))
-    opt_dict['bound_max_sve'].append( float(W.new_window.new_window.SVE_b3max.get().strip("")))
-
-    opt_dict['bound_min_ns'] = []
-    opt_dict['bound_max_ns'] = []
-    opt_dict['ns_params']    = ['const1', 'beta0', 'beta1', 'beta2']
+    curveDes = W.curve
+    curvePos = W.pos
     
-    opt_dict['bound_min_ns'].append( float(W.new_window.new_window.NS_c1min.get().strip("")))
-    opt_dict['bound_min_ns'].append( float(W.new_window.new_window.NS_b0min.get().strip("")))
-    opt_dict['bound_min_ns'].append( float(W.new_window.new_window.NS_b1min.get().strip("")))
-    opt_dict['bound_min_ns'].append( float(W.new_window.new_window.NS_b2min.get().strip("")))
 
-    opt_dict['bound_max_ns'].append( float(W.new_window.new_window.NS_c1max.get().strip("")))
-    opt_dict['bound_max_ns'].append( float(W.new_window.new_window.NS_b0max.get().strip("")))
-    opt_dict['bound_max_ns'].append( float(W.new_window.new_window.NS_b1max.get().strip("")))
-    opt_dict['bound_max_ns'].append( float(W.new_window.new_window.NS_b2max.get().strip("")))
+    hr_model_tmp   = (str(W.new_window.variable1.get()).strip(""))[1]
+    rf_interp_tmp   = (str(W.new_window.variable6.get()).strip(""))[1]
+    bond_model_tmp   = (str(W.new_window.variable7.get()).strip(""))[1]
+
+    hr_model_map = {}
+    hr_model_map[0] = 'SVE'
+    hr_model_map[1] = 'NS'
+    hr_model_map[2] = 'CIR'
+
+    bond_model_map = {}
+    bond_model_map[0] = 'RMV'
+    bond_model_map[1] = 'RFV'
+    
+    hr_model   =   hr_model_map[int(hr_model_tmp)]
+    bond_model = bond_model_map[int(bond_model_tmp)]
+
+    str_elab_opt = hr_model + "," + rf_interp_tmp + "," + bond_model
+
+
+    bf_options_elab = {}   
+    bf_options_elab['BondModel']   = bond_model 
+    bf_options_elab['HRateModel']  = hr_model
+    bf_options_elab['MKTRef']      = 'de'
+    
+    
+    """
+    data_opt['hr_bootMethod']  = opt_boot_meth #0 = LCS, 1 = CHR
+    data_opt['bench_interp']   = opt_rf_interp
+    data_opt['hr_interp']      = opt_hr_interp
+    """
+    
+    # ------------ lettura dati da foglio excel ------------------------------
+    portfolio_xl        = readPortfolioFromXls(xla, curveDes, curvePos, nameSheet)
+    
+    bf_options_elab['RR'] = portfolio_xl.recoveryRate
+    bf_options_elab['DataRef'] =  datetime.datetime.fromordinal(portfolio_xl.ref_date.toordinal())
+    
+    #datetime.datetime.fromordinal(portfolio_xl.ref_date.toordinal())
+    
+
+    portfolio_xl.BondModel = bond_model
+    portfolio_xl.HRateModel = hr_model
+
+    curve_rf  = Curve()
+    curve_cds = CdsCurve()
+
+    interp_rf_model = curve_cds.mapCodeModelInv(rf_interp_tmp)
+
+    # ------------ dat to download_curve risk free ------------------------------
+
+    opt_curve_rf_download = {}
+
+    opt_curve_rf_download['refDate'] = portfolio_xl.ref_date
+    opt_curve_rf_download['valuta'] = portfolio_xl.curr
+    opt_curve_rf_download['rating'] = portfolio_xl.rating
+    opt_curve_rf_download['seniority'] = portfolio_xl.seniority
+
+    opt_curve_rf_download['tipo_modello'] = interp_rf_model
+    
 
     
-    opt_dict['bound_min_cir'] = []
-    opt_dict['bound_max_cir'] = []
-    opt_dict['cir_params'] =['r0', 'kappa', 'theta', 'sigma']
-    opt_dict['bound_min_cir'].append( float(W.new_window.new_window.CIR_r0min.get().strip("")))
-    opt_dict['bound_min_cir'].append( float(W.new_window.new_window.CIR_kmin.get().strip("")))
-    opt_dict['bound_min_cir'].append( float(W.new_window.new_window.CIR_thetamin.get().strip("")))
-    opt_dict['bound_min_cir'].append( float(W.new_window.new_window.CIR_sigmamin.get().strip("")))
+    
 
-    opt_dict['bound_max_cir'].append( float(W.new_window.new_window.CIR_r0max.get().strip("")))
-    opt_dict['bound_max_cir'].append( float(W.new_window.new_window.CIR_kmax.get().strip("")))
-    opt_dict['bound_max_cir'].append( float(W.new_window.new_window.CIR_thetamax.get().strip("")))
-    opt_dict['bound_max_cir'].append( float(W.new_window.new_window.CIR_sigmamax.get().strip("")))
 
-    #---
-    xla = xl_app()
-    book = xla.ActiveWorkbook
+    codeBenchList = ['%LS', '%DS', '%LFS', '%DFS']
+    
 
-    if fit_type == "boot":
-        nameSheet   = nameSheetBootstrap
-        Bcurve      = readBootstrappedCurveFromXls(xla, curveDes, curvePos, nameSheet)
-        res         = Bcurve.fittingFromBoot(opt_dict)
-        writeFittingBootResOnXls(Bcurve, xla, opt_dict, res, curvePos)
-    else:
-        nameSheet   = nameSheetCurve
-        Bcurve      = readCurveFromXls(xla, curveDes, curvePos, nameSheet)
-        Bcurve.show()
-        res         = Bcurve.fittingFromPY(opt_dict)
-        writeFittingPyResOnXls(Bcurve, xla, opt_dict, res, curvePos)
+    for codeTmp in codeBenchList:
+
+        opt_curve_rf_download['codeSeg'] = codeTmp
+        flag_loaded = curve_cds.loadBenchDataFromDB(opt_curve_rf_download)
+        if (flag_loaded == 1):
+            break
+    
+    
+    
+    if flag_loaded == 0:
+        # significa che ho intercettato un errore!
+        root = Tk()
+        root.withdraw()
+        msg0 = "Curva benchmark associata al modello %s non presente alla data del %s, cambia modello o data!!" %(interp_rf_model, curve_rf.ref_date)
+        tkMessageBox.showinfo("Attenzione!!", msg0)
+
+        root.destroy()
+        return
+
+    #print 'curve_cds.bench_dates: ',curve_cds.bench_dates
+    #print 'curve_cds.bench_values: ',curve_cds.bench_values
+    #print 'curve_cds.bench_df_val: ',curve_cds.bench_df_val
+    #print 'curve_cds.bench_model: ', curve_cds.bench_model
+    #print 'curve_cds.bench_prms: ', curve_cds.bench_prms
+    #print 'flag_loaded: ', flag_loaded
+    
+    data_zc_rf = {}
+    data_zc_rf['Model'] = curve_cds.bench_model
+    data_zc_rf['ValoreNodo'] = curve_cds.bench_values
+    data_zc_rf['MatDate'] = curve_cds.bench_dates
+    data_zc_rf['prms'] = curve_cds.bench_prms
+    data_zc_rf['DiscountFactors'] = curve_cds.bench_df_val
+    
+    
+    
+    #print 'data_zc_rf[ValoreNodo]: ', data_zc_rf['ValoreNodo']
+    #print 'data_zc_rf[DiscountFactors]: ', data_zc_rf['DiscountFactors']
+
+    data_zc_infl = {}
+    data_zc_infl['prms'] =[]
+    data_zc_infl['Model'] =[]
+    data_zc_infl['MatDate'] =[]
+    data_zc_infl['ValoreNodo'] =[]
+    data_zc_infl['DiscountFactors'] =[]
+
+    data_ts_infl = {}
+    data_ts_infl['MatDate'] = []
+    data_ts_infl['Values'] = []
+    
+    
+    x0, x_bnd = bf.set_prms_for_fit(hr_model)
+    dictPortfolio = bf.fromXLSToBondFittingPortfolio(portfolio_xl.portfolio_anag)
+
+    # -------------- elaborazione ---------------------------
+ 
+    data_zc_infl['DiscountFactors'] = []
+    
+    dictPortfolio_xls = portfolio_xl.portfolio_anag
+    
+    flag_elab, res_elab = bf.compute_bond_fitting(bf_options_elab, dictPortfolio, data_zc_rf, data_zc_infl, data_ts_infl, x0, x_bnd)
+
+    if flag_elab == None:
+        # significa che ho intercettato un errore!
+        root = Tk()
+        root.withdraw()
+        msg = "Unable to perform Bond fitting!"
+        tkMessageBox.showinfo("ERROR!", msg)
+        root.destroy()
+        return
+    
+    
+    codice_curva = portfolio_xl.description
+    
+    writeBondFittingRes1OnXls(portfolio_xl, xla, str_elab_opt, res_elab, codice_curva)
+    writeBondFittingRes2OnXls(portfolio_xl, xla, str_elab_opt, res_elab, codice_curva)
+
+    #------------------------------------------------------------
 
 #=======================================================================================================================
 # punto di ingresso per SAVE
@@ -515,15 +617,18 @@ def bootstrap_cds_from_xls(control):
     str_boot_opt = opt_boot_meth+","+opt_rf_interp + "," + opt_hr_interp
     data_opt                    = {}
     
-    data_opt['hr_bootMethod']  = opt_boot_meth #0 = LCS, 1 = CHR
+    data_opt['hr_bootMethod']  = opt_boot_meth
     data_opt['bench_interp']   = opt_rf_interp
     data_opt['hr_interp']      = opt_hr_interp
+    
+    
     
     curve_xl        = readCurveFromXls(xla, curveDes, curvePos, nameSheet, "CDS")
 
     opt_download = {}
     
     interp_rf_model = curve_xl.mapCodeModelInv(opt_rf_interp)
+    
     
 
 
@@ -581,9 +686,7 @@ def bootstrap_cds_from_xls(control):
 
     # -------------- elaborazione ---------------------------
     boot_out     = curve_xl.bootstrap(data_opt)
-    print 'boot_out: ', boot_out
     
-    #boot_out['CodiceCurva'] = 'XXX'
 
     
     if boot_out == None:

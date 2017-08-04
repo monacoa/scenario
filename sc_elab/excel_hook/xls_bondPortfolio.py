@@ -4,13 +4,19 @@ import  datetime
 from    win32com.client import constants as const
 from Tkinter import *
 from sc_elab.core.SwpCurve import dict_segm2, Segm, Curve, CdsCurve
+from sc_elab.core.BondPortfolio import BondPortfolio
+from xls_swapCurve import intestazioneSwapCurveSegmenti
+
+from DEF_intef import FORMATT, nameSheetBootstrap, nameSheetBondSurv, nameSheetBondSpread
+
+
 from map_bf_fields import field_map
 
 from xls_utils import drawBox, drawLine, formatTestataCurva, findRigthPlaceBootCurveSeg
 
 
 
-def intestazioneBondPortfolio( xla, sheet, rng,  attributi, nCols = 2, text= None):
+def writeIntestazionePortfolio( xla, sheet, rng,  attributi, nCols = 2, text= None):
 
     txt = text if text!=None else attributi['Description']
     nRows           = len(attributi.keys())
@@ -42,23 +48,23 @@ def intestazioneBondPortfolio( xla, sheet, rng,  attributi, nCols = 2, text= Non
 
 
 
-def bondPortfolioAnag(xla, rangeS, crv):
+def writePortfolioAnag(xla, rangeS, crv):
     from DEF_intef import FORMATT
     rangeStart = rangeS
-    topLeftRow = xla.Range(rangeStart).Row
+    topLeftRow = xla.Range(rangeStart).Row - 1
     topLeftCol = xla.Range(rangeStart).Column
     nbonds = len(crv.bond_portfolio)
     nRows = nbonds
     nCols = 31
 
     #box intestazione
-    drawBox(xla, const.xlMedium, topLeftRow, topLeftCol, topLeftRow + nRows+1, topLeftCol + nCols - 1)
+    drawBox(xla, const.xlMedium, topLeftRow, topLeftCol, topLeftRow + nRows, topLeftCol + nCols - 1)
 
-    formatTestataCurva(xla, topLeftRow, topLeftCol, nCols, "Bond data")
+    #formatTestataCurva(xla, topLeftRow, topLeftCol, nCols, "Bond data")
 
 
     #Linea orizzontale di separazione
-    drawLine(xla, topLeftRow + 1, topLeftCol, topLeftRow + 1, topLeftCol + nCols - 1, "o", const.xlThin)
+    drawLine(xla, topLeftRow, topLeftCol, topLeftRow, topLeftCol + nCols - 1, "o", const.xlThin)
 
     field_list = ['Isin', 'Descrizione', 'Seniority', 'Tipo tasso', 'Tipo quotazione', 'Tipo rimborso', 'Prezzo emissione', 'Prezzo rimborso / Inflation Ratio', 'Data emissione',  'Data scadenza', 
         'Tempo scadenza', 'Giorni di fixing',    'Tipo fixing',    'Basis',    'Adjustment',    'Periodicita cedola (mesi)',    'Tenor del tasso floater (anni)',    
@@ -67,8 +73,8 @@ def bondPortfolioAnag(xla, rangeS, crv):
 
     n_field = len(field_list)
     for i in range(0, n_field):
-        xla.Cells(topLeftRow + 1, topLeftCol + i).Value = field_list[i]
-        xla.Cells(topLeftRow + 1, topLeftCol + i).HorizontalAlignment = const.xlCenter
+        xla.Cells(topLeftRow , topLeftCol + i).Value = field_list[i]
+        xla.Cells(topLeftRow , topLeftCol + i).HorizontalAlignment = const.xlCenter
 
 
     n_bonds = len(crv.bond_portfolio)
@@ -77,7 +83,7 @@ def bondPortfolioAnag(xla, rangeS, crv):
     for i in range(0, n_bonds):
         for j in range(0, n_field):
             
-            a = xla.Cells(topLeftRow  + i + 2, topLeftCol+j)
+            a = xla.Cells(topLeftRow  + i + 1, topLeftCol+j)
             
             
             fieldNameTmp = field_list[j]
@@ -130,12 +136,387 @@ def bondPortfolioAnag(xla, rangeS, crv):
     rangeStart = xla.Cells(topLeftRow + nRows + 2, topLeftCol).Address
     return rangeStart
 #=======================================================================================================================
+
+def writeBondFittingRes2OnXls(crv, xla, str_boot_opt, res, codice_curva):
+
+
+    nameSheet = nameSheetBondSpread
+    try:
+        s = xla.ActiveWorkbook.Sheets(nameSheet)
+    except:
+        s = xla.ActiveWorkbook.Sheets.Add()
+        s.Name = nameSheet
+    s.Activate()
+    rangeStart  = "B2"
+    distCurve   = 1
+    r           = s.Range(rangeStart)
+    r           = findRigthPlaceBootCurveSeg(xla, r, distCurve, "v")
+
+
+    Attributi_1 = \
+        { "Data riferimento"        : crv.ref_date
+        , "Descrizione"     : crv.description
+        , "Valuta"        : crv.curr
+        , "Tipo nodo"     : "ZSpread"
+        , "Emittente"     : crv.emittente
+        , "Recovery rate" : crv.recoveryRate
+        , "Rating" : crv.rating
+        , "Modello hazard rate" : crv.HRateModel
+        , "Modello di valutazione" : crv.BondModel
+        }
+
+    """
+    Attributi_2 = \
+        { "Data riferimento"        : crv.ref_date
+        , "Descrizione"     : crv.description
+        , "Valuta"        : crv.curr
+        , "Tipo nodo"     : "Marginal Default Probability"
+        , "Emittente"     : crv.emittente
+        , "Recovery rate" : crv.recoveryRate
+        , "Rating" : crv.rating
+        , "Modello interpolante" : crv.HRateModel
+        , "Tipo Bootstrap Hazard Rate" : crv.BondModel
+        }
+    """
+    Attributi_2 = \
+        { "Data riferimento"        : crv.ref_date
+        , "Descrizione"     : crv.description
+        , "Valuta"        : crv.curr
+        , "Tipo nodo"     : "PY Spread"
+        , "Emittente"     : crv.emittente
+        , "Recovery rate" : crv.recoveryRate
+        , "Rating" : crv.rating
+        , "Modello hazard rate" : crv.HRateModel
+        , "Modello di valutazione" : crv.BondModel
+
+        }
+
+    r2 = s.Range(xla.Cells(r.Row, r.Column + 3), xla.Cells(r.Row, r.Column + 3))
+    r3 = s.Range(xla.Cells(r.Row, r.Column + 6), xla.Cells(r.Row, r.Column + 7))
+
+    ra = intestazioneSwapCurveSegmenti(xla, s, r , Attributi_1, nCols=2, text = codice_curva)
+    rb = intestazioneSwapCurveSegmenti(xla, s, r2, Attributi_2, nCols=2, text = codice_curva)
+    #rc = intestazioneSwapCurveSegmenti(xla, s, r3, Attributi_3, nCols=2, text = codice_curva)
+
+    r  = s.Range(ra)
+
+    topLeftRow = r.Row
+    topLeftCol = r.Column
+
+    xla.Cells(topLeftRow - 1, topLeftCol).Value = "Date"
+    xla.Cells(topLeftRow - 1, topLeftCol).HorizontalAlignment = const.xlCenter
+    xla.Cells(topLeftRow - 1, topLeftCol + 1).Value = "Value"
+    xla.Cells(topLeftRow - 1, topLeftCol + 1).HorizontalAlignment = const.xlCenter
+
+    xla.Cells(topLeftRow - 1, topLeftCol + 3).Value = "Date"
+    xla.Cells(topLeftRow - 1, topLeftCol + 3).HorizontalAlignment = const.xlCenter
+    xla.Cells(topLeftRow - 1, topLeftCol + 4).Value = "Value"
+    xla.Cells(topLeftRow - 1, topLeftCol + 4).HorizontalAlignment = const.xlCenter
+    
+    #xla.Cells(topLeftRow - 1, topLeftCol + 6).Value = "Date"
+    #xla.Cells(topLeftRow - 1, topLeftCol + 6).HorizontalAlignment = const.xlCenter
+    #xla.Cells(topLeftRow - 1, topLeftCol + 7).Value = "Value"
+    #xla.Cells(topLeftRow - 1, topLeftCol + 7).HorizontalAlignment = const.xlCenter
+
+    
+
+    nRows = len(res['outputDates'])
+
+    drawBox(xla, const.xlMedium, topLeftRow - 1, topLeftCol, topLeftRow + nRows - 1, topLeftCol + 1)
+    drawLine(xla, topLeftRow - 1, topLeftCol, topLeftRow - 1, topLeftCol + 1, "o", const.xlThin)
+
+    drawBox(xla, const.xlMedium, topLeftRow - 1, topLeftCol + 3, topLeftRow + nRows - 1, topLeftCol + 4)
+    drawLine(xla, topLeftRow - 1, topLeftCol+3, topLeftRow - 1, topLeftCol + 4, "o", const.xlThin)
+
+    #drawBox(xla, const.xlMedium, topLeftRow - 1, topLeftCol + 6, topLeftRow + nRows - 1, topLeftCol + 7)
+    #drawLine(xla, topLeftRow - 1, topLeftCol +6, topLeftRow - 1, topLeftCol + 7, "o", const.xlThin)
+
+    
+    for i in range(nRows):
+        
+
+
+        date   = res['outputDates'][i]
+        zspread   = res['zcSpread'][i]
+        #marg   = res['marginalDefault'][i]
+        pypread = res['pySpread'][i]
+
+
+        xla.Cells(topLeftRow + i, topLeftCol).Value = date
+        xla.Cells(topLeftRow + i, topLeftCol).NumberFormat = FORMATT
+        xla.Cells(topLeftRow + i, topLeftCol).HorizontalAlignment = const.xlCenter
+        xla.Cells(topLeftRow + i, topLeftCol + 1).Value = zspread
+        xla.Cells(topLeftRow + i, topLeftCol + 1).NumberFormat = "0.00"
+        xla.Cells(topLeftRow + i, topLeftCol + 1).HorizontalAlignment = const.xlCenter
+
+        xla.Cells(topLeftRow + i, topLeftCol + 3).Value = date
+        xla.Cells(topLeftRow + i, topLeftCol + 3).NumberFormat = FORMATT
+        xla.Cells(topLeftRow + i, topLeftCol + 3).HorizontalAlignment = const.xlCenter
+        xla.Cells(topLeftRow + i, topLeftCol + 4).Value = pypread
+        xla.Cells(topLeftRow + i, topLeftCol + 4).NumberFormat = "0.00000"
+        xla.Cells(topLeftRow + i, topLeftCol + 4).HorizontalAlignment = const.xlCenter
+
+        """
+        xla.Cells(topLeftRow + i, topLeftCol + 6).Value = date
+        xla.Cells(topLeftRow + i, topLeftCol + 6).NumberFormat = FORMATT
+        xla.Cells(topLeftRow + i, topLeftCol + 6).HorizontalAlignment = const.xlCenter
+        xla.Cells(topLeftRow + i, topLeftCol + 7).Value = h_rate
+        xla.Cells(topLeftRow + i, topLeftCol + 7).NumberFormat = "0.00000"
+        xla.Cells(topLeftRow + i, topLeftCol + 7).HorizontalAlignment = const.xlCenter
+        """
+
+
+
+
+
+
+def writeBondFittingRes1OnXls(crv, xla, str_boot_opt, res, codice_curva):
+
+
+    nameSheet = nameSheetBondSurv
+    try:
+        s = xla.ActiveWorkbook.Sheets(nameSheet)
+    except:
+        s = xla.ActiveWorkbook.Sheets.Add()
+        s.Name = nameSheet
+    s.Activate()
+    rangeStart  = "B2"
+    distCurve   = 1
+    r           = s.Range(rangeStart)
+    r           = findRigthPlaceBootCurveSeg(xla, r, distCurve, "v")
+
+
+    Attributi_1 = \
+        { "Data riferimento"        : crv.ref_date
+        , "Descrizione"     : crv.description
+        , "Valuta"        : crv.curr
+        , "Tipo nodo"     : "Survival probability"
+        , "Emittente"     : crv.emittente
+        , "Recovery rate" : crv.recoveryRate
+        , "Rating" : crv.rating
+        , "Modello hazard rate" : crv.HRateModel
+        , "Modello di valutazione" : crv.BondModel
+        }
+
+    """
+    Attributi_2 = \
+        { "Data riferimento"        : crv.ref_date
+        , "Descrizione"     : crv.description
+        , "Valuta"        : crv.curr
+        , "Tipo nodo"     : "Marginal Default Probability"
+        , "Emittente"     : crv.emittente
+        , "Recovery rate" : crv.recoveryRate
+        , "Rating" : crv.rating
+        , "Modello interpolante" : crv.HRateModel
+        , "Tipo Bootstrap Hazard Rate" : crv.BondModel
+        }
+    """
+    Attributi_2 = \
+        { "Data riferimento"        : crv.ref_date
+        , "Descrizione"     : crv.description
+        , "Valuta"        : crv.curr
+        , "Tipo nodo"     : "Hazard rate"
+        , "Emittente"     : crv.emittente
+        , "Recovery rate" : crv.recoveryRate
+        , "Rating" : crv.rating
+        , "Modello hazard rate" : crv.HRateModel
+        , "Modello di valutazione" : crv.BondModel
+
+        }
+
+    r2 = s.Range(xla.Cells(r.Row, r.Column + 3), xla.Cells(r.Row, r.Column + 3))
+    r3 = s.Range(xla.Cells(r.Row, r.Column + 6), xla.Cells(r.Row, r.Column + 7))
+
+    ra = intestazioneSwapCurveSegmenti(xla, s, r , Attributi_1, nCols=2, text = codice_curva)
+    rb = intestazioneSwapCurveSegmenti(xla, s, r2, Attributi_2, nCols=2, text = codice_curva)
+    #rc = intestazioneSwapCurveSegmenti(xla, s, r3, Attributi_3, nCols=2, text = codice_curva)
+
+    r  = s.Range(ra)
+
+    topLeftRow = r.Row
+    topLeftCol = r.Column
+
+    xla.Cells(topLeftRow - 1, topLeftCol).Value = "Date"
+    xla.Cells(topLeftRow - 1, topLeftCol).HorizontalAlignment = const.xlCenter
+    xla.Cells(topLeftRow - 1, topLeftCol + 1).Value = "Value"
+    xla.Cells(topLeftRow - 1, topLeftCol + 1).HorizontalAlignment = const.xlCenter
+
+    xla.Cells(topLeftRow - 1, topLeftCol + 3).Value = "Date"
+    xla.Cells(topLeftRow - 1, topLeftCol + 3).HorizontalAlignment = const.xlCenter
+    xla.Cells(topLeftRow - 1, topLeftCol + 4).Value = "Value"
+    xla.Cells(topLeftRow - 1, topLeftCol + 4).HorizontalAlignment = const.xlCenter
+    
+    #xla.Cells(topLeftRow - 1, topLeftCol + 6).Value = "Date"
+    #xla.Cells(topLeftRow - 1, topLeftCol + 6).HorizontalAlignment = const.xlCenter
+    #xla.Cells(topLeftRow - 1, topLeftCol + 7).Value = "Value"
+    #xla.Cells(topLeftRow - 1, topLeftCol + 7).HorizontalAlignment = const.xlCenter
+
+    
+
+    nRows = len(res['outputDates'])
+
+    drawBox(xla, const.xlMedium, topLeftRow - 1, topLeftCol, topLeftRow + nRows - 1, topLeftCol + 1)
+    drawLine(xla, topLeftRow - 1, topLeftCol, topLeftRow - 1, topLeftCol + 1, "o", const.xlThin)
+
+    drawBox(xla, const.xlMedium, topLeftRow - 1, topLeftCol + 3, topLeftRow + nRows - 1, topLeftCol + 4)
+    drawLine(xla, topLeftRow - 1, topLeftCol+3, topLeftRow - 1, topLeftCol + 4, "o", const.xlThin)
+
+    #drawBox(xla, const.xlMedium, topLeftRow - 1, topLeftCol + 6, topLeftRow + nRows - 1, topLeftCol + 7)
+    #drawLine(xla, topLeftRow - 1, topLeftCol +6, topLeftRow - 1, topLeftCol + 7, "o", const.xlThin)
+
+    
+    for i in range(nRows):
+
+        date   = res['outputDates'][i]
+        surv   = res['survProbCum'][i]
+        #marg   = res['marginalDefault'][i]
+        h_rate = res['hazardRate'][i]
+
+
+        xla.Cells(topLeftRow + i, topLeftCol).Value = date
+        xla.Cells(topLeftRow + i, topLeftCol).NumberFormat = FORMATT
+        xla.Cells(topLeftRow + i, topLeftCol).HorizontalAlignment = const.xlCenter
+        xla.Cells(topLeftRow + i, topLeftCol + 1).Value = surv
+        xla.Cells(topLeftRow + i, topLeftCol + 1).NumberFormat = "0.00"
+        xla.Cells(topLeftRow + i, topLeftCol + 1).HorizontalAlignment = const.xlCenter
+
+        xla.Cells(topLeftRow + i, topLeftCol + 3).Value = date
+        xla.Cells(topLeftRow + i, topLeftCol + 3).NumberFormat = FORMATT
+        xla.Cells(topLeftRow + i, topLeftCol + 3).HorizontalAlignment = const.xlCenter
+        xla.Cells(topLeftRow + i, topLeftCol + 4).Value = h_rate
+        xla.Cells(topLeftRow + i, topLeftCol + 4).NumberFormat = "0.00000"
+        xla.Cells(topLeftRow + i, topLeftCol + 4).HorizontalAlignment = const.xlCenter
+
+        """
+        xla.Cells(topLeftRow + i, topLeftCol + 6).Value = date
+        xla.Cells(topLeftRow + i, topLeftCol + 6).NumberFormat = FORMATT
+        xla.Cells(topLeftRow + i, topLeftCol + 6).HorizontalAlignment = const.xlCenter
+        xla.Cells(topLeftRow + i, topLeftCol + 7).Value = h_rate
+        xla.Cells(topLeftRow + i, topLeftCol + 7).NumberFormat = "0.00000"
+        xla.Cells(topLeftRow + i, topLeftCol + 7).HorizontalAlignment = const.xlCenter
+        """
+
+"""
+def writeBondFittingRes2OnXls(crv, xla, str_boot_opt, res, codice_curva):
+
+    
+    nameSheet = nameSheetBondSpread
+    try:
+        s = xla.ActiveWorkbook.Sheets(nameSheet)
+    except:
+        s = xla.ActiveWorkbook.Sheets.Add()
+        s.Name = nameSheet
+    s.Activate()
+    rangeStart  = "B2"
+    distCurve   = 1
+    r           = s.Range(rangeStart)
+    r           = findRigthPlaceBootCurveSeg(xla, r, distCurve, "v")
+
+    boot_type_0   = int(crv.cds_boot_method)
+    interp_type_0 = crv.rf_interp_type
+    
+    boot_type = crv.mapBootCDS(boot_type_0)
+    interp_type = crv.mapCodeModelInv(interp_type_0)
+  
+    # -----
+    Attributi_1 = \
+        { "Data riferimento"        : crv.ref_date
+        , "Descrizione"     : crv.description
+        , "Valuta"        : crv.curr
+        , "Tipo curva"    : crv.type
+        , "Tipo nodo"     : "Par Yield spread"
+        , "Emittente"     : crv.emittente
+        , "Recovery rate" : crv.recovery
+        , "Rating" : crv.rating
+        , "Seniority" : crv.seniority
+        , "Modello interpolante" : interp_type
+        , "Tipo Bootstrap Hazard Rate" : boot_type
+        }
+
+    Attributi_2 = \
+      { "Data riferimento"        : crv.ref_date
+        , "Descrizione"     : crv.description
+        , "Valuta"        : crv.curr
+        , "Tipo curva"    : crv.type
+        , "Tipo nodo"     : "Zero Coupon spread"
+        , "Emittente"     : crv.emittente
+        , "Recovery rate" : crv.recovery
+        , "Rating" : crv.rating
+        , "Seniority" : crv.seniority
+        , "Modello interpolante" :interp_type
+        , "Tipo Bootstrap Hazard Rate" : boot_type
+        }
+
+
+    r2 = s.Range(xla.Cells(r.Row, r.Column + 3), xla.Cells(r.Row, r.Column + 3))
+    r3 = s.Range(xla.Cells(r.Row, r.Column + 6), xla.Cells(r.Row, r.Column + 7))
+    
+    ra = intestazioneSwapCurveSegmenti(xla, s, r , Attributi_1, nCols=2, text = codice_curva)
+    rb = intestazioneSwapCurveSegmenti(xla, s, r2, Attributi_2, nCols=2, text = codice_curva)
+
+
+    r  = s.Range(ra)
+
+    topLeftRow = r.Row
+    topLeftCol = r.Column
+
+    xla.Cells(topLeftRow - 1, topLeftCol).Value = "Date"
+    xla.Cells(topLeftRow - 1, topLeftCol).HorizontalAlignment = const.xlCenter
+    xla.Cells(topLeftRow - 1, topLeftCol + 1).Value = "Value"
+    xla.Cells(topLeftRow - 1, topLeftCol + 1).HorizontalAlignment = const.xlCenter
+
+    xla.Cells(topLeftRow - 1, topLeftCol + 3).Value = "Date"
+    xla.Cells(topLeftRow - 1, topLeftCol + 3).HorizontalAlignment = const.xlCenter
+    xla.Cells(topLeftRow - 1, topLeftCol + 4).Value = "Value"
+    xla.Cells(topLeftRow - 1, topLeftCol + 4).HorizontalAlignment = const.xlCenter
+
+    nRows = len(res['outputDates'])
+
+    drawBox(xla, const.xlMedium, topLeftRow - 1, topLeftCol, topLeftRow + nRows - 1, topLeftCol + 1)
+    drawLine(xla, topLeftRow - 1, topLeftCol, topLeftRow - 1, topLeftCol + 1, "o", const.xlThin)
+
+    drawBox(xla, const.xlMedium, topLeftRow - 1, topLeftCol + 3, topLeftRow + nRows - 1, topLeftCol + 4)
+    drawLine(xla, topLeftRow - 1, topLeftCol+3, topLeftRow - 1, topLeftCol + 4, "o", const.xlThin)
+    
+    for i in range(nRows):
+
+        date   = res['outputDates'][i]
+        pySpread   = res['pySpread'][i]
+        zcSpread   = res['zcSpread'][i]
+
+        xla.Cells(topLeftRow + i, topLeftCol).Value = date
+        xla.Cells(topLeftRow + i, topLeftCol).NumberFormat = FORMATT
+        xla.Cells(topLeftRow + i, topLeftCol).HorizontalAlignment = const.xlCenter
+        xla.Cells(topLeftRow + i, topLeftCol + 1).Value = pySpread
+        xla.Cells(topLeftRow + i, topLeftCol + 1).NumberFormat = "0.00"
+        xla.Cells(topLeftRow + i, topLeftCol + 1).HorizontalAlignment = const.xlCenter
+
+        xla.Cells(topLeftRow + i, topLeftCol + 3).Value = date
+        xla.Cells(topLeftRow + i, topLeftCol + 3).NumberFormat = FORMATT
+        xla.Cells(topLeftRow + i, topLeftCol + 3).HorizontalAlignment = const.xlCenter
+        xla.Cells(topLeftRow + i, topLeftCol + 4).Value = zcSpread
+        xla.Cells(topLeftRow + i, topLeftCol + 4).NumberFormat = "0.00000"
+        xla.Cells(topLeftRow + i, topLeftCol + 4).HorizontalAlignment = const.xlCenter
+
+"""
+
+
+
+
+
+
+
+
+
+
+
+
 def writePortfoliOnXls(crv, nameSheet, xla, curve_type):
     # ---
     from DEF_intef import FORMATT
     # ---
     rangeStart = "B2"
-    distCurve  = 5
+    distCurve  = 1
     # ---
     #Individuo posizione in cui scrivere
     # ---
@@ -144,14 +525,10 @@ def writePortfoliOnXls(crv, nameSheet, xla, curve_type):
     #rOut  =  findRigthPlaceBootCurveSeg(xla, r, distCurve)
     rOut  = findRigthPlaceBootCurveSeg(xla, r, distCurve, "v")
 
-
     # ---
     #Genero il blocco di intestazione della curva
     # ---
 
-    
-    
-    
     Attributi =   {"Date Ref": crv.ref_date
                       , "Description": crv.description
                       , "Currency": crv.curr
@@ -163,8 +540,8 @@ def writePortfoliOnXls(crv, nameSheet, xla, curve_type):
                       }
 
 
-    rangeStartNew = intestazioneBondPortfolio ( xla, sheet , rOut, Attributi)
-    rangeStartNew = bondPortfolioAnag(xla, rangeStartNew, crv)
+    rangeStartNew = writeIntestazionePortfolio(xla, sheet , rOut, Attributi)
+    rangeStartNew = writePortfolioAnag(xla, rangeStartNew, crv)
 
 
 def readIntestazione(xla , r , cc):
@@ -239,29 +616,148 @@ def readIntestazioneCds(xla , r , cc):
     return r
 
 
+def readIntestazionePortfolio(xla , r , cc):
+    
+    row             = r.Row
+    col             = r.Column
+
+    cc.curr           = xla.Range(xla.Cells(row+1, col+1), xla.Cells(row+1, col+1)).Value
+    dd = xla.Range(xla.Cells(row + 2, col + 1), xla.Cells(row + 2, col + 1)).Value
+    cc.ref_date = datetime.date(year=dd.year, month=dd.month, day=dd.day)
+    cc.description   = xla.Range(xla.Cells(row + 3, col + 1), xla.Cells(row + 3, col + 1)).Value
+    cc.emittente     = xla.Range(xla.Cells(row + 4, col + 1), xla.Cells(row + 4, col + 1)).Value
+    cc.rating        = xla.Range(xla.Cells(row + 5, col + 1), xla.Cells(row + 5, col + 1)).Value
+    cc.recoveryRate  = xla.Range(xla.Cells(row + 6, col + 1), xla.Cells(row + 6, col + 1)).Value
+    cc.source        = xla.Range(xla.Cells(row + 7, col + 1), xla.Cells(row + 7, col + 1)).Value
+
+    # imposto il mercato
+    if cc.curr == "EUR":
+        cc.cal = "de.eurex"
+    elif cc.curr == "USD":
+        cc.cal = 'us'
+    elif cc.curr == 'GBP':
+        cc.cal = 'uk'
+    elif cc.curr == 'CAD':
+        cc.cal = 'ca'
+    else:
+        cc.cal = 'us'
+    
+    """
+    print ".................", r.Value
+    cc.type = xla.Range(xla.Cells(row + 3, col + 1), xla.Cells(row + 3, col + 1)).Value
+    dd = xla.Range(xla.Cells(row + 4, col + 1), xla.Cells(row + 4, col + 1)).Value
+    cc.ref_date = datetime.date(year=dd.year, month=dd.month, day=dd.day)
+
+    cc.dayAdj   = xla.Range(xla.Cells(row + 5, col + 1), xla.Cells(row + 5, col + 1)).Value
+    cc.dayCount = xla.Range(xla.Cells(row + 6, col + 1), xla.Cells(row + 6, col + 1)).Value
+
+    cc.description   = xla.Range(xla.Cells(row + 7, col + 1), xla.Cells(row + 7, col + 1)).Value
+    cc.download_type = xla.Range(xla.Cells(row + 8, col + 1), xla.Cells(row + 8, col + 1)).Value
+    cc.lag           = xla.Range(xla.Cells(row + 9, col + 1), xla.Cells(row + 9, col + 1)).Value
+    cc.frequency     = xla.Range(xla.Cells(row + 10, col + 1), xla.Cells(row + 10, col + 1)).Value
+    cc.node_type     = xla.Range(xla.Cells(row + 12, col + 1), xla.Cells(row + 12, col + 1)).Value
+    cc.quotation     = xla.Range(xla.Cells(row + 13, col + 1), xla.Cells(row + 13, col + 1)).Value
+    cc.rating        = xla.Range(xla.Cells(row + 14, col + 1), xla.Cells(row + 14, col + 1)).Value
+    cc.recovery      = xla.Range(xla.Cells(row + 15, col + 1), xla.Cells(row + 15, col + 1)).Value
+    cc.rendimento    = xla.Range(xla.Cells(row + 16, col + 1), xla.Cells(row + 16, col + 1)).Value
+    cc.sector        = xla.Range(xla.Cells(row + 17, col + 1), xla.Cells(row + 17, col + 1)).Value
+    cc.seniority     = xla.Range(xla.Cells(row + 18, col + 1), xla.Cells(row + 18, col + 1)).Value
+    cc.source        = xla.Range(xla.Cells(row + 19, col + 1), xla.Cells(row + 19, col + 1)).Value
+
+    """
+    r = xla.Range(xla.Cells(row + 9, col), xla.Cells(row + 9, col))
+    #cc.show()
+    
+    return r
 
 
-def readSegm(xla, r, cc):
-    row  = r.Row
+
+
+def readPortfolioFromXls(xla, des, pos, nameSheet):
+    rangeStart = "B2"
+    sheet = xla.ActiveWorkbook.Sheets(nameSheet)
+    r     = sheet.Range(rangeStart)
+    
+
+    row = r.Row
+    col = r.Column
+    i = 0
+    k = 1
+    
+    for i in range(0, 1000):
+
+        if (r.Value == des) and (k == pos):
+            break
+        
+        else:
+            
+            r = xla.Range(xla.Cells(row + i, col), xla.Cells(row + i, col))
+            i = i  + 1 
+            if (r.Value == None):
+                k = k + 1
+
+    
+    cc = BondPortfolio()
+    r = readIntestazionePortfolio(xla, r, cc)
+    r = readPortfolioAnag(xla, r, cc)
+    
+    return cc
+
+def readPortfolioAnag(xla, r, cc):
+    row  = r.Row + 1
     col  = r.Column
     name = r.Value
-    print "SONO QUIIIIIIIIIII", name
-    i = 2
+    
+    
+    field_list = ['Isin', 'Descrizione', 'Seniority', 'Tipo tasso', 'Tipo quotazione', 'Tipo rimborso', 'Prezzo emissione', 'Prezzo rimborso / Inflation Ratio', 'Data emissione',  'Data scadenza', 
+        'Tempo scadenza', 'Giorni di fixing',    'Tipo fixing',    'Basis',    'Adjustment',    'Periodicita cedola (mesi)',    'Tenor del tasso floater (anni)',    
+        'Tasso cedolare annuo (Fisso/spread)',    'Cedola in corso',    'Prezzo-MID',    'Prezzo-BID',    'Prezzo-ASK',    'YTM/DM (MID)',    'YTM/DM (BID)',    'YTM/DM (ASK)',
+        'Tasso di riferiemnto',    'Tasso repo',    'Data prezzo di mercato',    'Contributor',    'Peso',    'Indicizzazione']
 
+    field_date_list = ['Data emissione', 'Data scadenza', 'Data prezzo di mercato']
+
+    n_fields = 31
+    
+    portfolio_anag = {}
+
+    i = 0
     while r.Value != None:
-        r = xla.Range(xla.Cells(row + 2, col), xla.Cells(row + 2, col))
-        tag   = r.Value
-        print "tag", tag
-        time  = xla.Range(xla.Cells(row + i, col + 1), xla.Cells(row + i, col + 1)).Value
-        value = xla.Range(xla.Cells(row + i, col + 2), xla.Cells(row + i, col + 2)).Value
 
-        cc.tags.append(tag)
-        cc.mats.append(time)
-        cc.values.append(value)
-        i += 1
-        r = xla.Range(xla.Cells(row + i, col), xla.Cells(row + i, col))
+        portfolio_anag[i] = {}
+        
+        for j in range(0, n_fields):
+            
+        
+            fieldNameTmp = field_list[j]
+            r = xla.Range(xla.Cells(row + i, col + j), xla.Cells(row + i, col + j))
+            
+            
+            
+            
+            if (fieldNameTmp)in field_date_list:
 
-    cc.show()
+                v0 = r.Value
+
+                if (v0 == None):
+                    fieldValueTmp = None
+                else:
+                    fieldValueTmp = datetime.datetime(year = v0.year, month = v0.month, day = v0.day)
+            
+            else:
+                
+                fieldValueTmp = r.Value
+
+
+            
+            portfolio_anag[i][fieldNameTmp] = fieldValueTmp
+        i = i + 1
+        
+
+
+    cc.portfolio_anag = portfolio_anag
+    
+
+
     return r
 
 

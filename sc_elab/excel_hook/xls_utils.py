@@ -107,7 +107,12 @@ def readCurvesNames(xla, s, rangeStart, direzione, distanza, offset = 0):
             # porto avanti ancora per controllare
 
             if (r.Value == None):
+                
+                
                 r = xla.Range(xla.Cells(row  + distanza, col), xla.Cells(row + distanza, col))
+                
+                print 'r.Value C: ', r.Value
+
                 if r.Value != None:
                     j += 1
                     nomeCurva = r.Value

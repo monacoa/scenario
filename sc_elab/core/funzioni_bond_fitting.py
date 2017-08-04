@@ -543,11 +543,12 @@ def convertDate2Time(date_vec):
 
 
 #def compute_bond_fitting(opt_elab, dictPortfolio, zc_times, zc_rf, zc_infl_t, zc_infl_rf, ts_infl_dates, ts_infl_values, x0, x_bnd, dict_start_params):
-def	compute_bond_fitting(opt_elab, dictPortfolio, data_zc_rf, data_zc_infl, data_ts_infl, x0, x_bnd, dict_start_params):
+def	compute_bond_fitting(opt_elab, dictPortfolio, data_zc_rf, data_zc_infl, data_ts_infl, x0, x_bnd):
 
 
 	zc_rf_dates  = data_zc_rf['MatDate']
 	zc_rf = data_zc_rf['ValoreNodo']
+	zc_rf_df = data_zc_rf['DiscountFactors']
 	
 	rf_prms = data_zc_rf['prms']
 	rf_model = data_zc_rf['Model']
@@ -561,9 +562,50 @@ def	compute_bond_fitting(opt_elab, dictPortfolio, data_zc_rf, data_zc_infl, data
 	ts_infl_dates  = data_ts_infl['MatDate']
 	ts_infl_values = data_ts_infl['Values']
 	
+	is0 = dictPortfolio.keys()[0]
+	indicizzazione = dictPortfolio[is0]['index rate']
 	
-	zc_infl_t = convertDate2Time(zc_infl_dates)
+	
+	if (indicizzazione == 'CPTFEMU'):
+		zc_infl_t = convertDate2Time(zc_infl_dates)
+	else:
+		zc_infl_t = []
+		
+	
+	
 	zc_times  = convertDate2Time(zc_rf_dates)
+	
+
+	if len(zc_rf_df) < 2:
+		
+		zc_rf_df = []
+		for i in range(0, len(zc_times)):
+			
+			timeTmp = zc_times[i]
+			rateTmp = zc_rf[i]
+			
+			dfTmp = np.exp(-timeTmp*rateTmp)
+			zc_rf_df.append(dfTmp)
+		
+		data_zc_rf['DiscounntFactors'] = zc_rf_df
+
+
+	if len(zc_rf) < 2:
+		
+		zc_rf = []
+		for i in range(1, len(zc_times)):
+			
+			timeTmp = zc_times[i]
+			zc_rf_dfTmp = zc_rf_df[i]
+			
+			rateTmp = -np.log(zc_rf_dfTmp)/timeTmp
+			zc_rf.append(rateTmp)
+		
+		zc_rf.insert(0, zc_rf[0])
+
+		data_zc_rf['ValoreNodo'] = zc_rf
+
+
 
 
 	h_model        = opt_elab['HRateModel']
@@ -576,7 +618,7 @@ def	compute_bond_fitting(opt_elab, dictPortfolio, data_zc_rf, data_zc_infl, data
 	method_opt = 'TNC'
 	
 	flag_dump = 0
-	flag_plot = 1
+	flag_plot = 0
 	
 	isinList = dictPortfolio.keys()
 	is0 	 = isinList[0]
@@ -602,7 +644,7 @@ def	compute_bond_fitting(opt_elab, dictPortfolio, data_zc_rf, data_zc_infl, data
 
 
 	
-	start_clean_prices, start_dirty_prices, dict_bond_times = computePortfolioPricesFromCF(dict_start_params, dictPortfolio_new, opt_elab, zc_times, zc_rf, rf_prms, rf_model, zc_infl_t, zc_infl_val, infl_prms, infl_model, ts_infl_dates, ts_infl_values)
+	#start_clean_prices, start_dirty_prices, dict_bond_times = computePortfolioPricesFromCF(dict_start_params, dictPortfolio_new, opt_elab, zc_times, zc_rf, rf_prms, rf_model, zc_infl_t, zc_infl_val, infl_prms, infl_model, ts_infl_dates, ts_infl_values)
 	
 	ff  = optimize.minimize(loss_bf_cf, x0,args = (dictPortfolio_new, opt_elab, zc_times, zc_rf, rf_prms, rf_model, zc_infl_t, zc_infl_val, infl_prms, infl_model, ts_infl_dates, ts_infl_values), method = method_opt,  bounds = x_bnd)
 
@@ -661,8 +703,9 @@ def	compute_bond_fitting(opt_elab, dictPortfolio, data_zc_rf, data_zc_infl, data
 	#print 'Tempo di calcolo: ', elapse
 	
 	#---------------------------------------------------------------------------------------------------------------
+	flag_res = 1
 	
-	return output_data
+	return flag_res,  output_data
 	
 
 
@@ -758,6 +801,61 @@ def loadTS_fromFile(inputFile):
 	
 	return dates_ts_list, values_ts_list, data_ts_raw
 
+
+
+def fromXLSToBondFittingPortfolio(dict_start):
+	
+	dict_out = {}
+	id_list = dict_start.keys()
+	
+	for i in range(0, len(id_list)):
+		
+		id_Tmp = id_list[i]
+		isin_Tmp = dict_start[id_Tmp]['Isin']
+
+
+		if (isin_Tmp != None):
+
+			dict_out[isin_Tmp] = {}
+
+
+			dict_out[isin_Tmp]['isin']  	= isin_Tmp 			
+			dict_out[isin_Tmp]['emission price']  	= dict_start[id_Tmp]['Prezzo emissione'] 
+			dict_out[isin_Tmp]['emission date'] 	= dict_start[id_Tmp]['Data emissione']  
+			dict_out[isin_Tmp]['inflRatio']			= dict_start[id_Tmp]['Prezzo rimborso / Inflation Ratio'] 
+	
+			
+			dict_out[isin_Tmp]['end date'] 			= dict_start[id_Tmp]['Data scadenza']
+			dict_out[isin_Tmp]['day count']			= dict_start[id_Tmp]['Basis']	
+			dict_out[isin_Tmp]['BDay'] 				= dict_start[id_Tmp]['Adjustment']
+			
+			dict_out[isin_Tmp]['freq'] 				= int(dict_start[id_Tmp]['Periodicita cedola (mesi)'])
+			dict_out[isin_Tmp]['weights']  			= dict_start[id_Tmp]['Peso']	
+			dict_out[isin_Tmp]['tenor rate']    	= dict_start[id_Tmp]['Tenor del tasso floater (anni)']	
+			dict_out[isin_Tmp]['fixed rate'] 		= dict_start[id_Tmp]['Tasso cedolare annuo (Fisso/spread)']
+			dict_out[isin_Tmp]['coupon']   			= dict_start[id_Tmp]['Cedola in corso']	
+			dict_out[isin_Tmp]['clean price']  		= dict_start[id_Tmp]['Prezzo-MID']
+			dict_out[isin_Tmp]['ytm'] 				= dict_start[id_Tmp]['YTM/DM (MID)']	
+			dict_out[isin_Tmp]['index rate']      	= dict_start[id_Tmp]['Indicizzazione']
+	
+			dict_out[isin_Tmp]['bond type']			= dict_start[id_Tmp]['Tipo tasso'] 	
+	
+			#dict_start[isin_Tmp]['Tasso di riferiemnto']
+			#dict_start[isin_Tmp]['Tasso repo']	
+			#dict_start[isin_Tmp]['Giorni di fixing']	
+			#dict_start[isin_Tmp]['Tipo fixing']	
+			#dict_start[id_Tmp]['Tipo rimborso'] 
+	
+			
+			dict_out[isin_Tmp]['coupon dates']     = []
+			dict_out[isin_Tmp]['coupon times']     = []
+			dict_out[isin_Tmp]['cash flow']        = []
+	
+		else:
+			
+			continue
+	
+	return dict_out
 
 
 def loadPortfolio_fromFile_v2(inputFile):
@@ -1117,8 +1215,8 @@ def	computeBondCalendar(date_ref, date_end, frequency, dayCount, busDay, mkt_ref
 		
 	else:
 		
-		while (dateTmp_o >= date_ref):
 
+		while (dateTmp_o >= date_ref):
 
 			dateTmp_n_0 = date_end - relativedelta(months=k*frequency)
 
@@ -1257,6 +1355,8 @@ def computeBondPriceFromCF(model_params, data_portfolio, opt_elab, zc_times, zc_
 	tipo_modello   = opt_elab['BondModel'] 
 	h_modello      = opt_elab['HRateModel'] 
 	date_ref       = opt_elab['DataRef']
+	
+	
 
 	ISIN_val       = data_portfolio['isin']
 	#date_end_val   = data_portfolio['end date']    
@@ -1759,7 +1859,6 @@ def loss_bf_cf(list_model_params, dictPortfolio, opt_elab, zc_times, zc_rf, rf_p
 		dict_model_params['b3']  = b3
 
 	clean_prices, dirty_prices, bond_times = computePortfolioPricesFromCF(dict_model_params, dictPortfolio, opt_elab, zc_times, zc_rf, rf_prms, rf_model, zc_infl_times, zc_infl, infl_prms, infl_model, ts_infl_dates, ts_infl_values)
-
 	diff_sum = 0.0
 	k  = 0
 	
@@ -1860,6 +1959,49 @@ def computePYmodel_rate(dict_opt_params, time_ref, LGD, zc_times, zc_rf, model_t
 		str = 'computePYmodel_rate'
 		print str
 """
+
+
+def set_prms_for_fit(model_fit):
+
+	if (model_fit == 'SVE'): #->SVE
+
+		bound_min = [0.0001,  0.0001, -10.00, -10.00, -10.00, -10.00]
+		bound_max = [10.0,     50.0,  10.03,   10.0,   10.5,   10.0]
+		x0  = [1.0,       10.0,   0.03,   0.03,   0.03,   0.03]
+		n_par = 6
+
+
+	elif (model_fit == 'CIR'): #->CIR
+
+		bound_min = [  -0.1,  0.1, 0.001, 0.001]
+		bound_max = [ 10.00, 10.0, 10.00, 1.000]
+		x0  = [0.0001,  1.0, 0.015,  0.01]
+		n_par = 4
+
+
+	elif (model_fit == 'NS'): #->NS
+
+		bound_min = [0.0001,  -10.0, -10.0, -10.0]
+		bound_max = [100,     +10.0, +10.0, +10.0]
+		x0        = [5.0001,  0.03, 0.03, 0.03]
+		n_par = 4
+
+
+	x_bnd = []
+	for i in range(0, n_par):
+
+		bndTmp = []
+		
+		b_min = bound_min[i]
+		b_max = bound_max[i]
+		
+		bndTmp.append(b_min)
+		bndTmp.append(b_max)
+		
+		x_bnd.append(bndTmp)
+
+
+	return x0, x_bnd
 
 
 def settingDefaultOptions(prms_file, model_in, RR, date_ref, h_model):
@@ -2283,6 +2425,10 @@ def computePortfolioPricesFromCF(model_params, dictPortfolio, opt_elab, zc_times
 		isin_tmp = isin_list[i]
 
 		dateEndTmp  = dictPortfolio[isin_tmp]['end date']
+		
+		#print 'end: ', type(dateEndTmp)
+		#print 'ref: ', type(opt_elab['DataRef'])
+
 		t_endTmp    = dateEndTmp -  opt_elab['DataRef']
 		t_endTmp    = float(t_endTmp.days)/365.0
 

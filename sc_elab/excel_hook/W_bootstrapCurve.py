@@ -19,7 +19,12 @@ class W_bootstrapSelection (LabelFrame):
         self.master = master
         #self.geometry("800x600")
         #self.master.geometry("400x500")
-        self.config(text="Available curves for bootstrapping:")
+
+        if (type != "BOND"):
+            self.config(text="Available curves for bootstrapping:")
+        else:
+            self.config(text="Available portfolios for bond fitting:")
+        
         self.pack(fill="both", expand="yes")
         # create scrollbar
         self.bar = Scrollbar(self)
@@ -81,7 +86,11 @@ class  W_boot_opt(LabelFrame):
 
         LabelFrame.__init__(self, self.master)
 
-        self.config(text="Set Bootstrap Options:", width=400, height=200)
+        if type != "BOND":
+                self.config(text="Set Bootstrap Options:", width=400, height=200)                
+        else:
+                self.config(text="Set Bond Fitting Options:", width=400, height=200)                
+            
         #--- Boot swaps rates
 
         if type == "SWP":
@@ -147,6 +156,44 @@ class  W_boot_opt(LabelFrame):
             w7.grid(row=2, column=1)
             w7.config(width=30)
             # ---
+
+        elif type == "BOND":
+            
+            T1 = Label(self,height=1, width=30, text = "Hazard Rate interpolation model:").grid(row=0, sticky = "e")
+            self.variable1 = StringVar(self)
+            self.variable1.set("(0) Svensson")  # default value
+            w1 = OptionMenu(self, self.variable1,  "(0) SVE", "(1) NS", "(2) CIR")
+            w1.grid(row=0, column=1)
+            w1.config(width=30)
+
+            """
+            T7 = Label(self,height=1, width=30, text = "Model evaluation:").grid(row=0, sticky = "e")
+            self.variable2 = StringVar(self)
+            self.variable2.set("(0) Linear")  # default value
+            w7 = OptionMenu(self, self.variable7,  "(0) RMV", "(1) RFV")
+            w7.grid(row=0, column=1)
+            w7.config(width=30)
+            """
+            
+            T6 = Label(self, height=1, width=30, text="Risk free interpolation model:").grid(row=1, sticky="e")
+            self.variable6 = StringVar(self)
+            self.variable6.set("(0) Linear")  # default value
+            w6 = OptionMenu(self, self.variable6, "(0) LIN", "(1) AVD", "(2) SVE", "(3) CIR", "(4) NS")
+            w6.grid(row=1, column=1)
+            w6.config(width=30)
+
+            
+            # ---
+            
+            T7 = Label(self, height=1, width=30, text="Bond evaluation model:").grid(row=2, sticky="e")
+            self.variable7 = StringVar(self)
+            self.variable7.set("(0) Recovery market value")  # default value
+            w7 = OptionMenu(self, self.variable7, "(0) RMV", "(1) RFV")
+            w7.grid(row=2, column=1)
+            w7.config(width=30)
+            # ---
+            
+
 
         self.pack(fill="both", expand="yes")
 

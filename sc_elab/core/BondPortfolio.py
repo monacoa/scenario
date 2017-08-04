@@ -40,12 +40,12 @@ class BondPortfolio(object):
         self.floater_tenor  = ''
         self.cal = ''
         self.recoveryRate = ''
+        self.ref_date = ''
         # ---------
-        self.HWparms = {}
         # ----------
         # segmenti (dict of classes
         # ----------
-        self.segms = {}
+
 
 
     """
@@ -93,15 +93,6 @@ class BondPortfolio(object):
         print "self.download_type"  , self.download_type
         print "self.emittente"      , self.emittente
 
-        for k in self.HWparms.keys():
-            print "HWparms [",k,"]: ", self.HWparms[k]
-
-        print "===== Begin segms ======"
-        for k in self.segms.keys():
-            print "------------>Segmento:", k
-            self.segms[k].show()
-            print "<------------Fine segmento"
-        print "==== End  segms ===="
 
     def computeTags(self):
         con = Connection()
