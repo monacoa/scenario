@@ -7,7 +7,7 @@ from sc_elab.core.SwpCurve import dict_segm2, Segm, Curve, CdsCurve
 from sc_elab.core.BondPortfolio import BondPortfolio
 from xls_swapCurve import intestazioneSwapCurveSegmenti
 
-from DEF_intef import FORMATT, nameSheetBootstrap, nameSheetBondSurv, nameSheetBondSpread
+from DEF_intef import FORMATT, nameSheetBootstrap, nameSheetBondSurv, nameSheetBondSpread, nameSheetBondResults
 
 
 from map_bf_fields import field_map
@@ -137,6 +137,110 @@ def writePortfolioAnag(xla, rangeS, crv):
     return rangeStart
 #=======================================================================================================================
 
+def writeBondFittingRes3OnXls(crv, xla, str_boot_opt, res, codice_curva):
+
+
+    nameSheet = nameSheetBondResults
+    try:
+        s = xla.ActiveWorkbook.Sheets(nameSheet)
+    except:
+        s = xla.ActiveWorkbook.Sheets.Add()
+        s.Name = nameSheet
+    s.Activate()
+    rangeStart  = "B2"
+    distCurve   = 1
+    r           = s.Range(rangeStart)
+    r           = findRigthPlaceBootCurveSeg(xla, r, distCurve, "v")
+
+
+    Attributi_1 = \
+        { "Data riferimento"        : crv.ref_date
+        , "Descrizione"     : crv.description
+        , "Valuta"        : crv.curr
+        , "Tipo nodo"     : "TQ Price"
+        , "Emittente"     : crv.emittente
+        , "Recovery rate" : crv.recoveryRate
+        , "Rating" : crv.rating
+        , "Modello hazard rate" : crv.HRateModel
+        , "Modello di valutazione" : crv.BondModel
+        }
+
+    
+    #r2 = s.Range(xla.Cells(r.Row, r.Column + 3), xla.Cells(r.Row, r.Column + 3))
+    #r3 = s.Range(xla.Cells(r.Row, r.Column + 6), xla.Cells(r.Row, r.Column + 7))
+
+    ra = intestazioneSwapCurveSegmenti(xla, s, r , Attributi_1, nCols=2, text = codice_curva)
+    #rb = intestazioneSwapCurveSegmenti(xla, s, r2, Attributi_2, nCols=2, text = codice_curva)
+    #rc = intestazioneSwapCurveSegmenti(xla, s, r3, Attributi_3, nCols=2, text = codice_curva)
+
+    r  = s.Range(ra)
+
+    topLeftRow = r.Row
+    topLeftCol = r.Column
+
+    xla.Cells(topLeftRow - 1, topLeftCol).Value = "MKT Price"
+    xla.Cells(topLeftRow - 1, topLeftCol).HorizontalAlignment = const.xlCenter
+    xla.Cells(topLeftRow - 1, topLeftCol + 1).Value = "Model Price"
+    xla.Cells(topLeftRow - 1, topLeftCol + 1).HorizontalAlignment = const.xlCenter
+
+    """
+    xla.Cells(topLeftRow - 1, topLeftCol).Value = "Bond times"
+    xla.Cells(topLeftRow - 1, topLeftCol).HorizontalAlignment = const.xlCenter
+    
+    xla.Cells(topLeftRow - 1, topLeftCol + 1).Value = "MKT Price"
+    xla.Cells(topLeftRow - 1, topLeftCol + 1).HorizontalAlignment = const.xlCenter
+
+    xla.Cells(topLeftRow - 1, topLeftCol + 2).Value = "Model Price"
+    xla.Cells(topLeftRow - 1, topLeftCol + 2).HorizontalAlignment = const.xlCenter
+    """
+    
+
+    nRows = len(res['bondTimes'])
+
+    drawBox(xla, const.xlMedium, topLeftRow - 1, topLeftCol, topLeftRow + nRows - 1, topLeftCol + 1)
+    drawLine(xla, topLeftRow - 1, topLeftCol, topLeftRow - 1, topLeftCol + 1, "o", const.xlThin)
+
+    #drawBox(xla, const.xlMedium, topLeftRow - 1, topLeftCol, topLeftRow + nRows - 1, topLeftCol + 2)
+    #drawLine(xla, topLeftRow - 1, topLeftCol+3, topLeftRow - 1, topLeftCol + 2, "o", const.xlThin)
+
+
+    
+    for i in range(nRows):
+        
+
+
+        bond_times         = res['bondTimes'][i]
+        opt_clean_prices   = res['opt_clean_prices'][i]
+        mkt_clean_prices   = res['mkt_clean_prices'][i]
+
+
+
+        xla.Cells(topLeftRow + i, topLeftCol).Value = mkt_clean_prices
+        xla.Cells(topLeftRow + i, topLeftCol).NumberFormat = "0.00"
+        xla.Cells(topLeftRow + i, topLeftCol).HorizontalAlignment = const.xlCenter
+        
+        xla.Cells(topLeftRow + i, topLeftCol + 1).Value = opt_clean_prices
+        xla.Cells(topLeftRow + i, topLeftCol + 1).NumberFormat = "0.00"
+        xla.Cells(topLeftRow + i, topLeftCol + 1).HorizontalAlignment = const.xlCenter
+
+
+        """
+        xla.Cells(topLeftRow + i, topLeftCol).Value = bond_times
+        xla.Cells(topLeftRow + i, topLeftCol).NumberFormat = "0.00"
+        xla.Cells(topLeftRow + i, topLeftCol).HorizontalAlignment = const.xlCenter
+        
+        xla.Cells(topLeftRow + i, topLeftCol + 1).Value = mkt_clean_prices
+        xla.Cells(topLeftRow + i, topLeftCol + 1).NumberFormat = "0.00"
+        xla.Cells(topLeftRow + i, topLeftCol + 1).HorizontalAlignment = const.xlCenter
+
+        xla.Cells(topLeftRow + i, topLeftCol + 2).Value = opt_clean_prices
+        xla.Cells(topLeftRow + i, topLeftCol + 2).NumberFormat = "0.00"
+        xla.Cells(topLeftRow + i, topLeftCol + 2).HorizontalAlignment = const.xlCenter
+        """
+        
+
+
+
 def writeBondFittingRes2OnXls(crv, xla, str_boot_opt, res, codice_curva):
 
 
@@ -264,7 +368,6 @@ def writeBondFittingRes2OnXls(crv, xla, str_boot_opt, res, codice_curva):
         xla.Cells(topLeftRow + i, topLeftCol + 7).NumberFormat = "0.00000"
         xla.Cells(topLeftRow + i, topLeftCol + 7).HorizontalAlignment = const.xlCenter
         """
-
 
 
 

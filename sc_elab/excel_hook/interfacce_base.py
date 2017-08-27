@@ -167,7 +167,7 @@ from xls_bootCurve import writeBootstrapResOnXls
 from xls_bootCurve import writeCDSBootstrapRes1OnXls, writeCDSBootstrapRes2OnXls
 from xls_swapCurve import readCurveFromXls
 
-from xls_bondPortfolio import writeBondFittingRes1OnXls, writeBondFittingRes2OnXls
+from xls_bondPortfolio import writeBondFittingRes1OnXls, writeBondFittingRes2OnXls, writeBondFittingRes3OnXls 
 
 from W_bootstrapCurve import W_bootstrapSelection
 import ctypes
@@ -225,7 +225,6 @@ def bootstrap_from_xls(control):
     
     boot_out     = curve.bootstrap(data_opt)
     #print "risultati bootstrap:", boot_out
-    print 'YYYYYYYYYYYYYYYYYY'
     
 
     if boot_out == None:
@@ -507,9 +506,12 @@ def bond_fitting_from_xls(control):
     
     
     codice_curva = portfolio_xl.description
+ 
+    # -------------- scrittura risultati bond fitting ---------------------------
     
     writeBondFittingRes1OnXls(portfolio_xl, xla, str_elab_opt, res_elab, codice_curva)
     writeBondFittingRes2OnXls(portfolio_xl, xla, str_elab_opt, res_elab, codice_curva)
+    writeBondFittingRes3OnXls(portfolio_xl, xla, str_elab_opt, res_elab, codice_curva)
 
     #------------------------------------------------------------
 
