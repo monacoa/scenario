@@ -66,20 +66,31 @@ def interp_lin(x_ref, y_ref, x_target):
 	
 		y_new = y_ref[ln-1]
 
-
 	elif (float(x_target) <= float(x_ref[0])):
 
-
 		y_new = y_ref[0]
-
-	else:
-			
 		
+	else:
+
 		indx_m = find_indx_bf(x_ref, x_target)
 		indx_p = indx_m + 1	
 
 		x_m = float(x_ref[indx_m])
 		x_p = float(x_ref[indx_p])
+
+		"""
+		print 'y_ref: ', y_ref
+		print '------------------------------------'		
+		print 'x_ref: ', x_ref
+		print '------------------------------------'
+		print 'x_target: ', x_target
+		print '------------------------------------'
+		print 'indx_p: ', indx_p
+		print '------------------------------------'
+		print 'indx_m: ', indx_m
+		print '------------------------------------'
+		print '------------------------------------'
+		"""
 		
 		y_p = float(y_ref[indx_p])
 		y_m = float(y_ref[indx_m])
@@ -567,6 +578,7 @@ def	compute_bond_fitting(opt_elab, dictPortfolio, data_zc_rf, data_zc_infl, data
 	
 	
 	if (indicizzazione == 'CPTFEMU'):
+		
 		zc_infl_t = convertDate2Time(zc_infl_dates)
 	else:
 		zc_infl_t = []
@@ -604,8 +616,6 @@ def	compute_bond_fitting(opt_elab, dictPortfolio, data_zc_rf, data_zc_infl, data
 		zc_rf.insert(0, zc_rf[0])
 
 		data_zc_rf['ValoreNodo'] = zc_rf
-
-
 
 
 	h_model        = opt_elab['HRateModel']
@@ -664,6 +674,9 @@ def	compute_bond_fitting(opt_elab, dictPortfolio, data_zc_rf, data_zc_infl, data
 	sw_ry, sw_rf, sw_spread, z_spread, surv, hr_values, sw_times = computePYmodel_rate_n(dict_opt_params, time_ref, freq, LGD, zc_times, zc_rf, h_model)
 	
 	list_bond_times, list_ytm_mkt, list_ytm_model, list_opt_clean_prices, list_mkt_clean_prices = set_var_out(dictPortfolio, sw_ry, sw_times, ytm_mkt, dict_bond_times, opt_clean_prices, out_file_prices)
+	
+	print 'list_opt_clean_prices: ', list_opt_clean_prices
+	print 'list_mkt_clean_prices: ', list_mkt_clean_prices
 	
 	x2 = computeX2(list_opt_clean_prices, list_mkt_clean_prices)
 	
@@ -1164,6 +1177,41 @@ def FQ(ref):
 
 	print '----------FIN QUI (%s) TUTTO OK-------'%(ref)
 	sys.exit()
+	
+	
+def fromDf2Rates(df_dates, df_values):
+	
+	date_ref = df_dates[0]
+	n_dates = len(df_dates)
+	ref_daycount = 'ACT/ACT'
+
+	rate_values = []
+	time_values = []
+	
+	for i in range(1, n_dates):
+		
+		
+		date_i = df_dates[i]	
+		df_i   = df_values[i]	
+
+		time_i = daycount.yearfrac(date_ref, date_i, ref_daycount)
+		rate_i = -np.log(df_i)/time_i
+		
+		rate_values.append(rate_i)
+		time_values.append(np.float64(time_i))
+
+	#print 'rate_values: ', rate_values
+	#print '99999999999999999999999999'
+
+	time_values = np.array(time_values)
+	rate_values = np.array(rate_values)
+	
+	
+	time_values = np.insert(rate_values, 0, rate_values[0])
+	rate_values = np.insert(time_values, 0, 0.0)
+	
+	
+	return time_values, rate_values
 
 
 def	computeBondCalendar(date_ref, date_end, frequency, dayCount, busDay, mkt_ref, bond_type):
@@ -1448,22 +1496,28 @@ def computeBondPriceFromCF(model_params, data_portfolio, opt_elab, zc_times, zc_
 
 		if (indx_security == 'CPTFEMU'):
 			
+			inflRatio_anag_n = float(inflRatio_anag/100.0)
 			inflRatio_ts = inflationRatio(date_ref, startDate, ts_infl_dates, ts_infl_values)
-			chk_inflRatio = np.abs(inflRatio_anag - inflRatio_ts)/inflRatio_anag
+			chk_inflRatio = np.abs(inflRatio_anag_n - inflRatio_ts)/inflRatio_anag_n
 			
 			if chk_inflRatio < 0.9:
 				
-				inflRatio = inflRatio_anag
+				inflRatio = inflRatio_anag_n
 			else:
 	
-				print 'infaltion ratio ricalcolato non in linea con quello presente nell anagrafica del titolo diff (IR_ts - IR_anag)/IR_anag >0.1'
-				print 'inflRatio da anagrafica %s' %inflRatio_anag
+				print 'infaltion ratio ricalcolato non in linea con quello presente nell anagrafica del titolo diff (IR_anag - IR_ts)/IR_anag >0.1'
+				print 'inflRatio da anagrafica %s' %inflRatio_anag_n
 				print 'inflRatio da ts %s' %inflRatio_ts
 				
 				raise Exception
 	
 				#str = 'infaltion ratio ricalcolato non in linea con quello presente nell anagrafica del titolo diff (IR_ts - IR_anag)/IR_anag >0.1'
 				#print str
+				
+			
+			#print 'zc_infl_times: ', zc_infl_times
+			#print 'zc_infl: ', zc_infl
+			#print '======================================'
 	
 			infl_rate = interp_lin(zc_infl_times, zc_infl, float(t_i))
 			z_infl 	  = exp(-infl_rate*float(t_i))
@@ -1556,15 +1610,18 @@ def computeBondPriceFromCF(model_params, data_portfolio, opt_elab, zc_times, zc_
 
 		inflRatio_ts = inflationRatio(date_ref, startDate, ts_infl_dates, ts_infl_values)
 		
-		chk_inflRatio = np.abs(inflRatio_anag - inflRatio_ts)/inflRatio_anag
+		chk_inflRatio = np.abs(inflRatio_anag_n - inflRatio_ts)/inflRatio_anag
 		
 		if chk_inflRatio < 0.9:
 			
-			inflRatio = inflRatio_anag
+			inflRatio = inflRatio_anag_n
 			
 		else:
 		
-			print 'infaltion ratio ricalcolato non in linea con quello presente nell anagrafica del titolo diff (IR_ts - IR_anag)/IR_anag >0.1'
+			print 'infaltion ratio ricalcolato non in linea con quello presente nell anagrafica del titolo diff (IR_anag - IR_ts)/IR_anag >0.1'
+			print 'inflRatio da anagrafica %s' %inflRatio_anag_n
+			print 'inflRatio da ts %s' %inflRatio_ts
+			
 			raise Exception
 
 		
@@ -2113,13 +2170,26 @@ def	computeTimesDatesRef(opt_elab, dictPtf):
 def	computeX2(list_opt_clean_prices, list_mkt_clean_prices):
 
 	sum_diff = 0.0
-	for i in range(0, len(list_opt_clean_prices)):
-		
-		opt_clean_priceTmp = list_opt_clean_prices[i]
-		mkt_clean_priceTmp = list_mkt_clean_prices[i]
+	n_bond = len(list_opt_clean_prices)
+	
+	
+	if (n_bond < 2):
+
+		opt_clean_priceTmp = list_opt_clean_prices[0]
+		mkt_clean_priceTmp = list_mkt_clean_prices[0]
 	
 		diff = (opt_clean_priceTmp - mkt_clean_priceTmp)
 		sum_diff = sum_diff + diff*diff
+		i = 1
+
+	else:	
+		for i in range(0, n_bond):
+			
+			opt_clean_priceTmp = list_opt_clean_prices[i]
+			mkt_clean_priceTmp = list_mkt_clean_prices[i]
+		
+			diff = (opt_clean_priceTmp - mkt_clean_priceTmp)
+			sum_diff = sum_diff + diff*diff
 		
 	x2 = sum_diff/float(i)
 	

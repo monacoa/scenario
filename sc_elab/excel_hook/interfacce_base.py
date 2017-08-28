@@ -18,7 +18,7 @@ from sc_elab.core import funzioni_bond_fitting as bf
 # =======================================================================================================================
 
 from W_swapCurve import W_curveType,W_curveDate
-from W_bondPortfolio import W_bondType,W_bondDate
+#from W_bondPortfolio import W_bondType,W_bondDate
 
 from xls_swapCurve import writeCurveOnXls
 from xls_bondPortfolio import writePortfoliOnXls,readPortfolioFromXls
@@ -358,7 +358,6 @@ def bond_fitting_from_xls(control):
     distance = 2
 
     curveL = readCurvesNames(xla,s,rangeStart,"v", distance, 0)
-    print 'curveL: ',curveL
     root = Tk()
     W = W_bootstrapSelection(root, curveL = curveL, type = "BOND") # da modificare 
     root.mainloop()
@@ -427,9 +426,6 @@ def bond_fitting_from_xls(control):
     opt_curve_rf_download['tipo_modello'] = interp_rf_model
     
 
-    
-    
-
 
     codeBenchList = ['%LS', '%DS', '%LFS', '%DFS']
     
@@ -437,13 +433,11 @@ def bond_fitting_from_xls(control):
     for codeTmp in codeBenchList:
 
         opt_curve_rf_download['codeSeg'] = codeTmp
-        flag_loaded = curve_cds.loadBenchDataFromDB(opt_curve_rf_download)
-        if (flag_loaded == 1):
+        flag_loaded_rf = curve_cds.loadBenchDataFromDB(opt_curve_rf_download)
+        if (flag_loaded_rf == 1):
             break
     
-    
-    
-    if flag_loaded == 0:
+    if flag_loaded_rf == 0:
         # significa che ho intercettato un errore!
         root = Tk()
         root.withdraw()
@@ -460,6 +454,8 @@ def bond_fitting_from_xls(control):
     #print 'curve_cds.bench_prms: ', curve_cds.bench_prms
     #print 'flag_loaded: ', flag_loaded
     
+    
+    
     data_zc_rf = {}
     data_zc_rf['Model'] = curve_cds.bench_model
     data_zc_rf['ValoreNodo'] = curve_cds.bench_values
@@ -471,17 +467,62 @@ def bond_fitting_from_xls(control):
     
     #print 'data_zc_rf[ValoreNodo]: ', data_zc_rf['ValoreNodo']
     #print 'data_zc_rf[DiscountFactors]: ', data_zc_rf['DiscountFactors']
-
+    
     data_zc_infl = {}
-    data_zc_infl['prms'] =[]
-    data_zc_infl['Model'] =[]
-    data_zc_infl['MatDate'] =[]
-    data_zc_infl['ValoreNodo'] =[]
-    data_zc_infl['DiscountFactors'] =[]
-
     data_ts_infl = {}
-    data_ts_infl['MatDate'] = []
-    data_ts_infl['Values'] = []
+    
+    data_zc_infl['Model'] = []
+    data_zc_infl['prms'] = []
+    
+    indx_ref = portfolio_xl.portfolio_anag[0]['Indicizzazione']
+
+
+    if indx_ref == 'CPTFEMU':
+        flag_load_infl_curve = curve_cds.loadInflCurveFromDB(opt_curve_rf_download)
+    
+        if flag_load_infl_curve == 0:
+            # significa che ho intercettato un errore!
+            root = Tk()
+            root.withdraw()
+            msg0 = "Curva inflazione non presente alla data del %s, cambia data!!" %(curve_rf.ref_date)
+            tkMessageBox.showinfo("Attenzione!!", msg0)
+    
+            root.destroy()
+            return
+    
+        flag_load_infl_ts = curve_cds.loadInflTSFromDB(opt_curve_rf_download)
+    
+        if flag_load_infl_ts == 0:
+            # significa che ho intercettato un errore!
+            root = Tk()
+            root.withdraw()
+            msg0 = "Serie storica inflazione non presente nel DB!!"
+            tkMessageBox.showinfo("Attenzione!!", msg0)
+    
+            root.destroy()
+            return
+
+
+        data_zc_infl['MatDate'] = curve_cds.infl_curve_dates
+        data_zc_infl['DiscountFactors'] = curve_cds.infl_curve_df_val
+        
+        zc_infl_times, zc_infl_rates = bf.fromDf2Rates(data_zc_infl['MatDate'], data_zc_infl['DiscountFactors']) 
+        data_zc_infl['ValoreNodo'] = zc_infl_rates
+
+        data_ts_infl['MatDate'] = curve_cds.infl_ts_dates
+        data_ts_infl['Values'] =  curve_cds.infl_ts_val
+
+    else:
+
+
+        data_zc_infl['MatDate'] = []
+        data_zc_infl['DiscountFactors'] = []
+        data_zc_infl['ValoreNodo'] = []
+    
+        data_ts_infl['MatDate'] = []
+        data_ts_infl['Values'] =  []
+
+
     
     
     x0, x_bnd = bf.set_prms_for_fit(hr_model)
@@ -489,7 +530,10 @@ def bond_fitting_from_xls(control):
 
     # -------------- elaborazione ---------------------------
  
-    data_zc_infl['DiscountFactors'] = []
+    #data_zc_infl['DiscountFactors'] = []
+    
+    #print 'data_zc_infl: ', data_zc_infl
+    #print 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
     
     dictPortfolio_xls = portfolio_xl.portfolio_anag
     

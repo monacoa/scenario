@@ -25,15 +25,15 @@ def intestazioneSwapCurveSegmenti( xla, sheet, rng,  attributi, nCols = 2, text=
         xla.Cells(topLeftRow + 1+ i, topLeftCol).Value   = k
         xla.Cells(topLeftRow + 1+ i, topLeftCol+1).Value = attributi[k]
         if (type(attributi[k]) == datetime.datetime) or (type(attributi[k]) == datetime.date):
-            print "SONO QUI!"
-            print "i:", i
-            print "k", k, "attr[k]", attributi[k], type(attributi[k])
-            print "topLeftRow", topLeftRow, "tlc", topLeftCol
-            print "*"*120
+            #print "SONO QUI!"
+            #print "i:", i
+            #print "k", k, "attr[k]", attributi[k], type(attributi[k])
+            #print "topLeftRow", topLeftRow, "tlc", topLeftCol
+            #print "*"*120
             xla.Cells(topLeftRow + 1 + i, topLeftCol + 1).NumberFormat = "gg/MM/aaaa"
-        print "sono uscita da if e setto center"
+        #print "sono uscita da if e setto center"
         xla.Cells(topLeftRow + 1 + i, topLeftCol + 1).HorizontalAlignment = const.xlCenter
-        print "center fatto!"
+        #print "center fatto!"
         i+=1
 
     rangeStart = xla.Cells(topLeftRow + nRows + 2, topLeftCol).Address

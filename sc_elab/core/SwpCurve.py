@@ -569,6 +569,13 @@ class CdsCurve(Curve):
         self.bench_dates    = []
         self.bench_values   = []
         self.bench_df_val   = []
+ 
+        self.infl_ts_val = []
+        self.infl_ts_dates = []
+ 
+        self.infl_curve_dates = []
+        self.infl_curve_df_val = []
+        
         self.bench_type     = ""
         self.risk_free_dates= []
         self.risk_free_df_val  = []
@@ -993,8 +1000,108 @@ class CdsCurve(Curve):
         return 1
 
         
+    def loadInflCurveFromDB(self, opt_download):
         
+        self.description.strip()
+        con = Connection()
+        c_a = con.db_anag()
+
+        ref_date   = opt_download['refDate']
+        valuta = opt_download['valuta']
+
+        tipo_scarico = 0
+        quotazioni = 'MID'
+        fonte_dato = 'Bloomberg'
+
+
+        # RECUPERO CODICE CURVA BENCHMARK            
+
+        qry0 = """
+                SELECT CODICE_CURVA FROM MKT_Curve WHERE
+                CODICE_EMITTENTE = 999 
+                AND FONTE_DATO = '%s'
+                AND QUOTAZIONE = '%s'
+                AND TIPO_CURVA = 'Inflazione' 
+                AND TIPO_SCARICO = '%s' 
+                AND DATA_RIF = '%s' 
+                AND VALUTA = '%s' 
+                AND TIPO_NODO = 'Discount Factor'                
+            """  %(fonte_dato, quotazioni, tipo_scarico, ref_date, valuta)
+
+        c_a.execute(qry0)
+        res = c_a.fetchall()
         
+        if len(res) != 0:
+            code_curve = res[0][0]
+        else:
+            print 'Curva di inflazione non trovata nel database!!!!'
+            return 0
+
+        # RECUPERO CURVA BENCHMARK            
+        qry1 = "SELECT TERM, VALORE FROM MKT_Curve_D WHERE CODICE_CURVA = '%s' ORDER BY TERM" %code_curve
+
+        c_a.execute(qry1)
+        res = c_a.fetchall()
+        #print 'res: ', res
+        
+        valueList = []
+        matDateList = []
+        
+        for i in range(0, len(res)):
+            
+            resDateTmp = res[i][0]
+            resValueTmp = res[i][1]
+            
+            matDateList.append(resDateTmp)
+            valueList.append(resValueTmp)
+        
+        self.infl_curve_dates = matDateList
+        self.infl_curve_df_val = valueList
+        
+        return 1
+        
+    def loadInflTSFromDB(self, opt_download):
+        
+        self.description.strip()
+        con = Connection()
+        #c_a = con.db_anag()
+        c_a = con.db_data()
+
+        valuta = opt_download['valuta']
+
+        # RECUPERO SERIE STORICA TS            
+
+        qry0 = """
+                SELECT DATA, VALORE FROM alm.indice_master WHERE
+                AssetClass = 'CPTFEMU' 
+                AND CodicePaese = '%s'
+            """  %(valuta)
+
+        c_a.execute(qry0)
+        res = c_a.fetchall()
+        
+        if len(res) != 0:
+
+            valueList = []
+            matDateList = []
+            
+            for i in range(0, len(res)):
+                
+                resDateTmp = res[i][0]
+                resValueTmp = res[i][1]
+                
+                matDateList.append(resDateTmp)
+                valueList.append(resValueTmp)
+            
+            
+        else:
+            return 0
+
+        self.infl_ts_dates = matDateList
+        self.infl_ts_val = valueList
+
+        
+        return 1
         
         
 

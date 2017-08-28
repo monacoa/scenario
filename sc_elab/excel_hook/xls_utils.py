@@ -111,7 +111,7 @@ def readCurvesNames(xla, s, rangeStart, direzione, distanza, offset = 0):
                 
                 r = xla.Range(xla.Cells(row  + distanza, col), xla.Cells(row + distanza, col))
                 
-                print 'r.Value C: ', r.Value
+                #print 'r.Value C: ', r.Value
 
                 if r.Value != None:
                     j += 1

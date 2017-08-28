@@ -1,3 +1,4 @@
+"""
 from pyxll import xl_func, xl_app, xl_menu, xl_macro, xlcAlert
 from xls_utils import *
 from Tkinter import *
@@ -495,3 +496,4 @@ class W_fit_opt(LabelFrame):
         button = Button(self, text='Submit',command=self.sel)
         button.pack()
         # ---
+"""

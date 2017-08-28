@@ -165,6 +165,10 @@ class  W_boot_opt(LabelFrame):
             w1 = OptionMenu(self, self.variable1,  "(0) SVE", "(1) NS", "(2) CIR")
             w1.grid(row=0, column=1)
             w1.config(width=30)
+            
+            #fileMenu = Menu(self)
+            
+            #w1.add_cascade(label="File", menu=fileMenu)
 
             """
             T7 = Label(self,height=1, width=30, text = "Model evaluation:").grid(row=0, sticky = "e")
@@ -191,6 +195,14 @@ class  W_boot_opt(LabelFrame):
             w7 = OptionMenu(self, self.variable7, "(0) RMV", "(1) RFV")
             w7.grid(row=2, column=1)
             w7.config(width=30)
+            
+            submenu = Menu(w7, tearoff=0)
+            #submenu.add_command(label='Spam', underline=0)
+            #submenu.add_command(label='Eggs', underline=0)
+            #w7.add_cascade(label='Stuff', menu=submenu, underline=0)
+            
+            
+            #w7.add_cascade()
             # ---
             
 
@@ -199,6 +211,10 @@ class  W_boot_opt(LabelFrame):
 
         #questa istruzione va messa dopo il pack altrimenti non vienne intercettato il valore dal .get() successivo
         if type == "SWP": self.variable5.set("C://")
+        
+        #filemenu = Menu(menubar, tearoff=0)
+
+        #B0 = Menu(self, text="Params",  tearoff=0)
 
         B1 = Button(self, text="Submit",  width=20, command=self.sel).grid(row=5, column=1, sticky ='e')
 

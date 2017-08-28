@@ -4,6 +4,7 @@ from Tkinter import *
 import tkMessageBox
 from db_qrys import getCurvesListFromDb, getDatesListFromDb, getProvidersFromDb, getBondListFromDb
 from sc_elab.core.SwpCurve import *
+"""
 from win32com.client import constants as const
 
 
@@ -175,3 +176,4 @@ class W_settoreRatingSelection(LabelFrame):
 
     def sel(self):
         self.close_window()
+"""
