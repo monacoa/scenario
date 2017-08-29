@@ -18,7 +18,7 @@ from sc_elab.core import funzioni_bond_fitting as bf
 # =======================================================================================================================
 
 from W_swapCurve import W_curveType,W_curveDate
-#from W_bondPortfolio import W_bondType,W_bondDate
+from W_bondPortfolio import W_bondType, W_bondDate, W_setParameters, W_bondFitting
 
 from xls_swapCurve import writeCurveOnXls
 from xls_bondPortfolio import writePortfoliOnXls,readPortfolioFromXls
@@ -36,9 +36,6 @@ def load_swap_curve_from_db(control):
     curve_date= app.new_window.date
     curve_type = app.new_window.type
 
-    print "descrizione:", curve_des
-    print "data:", curve_date
-    print "type:", curve_type
 
 
     xla = xl_app()
@@ -125,9 +122,6 @@ def load_bond_data_from_db(control):
     
     root = Tk()
     data_type = "BOND"
-    
-    
-
     app =  W_bondDate(master = root, parent = None, type = data_type)
     root.mainloop()
 
@@ -170,6 +164,7 @@ from xls_swapCurve import readCurveFromXls
 from xls_bondPortfolio import writeBondFittingRes1OnXls, writeBondFittingRes2OnXls, writeBondFittingRes3OnXls 
 
 from W_bootstrapCurve import W_bootstrapSelection
+
 import ctypes
 @xl_func
 def bootstrap_from_xls(control):
@@ -356,15 +351,24 @@ def bond_fitting_from_xls(control):
 
     rangeStart = "B2"
     distance = 2
+    
 
     curveL = readCurvesNames(xla,s,rangeStart,"v", distance, 0)
     root = Tk()
-    W = W_bootstrapSelection(root, curveL = curveL, type = "BOND") # da modificare 
+    #W = W_bootstrapSelection(root, curveL = curveL, type = "BOND") # da modificare 
+    W = W_bondFitting(root, curveL = curveL, type = "BOND") # da modificare 
+    
+    #W2 = W_setParameters(root)
+
     root.mainloop()
+    
+
+    #par_bnd_min = W.new_window.new_window2.bound_min
+    par_bnd = W.new_window.new_window2.x_bnd
+    par_x0      = W.new_window.new_window2.x0
 
     curveDes = W.curve
     curvePos = W.pos
-    
 
     hr_model_tmp   = (str(W.new_window.variable1.get()).strip(""))[1]
     rf_interp_tmp   = (str(W.new_window.variable6.get()).strip(""))[1]
@@ -522,10 +526,20 @@ def bond_fitting_from_xls(control):
         data_ts_infl['MatDate'] = []
         data_ts_infl['Values'] =  []
 
-
+    #x0, x_bnd = bf.set_prms_for_fit(hr_model)
     
+    x0    = par_x0
+    x_bnd = par_bnd
     
-    x0, x_bnd = bf.set_prms_for_fit(hr_model)
+    """
+    print 'x0: ', x0
+    print 'x_bnd: ', x_bnd
+    print '--------------------------------------'
+    print 'par_x0: ', par_x0
+    print 'par_bnd: ', par_bnd
+    print '--------------------------------------'
+    """
+    
     dictPortfolio = bf.fromXLSToBondFittingPortfolio(portfolio_xl.portfolio_anag)
 
     # -------------- elaborazione ---------------------------

@@ -69,9 +69,29 @@ class W_bootstrapSelection (LabelFrame):
 
 
 class  W_boot_opt(LabelFrame):
+    
+    
+    
+    def close_window(self):
+        self.destroy()
+
 
     def sel(self):
+
+    
+        #from W_bondPortfolio import  W_setParameters 
+
+        #root=Tk()
+        
+        #self.new_window =  W_setParameters(parent=self)
+        
+        #print 'qqqqq'
+        
+
         self.donothing()
+        #self.new_window.destroy()
+
+
 
 
     def donothing(self):
@@ -196,7 +216,18 @@ class  W_boot_opt(LabelFrame):
             w7.grid(row=2, column=1)
             w7.config(width=30)
             
-            submenu = Menu(w7, tearoff=0)
+            #submenu = Menu(w7, tearoff=0)
+            
+            #from W_bondPortfolio import W_bondType, W_bondDate
+
+            #data_type = "BOND"
+            #self.new_window =  W_bondDate(master = root, parent = None, type = data_type)
+            #self.new_window =  W_bondDate(parent = self, type = data_type)
+
+            #self.new_window = W_bondDate (parent = self, bond_date=self.date, type = type)
+ 
+
+            
             #submenu.add_command(label='Spam', underline=0)
             #submenu.add_command(label='Eggs', underline=0)
             #w7.add_cascade(label='Stuff', menu=submenu, underline=0)

@@ -1177,8 +1177,6 @@ class CdsCurve(Curve):
         data_raw_bench['MatDate']    =self.bench_dates
         data_raw_bench['ValoreNodo'] =self.bench_values
         
-        print 'self.bench_values: ', self.bench_values
-        fb.FQ(999)
         data_raw_bench['DiscountFactor'] =self.bench_df_val
         data_raw_bench['Model'] = self.mapCodeModel(self.bench_model)
         data_raw_bench['prms'] =self.bench_prms
