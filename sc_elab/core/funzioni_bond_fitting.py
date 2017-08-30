@@ -552,178 +552,6 @@ def convertDate2Time(date_vec):
 	
 
 
-def	compute_bond_fitting(opt_elab, dictPortfolio, data_zc_rf, data_zc_infl, data_ts_infl, x0, x_bnd):
-
-
-	zc_rf_dates  = data_zc_rf['MatDate']
-	zc_rf = data_zc_rf['ValoreNodo']
-	zc_rf_df = data_zc_rf['DiscountFactors']
-	
-	rf_prms = data_zc_rf['prms']
-	rf_model = data_zc_rf['Model']
-	
-	infl_prms = data_zc_infl['prms']
-	infl_model = data_zc_infl['Model']
-	
-	zc_infl_dates  = data_zc_infl['MatDate']
-	zc_infl_val    = data_zc_infl['ValoreNodo']
-
-	ts_infl_dates  = data_ts_infl['MatDate']
-	ts_infl_values = data_ts_infl['Values']
-	
-	is0 = dictPortfolio.keys()[0]
-	indicizzazione = dictPortfolio[is0]['index rate']
-	
-	
-	if (indicizzazione == 'CPTFEMU'):
-		
-		zc_infl_t = convertDate2Time(zc_infl_dates)
-	else:
-		zc_infl_t = []
-		
-	
-	
-	zc_times  = convertDate2Time(zc_rf_dates)
-	
-
-	if len(zc_rf_df) < 2:
-		
-		zc_rf_df = []
-		for i in range(0, len(zc_times)):
-			
-			timeTmp = zc_times[i]
-			rateTmp = zc_rf[i]
-			
-			dfTmp = np.exp(-timeTmp*rateTmp)
-			zc_rf_df.append(dfTmp)
-		
-		data_zc_rf['DiscounntFactors'] = zc_rf_df
-
-
-	if len(zc_rf) < 2:
-		
-		zc_rf = []
-		for i in range(1, len(zc_times)):
-			
-			timeTmp = zc_times[i]
-			zc_rf_dfTmp = zc_rf_df[i]
-			
-			rateTmp = -np.log(zc_rf_dfTmp)/timeTmp
-			zc_rf.append(rateTmp)
-		
-		zc_rf.insert(0, zc_rf[0])
-
-		data_zc_rf['ValoreNodo'] = zc_rf
-
-
-	h_model        = opt_elab['HRateModel']
-	model_bond     = opt_elab['BondModel']
-	refDate        = opt_elab['DataRef']
-	RR             = opt_elab['RR']
-	
-	LGD = 1.0 - RR
-	
-	method_opt = 'TNC'
-	
-	flag_dump = opt_elab['MakeDump']
-	flag_plot = opt_elab['MakeGraph']
-	
-	isinList = dictPortfolio.keys()
-	is0 	 = isinList[0]
-	indx_bond=  dictPortfolio[is0]['index rate']
-	
-	
-	if (model_bond == 'RFV') or (indx_bond == 'CPTFEMU'):
-		flag_plot_price = 1
-	else:
-		flag_plot_price = 0
-	
-	
-
-	
-	
-	#-------------------------------------------------------------------------------------------
-	#----------------------- Inizio elaborazione -----------------------------------------------
-	#-------------------------------------------------------------------------------------------
-	
-	dictPortfolio_new =  computePortfolioCF(dictPortfolio, opt_elab, zc_times, zc_rf, rf_prms, rf_model, zc_infl_t, zc_infl_val, infl_prms, infl_model)
-
-
-	
-	#start_clean_prices, start_dirty_prices, dict_bond_times = computePortfolioPricesFromCF(dict_start_params, dictPortfolio_new, opt_elab, zc_times, zc_rf, rf_prms, rf_model, zc_infl_t, zc_infl_val, infl_prms, infl_model, ts_infl_dates, ts_infl_values)
-	
-	ff  = optimize.minimize(loss_bf_cf, x0,args = (dictPortfolio_new, opt_elab, zc_times, zc_rf, rf_prms, rf_model, zc_infl_t, zc_infl_val, infl_prms, infl_model, ts_infl_dates, ts_infl_values), method = method_opt,  bounds = x_bnd)
-
-	#-------------------------- unpack/set opt params -----------------------------------------
-
-	dict_opt_params = setOptParams(ff, h_model)#
-	#print 'dict_opt_params: ',dict_opt_params
-	
-	#------------------------ COMPUTE RESULTS -------------------------------------------------
-	
-	time_ref, dateOut = computeTimesDatesRef(opt_elab, dictPortfolio_new)
-	freq = 1.0
-	
-	opt_clean_prices, opt_dirty_prices, dict_bond_times     = computePortfolioPricesFromCF(dict_opt_params, dictPortfolio_new, opt_elab, zc_times, zc_rf, rf_prms, rf_model, zc_infl_t, zc_infl_val, infl_prms, infl_model, ts_infl_dates, ts_infl_values)
-	
-	ytm_mkt   = computePortfolioYTM(dictPortfolio, refDate)
-	
-	sw_ry, sw_rf, sw_spread, z_spread, surv, hr_values, sw_times = computePYmodel_rate_n(dict_opt_params, time_ref, freq, LGD, zc_times, zc_rf, h_model)
-	
-	list_bond_times, list_ytm_mkt, list_ytm_model, list_opt_clean_prices, list_mkt_clean_prices = set_var_out(dictPortfolio, sw_ry, sw_times, ytm_mkt, dict_bond_times, opt_clean_prices)
-	
-	
-	x2 = computeX2(list_opt_clean_prices, list_mkt_clean_prices)
-	
-	if (flag_dump == True):
-
-
-		#out_file_prices = 'output_test/bond_fitting_data/data_out_for_ITA_XXX__.txt'
-		#out_file_curve	= 'output_test/bond_fitting_data/data_curve_for_ITA_XXX__.txt'
-
-		out_file_prices = opt_elab['out_file_prices']
-		out_file_curve	= opt_elab['out_file_curve']
-
-	
-		write_dump_out(dictPortfolio, sw_ry, sw_times, ytm_mkt, dict_bond_times, opt_clean_prices, out_file_prices)
-		write_dump_out_v2(sw_times, surv, hr_values, z_spread, sw_spread, sw_rf, out_file_curve)
-
-
-	if (flag_plot == True):
-		
-		ln = len(list_bond_times)
-		t_max = list_bond_times[ln-1]
-		indx_max_to_plot = int(t_max) + 5 
-		
-		plotResults(model_bond, time_ref, sw_rf, sw_spread, sw_ry, list_bond_times, list_ytm_mkt, list_opt_clean_prices, list_mkt_clean_prices, indx_max_to_plot, flag_plot_price)
-
-	output_data ={}
-	
-	output_data['x2']    = x2
-
-	output_data['pyRiskFree']       = sw_rf	
-	output_data['zcSpread']         = z_spread
-	output_data['pySpread']         = sw_spread
-	output_data['hazardRate']       = hr_values
-	output_data['survProbCum']      = surv
-	output_data['outputDates']      = dateOut
-	
-	output_data['ytm_mkt']          = list_ytm_mkt
-	output_data['ytm_model']        = list_ytm_model
-	output_data['bondTimes']        = list_bond_times
-	output_data['opt_clean_prices'] = list_opt_clean_prices
-	output_data['mkt_clean_prices'] = list_mkt_clean_prices
-	output_data['dict_opt_prms'] 	= dict_opt_params
-	
-	#--------------------------------------------------------------------------------------------------------------
-	
-	#elapse = time.time() - t_start
-	#print 'Tempo di calcolo: ', elapse
-	
-	#---------------------------------------------------------------------------------------------------------------
-	flag_res = 1
-	
-	return flag_res,  output_data
 	
 
 
@@ -1501,7 +1329,7 @@ def computeBondPriceFromCF(model_params, data_portfolio, opt_elab, zc_times, zc_
 
 		if (indx_security == 'CPTFEMU'):
 			
-			inflRatio_anag_n = float(inflRatio_anag/100.0)
+			inflRatio_anag_n = float(inflRatio_anag/1.0)
 			inflRatio_ts = inflationRatio(date_ref, startDate, ts_infl_dates, ts_infl_values)
 			chk_inflRatio = np.abs(inflRatio_anag_n - inflRatio_ts)/inflRatio_anag_n
 			
@@ -1953,37 +1781,6 @@ def loss_bf_cf(list_model_params, dictPortfolio, opt_elab, zc_times, zc_rf, rf_p
 	
 	#	strE = 'loss_bf_cf'
 	#	print strE
-
-def	plotResults(model_bond, time_ref, sw_rf, sw_spread, sw_ry, list_bond_times, list_ytm_mkt, list_opt_clean_prices, list_mkt_clean_prices, indx_to_plot, flag_plot_price):
-
-
-	if(model_bond == 'RMV' and flag_plot_price != True):
-	#if(model_bond == 'RMV'):
-	
-		plt.figure(1)
-		plt.plot(list_bond_times, list_ytm_mkt, 'go')	
-
-		plt.plot(time_ref[1:indx_to_plot], sw_rf[1:indx_to_plot], '-.b')
-		plt.plot(time_ref[1:indx_to_plot], sw_spread[1:indx_to_plot], '-.r')	
-		plt.plot(time_ref[1:indx_to_plot], sw_ry[1:indx_to_plot], '-k')
-
-		plt.title('Fitting clean bond prices using %s model'  %(model_bond))
-		plt.legend(['YTM mkt', 'SW rf', 'SW spread', 'SW risky'], loc = 0)
-		plt.xlabel('Maturities [years]')
-		plt.ylabel('YTM')
-	
-	else:
-
-		plt.figure(2)
-		plt.plot(list_bond_times, list_opt_clean_prices, 'x', list_bond_times, list_mkt_clean_prices, 'o')	
-		plt.plot(list_bond_times, list_opt_clean_prices, 'x')	
-
-		plt.title('Fitting clean bond prices using %s model' %(model_bond) )
-		plt.legend(['Fit prices', 'MKT prices'], loc=0)
-		plt.xlabel('Maturities [years]')
-		plt.ylabel('Prices')
-
-	plt.show()
 
 
 
@@ -2668,4 +2465,277 @@ def set_var_out(dictPortfolio, sw_ry, sw_times, ytm_mkt, dict_bond_times, opt_cl
 	
 	return list_bond_times, list_ytm_mkt, list_ytm_model, list_opt_clean_prices, list_mkt_clean_prices
 
+
+
+
+def	plotResults(model_bond, time_ref, sw_rf, sw_spread, sw_ry, list_bond_times, list_ytm_mkt, list_opt_clean_prices, list_mkt_clean_prices, indx_to_plot, flag_plot_price):
+
+
+	import matplotlib
+	matplotlib.use('TkAgg')
+	
+	from numpy import arange, sin, pi
+	from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
+	from matplotlib.backend_bases import key_press_handler
+	
+	
+	from matplotlib.figure import Figure
+	
+	import Tkinter as Tk
+	
+	
+	
+	root = Tk.Tk()
+	root.wm_title("Embedding in TK")
+	
+	
+	#f = Figure(figsize=(5, 4), dpi=100)
+	#a = f.add_subplot(111)
+	#t = arange(0.0, 3.0, 0.01)
+	#s = sin(2*pi*t)
+	
+	#a.plot(t, s)
+
+	
+	# a tk.DrawingArea
+	
+	f = Figure(figsize=(5, 4), dpi=100)
+	a = f.add_subplot(111)
+
+	
+	if(model_bond == 'RMV' and flag_plot_price != True):
+	#if(model_bond == 'RMV'):
+
+		a.plot(list_bond_times, list_ytm_mkt, 'go', label='YTM mkt')
+	
+		a.plot(time_ref[1:indx_to_plot], sw_rf[1:indx_to_plot], '-.b', label='SW rf')
+		a.plot(time_ref[1:indx_to_plot], sw_spread[1:indx_to_plot], '-.r', label = 'SW spread')	
+		a.plot(time_ref[1:indx_to_plot], sw_ry[1:indx_to_plot], '-k', label = 'SW risky')
+		a.set_title('Fitting clean bond prices using %s model'  %(model_bond))
+		#a.legend(['YTM mkt', 'SW rf', 'SW spread', 'SW risky'], loc = 0)
+		a.set_xlabel('Maturities [years]')
+		a.set_ylabel('YTM')
+		legend = a.legend(loc='upper left', shadow=False)
+		
+	else:
+
+		#a.plot(list_bond_times, list_opt_clean_prices, 'x', label = 'Fit prices', list_bond_times, list_mkt_clean_prices, 'o', label = 'MKT prices', )
+		a.plot(list_bond_times, list_opt_clean_prices, 'x', label = 'Fit prices')
+		a.plot(list_bond_times, list_mkt_clean_prices, 'o', label = 'MKT prices')
+
+		a.set_title('Fitting clean bond prices using %s model' %(model_bond) )
+		a.set_xlabel('Maturities [years]')
+		a.set_ylabel('Prices')
+		legend = a.legend(loc='upper left', shadow=False)
+	
+
+	#plt.show()
+	
+
+	canvas = FigureCanvasTkAgg(f, master=root)
+	canvas.show()
+	canvas.get_tk_widget().pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
+	
+	toolbar = NavigationToolbar2TkAgg(canvas, root)
+	toolbar.update()
+	canvas._tkcanvas.pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
+
+
+	def on_key_event(event):
+		print('you pressed %s' % event.key)
+		key_press_handler(event, canvas, toolbar)
+
+	canvas.mpl_connect('key_press_event', on_key_event)
+
+
+	def _quit():
+		root.quit()     # stops mainloop
+		root.destroy()  # this is necessary on Windows to prevent
+						# Fatal Python Error: PyEval_RestoreThread: NULL tstate
+		
+	button = Tk.Button(master=root, text='Quit', command=_quit)
+	button.pack(side=Tk.BOTTOM)
+	
+	Tk.mainloop()
+
+
+
+
+
+
+
+def	compute_bond_fitting(opt_elab, dictPortfolio, data_zc_rf, data_zc_infl, data_ts_infl, x0, x_bnd):
+
+
+	zc_rf_dates  = data_zc_rf['MatDate']
+	zc_rf = data_zc_rf['ValoreNodo']
+	zc_rf_df = data_zc_rf['DiscountFactors']
+	
+	rf_prms = data_zc_rf['prms']
+	rf_model = data_zc_rf['Model']
+	
+	infl_prms = data_zc_infl['prms']
+	infl_model = data_zc_infl['Model']
+	
+	zc_infl_dates  = data_zc_infl['MatDate']
+	zc_infl_val    = data_zc_infl['ValoreNodo']
+
+	ts_infl_dates  = data_ts_infl['MatDate']
+	ts_infl_values = data_ts_infl['Values']
+	
+	is0 = dictPortfolio.keys()[0]
+	indicizzazione = dictPortfolio[is0]['index rate']
+	
+	
+	if (indicizzazione == 'CPTFEMU'):
+		
+		zc_infl_t = convertDate2Time(zc_infl_dates)
+	else:
+		zc_infl_t = []
+		
+	
+	
+	zc_times  = convertDate2Time(zc_rf_dates)
+	
+
+	if len(zc_rf_df) < 2:
+		
+		zc_rf_df = []
+		for i in range(0, len(zc_times)):
+			
+			timeTmp = zc_times[i]
+			rateTmp = zc_rf[i]
+			
+			dfTmp = np.exp(-timeTmp*rateTmp)
+			zc_rf_df.append(dfTmp)
+		
+		data_zc_rf['DiscounntFactors'] = zc_rf_df
+
+
+	if len(zc_rf) < 2:
+		
+		zc_rf = []
+		for i in range(1, len(zc_times)):
+			
+			timeTmp = zc_times[i]
+			zc_rf_dfTmp = zc_rf_df[i]
+			
+			rateTmp = -np.log(zc_rf_dfTmp)/timeTmp
+			zc_rf.append(rateTmp)
+		
+		zc_rf.insert(0, zc_rf[0])
+
+		data_zc_rf['ValoreNodo'] = zc_rf
+
+
+	h_model        = opt_elab['HRateModel']
+	model_bond     = opt_elab['BondModel']
+	refDate        = opt_elab['DataRef']
+	RR             = opt_elab['RR']
+	
+	LGD = 1.0 - RR
+	
+	method_opt = 'TNC'
+	
+	flag_dump = opt_elab['MakeDump']
+	flag_plot = opt_elab['MakeGraph']
+	
+	isinList = dictPortfolio.keys()
+	is0 	 = isinList[0]
+	indx_bond=  dictPortfolio[is0]['index rate']
+	
+	
+	if (model_bond == 'RFV') or (indx_bond == 'CPTFEMU'):
+		flag_plot_price = 1
+	else:
+		flag_plot_price = 0
+	
+	
+
+	
+	
+	#-------------------------------------------------------------------------------------------
+	#----------------------- Inizio elaborazione -----------------------------------------------
+	#-------------------------------------------------------------------------------------------
+	
+	dictPortfolio_new =  computePortfolioCF(dictPortfolio, opt_elab, zc_times, zc_rf, rf_prms, rf_model, zc_infl_t, zc_infl_val, infl_prms, infl_model)
+
+
+	
+	#start_clean_prices, start_dirty_prices, dict_bond_times = computePortfolioPricesFromCF(dict_start_params, dictPortfolio_new, opt_elab, zc_times, zc_rf, rf_prms, rf_model, zc_infl_t, zc_infl_val, infl_prms, infl_model, ts_infl_dates, ts_infl_values)
+	
+	ff  = optimize.minimize(loss_bf_cf, x0,args = (dictPortfolio_new, opt_elab, zc_times, zc_rf, rf_prms, rf_model, zc_infl_t, zc_infl_val, infl_prms, infl_model, ts_infl_dates, ts_infl_values), method = method_opt,  bounds = x_bnd)
+
+	#-------------------------- unpack/set opt params -----------------------------------------
+
+	dict_opt_params = setOptParams(ff, h_model)#
+	#print 'dict_opt_params: ',dict_opt_params
+	
+	#------------------------ COMPUTE RESULTS -------------------------------------------------
+	
+	time_ref, dateOut = computeTimesDatesRef(opt_elab, dictPortfolio_new)
+	freq = 1.0
+	
+	opt_clean_prices, opt_dirty_prices, dict_bond_times     = computePortfolioPricesFromCF(dict_opt_params, dictPortfolio_new, opt_elab, zc_times, zc_rf, rf_prms, rf_model, zc_infl_t, zc_infl_val, infl_prms, infl_model, ts_infl_dates, ts_infl_values)
+	
+	ytm_mkt   = computePortfolioYTM(dictPortfolio, refDate)
+	
+	sw_ry, sw_rf, sw_spread, z_spread, surv, hr_values, sw_times = computePYmodel_rate_n(dict_opt_params, time_ref, freq, LGD, zc_times, zc_rf, h_model)
+	
+	list_bond_times, list_ytm_mkt, list_ytm_model, list_opt_clean_prices, list_mkt_clean_prices = set_var_out(dictPortfolio, sw_ry, sw_times, ytm_mkt, dict_bond_times, opt_clean_prices)
+	
+	
+	x2 = computeX2(list_opt_clean_prices, list_mkt_clean_prices)
+	
+	if (flag_dump == True):
+
+
+		#out_file_prices = 'output_test/bond_fitting_data/data_out_for_ITA_XXX__.txt'
+		#out_file_curve	= 'output_test/bond_fitting_data/data_curve_for_ITA_XXX__.txt'
+
+		out_file_prices = opt_elab['out_file_prices']
+		out_file_curve	= opt_elab['out_file_curve']
+
+	
+		write_dump_out(dictPortfolio, sw_ry, sw_times, ytm_mkt, dict_bond_times, opt_clean_prices, out_file_prices)
+		write_dump_out_v2(sw_times, surv, hr_values, z_spread, sw_spread, sw_rf, out_file_curve)
+
+
+	if (flag_plot == True):
+		
+		ln = len(list_bond_times)
+		t_max = list_bond_times[ln-1]
+		indx_max_to_plot = int(t_max) + 5
+		
+		
+		
+		plotResults(model_bond, time_ref, sw_rf, sw_spread, sw_ry, list_bond_times, list_ytm_mkt, list_opt_clean_prices, list_mkt_clean_prices, indx_max_to_plot, flag_plot_price)
+
+	output_data ={}
+	
+	output_data['x2']    = x2
+
+	output_data['pyRiskFree']       = sw_rf	
+	output_data['zcSpread']         = z_spread
+	output_data['pySpread']         = sw_spread
+	output_data['hazardRate']       = hr_values
+	output_data['survProbCum']      = surv
+	output_data['outputDates']      = dateOut
+	
+	output_data['ytm_mkt']          = list_ytm_mkt
+	output_data['ytm_model']        = list_ytm_model
+	output_data['bondTimes']        = list_bond_times
+	output_data['opt_clean_prices'] = list_opt_clean_prices
+	output_data['mkt_clean_prices'] = list_mkt_clean_prices
+	output_data['dict_opt_prms'] 	= dict_opt_params
+	
+	#--------------------------------------------------------------------------------------------------------------
+	
+	#elapse = time.time() - t_start
+	#print 'Tempo di calcolo: ', elapse
+	
+	#---------------------------------------------------------------------------------------------------------------
+	flag_res = 1
+	
+	return flag_res,  output_data
 

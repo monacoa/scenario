@@ -365,8 +365,8 @@ def bond_fitting_from_xls(control):
     
 
     #par_bnd_min = W.new_window.new_window2.bound_min
-    par_bnd = W.new_window.new_window2.x_bnd
-    par_x0      = W.new_window.new_window2.x0
+    par_bnd = W.new_window.window_prms.x_bnd
+    par_x0      = W.new_window.window_prms.x0
 
     curveDes = W.curve
     curvePos = W.pos
@@ -394,24 +394,16 @@ def bond_fitting_from_xls(control):
     bf_options_elab['BondModel']   = bond_model 
     bf_options_elab['HRateModel']  = hr_model
     bf_options_elab['MKTRef']      = 'de'
-    bf_options_elab['MakeGraph']      = False
+    bf_options_elab['MakeGraph']      = True
     bf_options_elab['MakeDump']      = False
     
     
-    """
-    data_opt['hr_bootMethod']  = opt_boot_meth #0 = LCS, 1 = CHR
-    data_opt['bench_interp']   = opt_rf_interp
-    data_opt['hr_interp']      = opt_hr_interp
-    """
     
     # ------------ lettura dati da foglio excel ------------------------------
     portfolio_xl        = readPortfolioFromXls(xla, curveDes, curvePos, nameSheet)
     
     bf_options_elab['RR'] = portfolio_xl.recoveryRate
     bf_options_elab['DataRef'] =  datetime.datetime.fromordinal(portfolio_xl.ref_date.toordinal())
-    
-    #datetime.datetime.fromordinal(portfolio_xl.ref_date.toordinal())
-    
 
     portfolio_xl.BondModel = bond_model
     portfolio_xl.HRateModel = hr_model
@@ -432,8 +424,6 @@ def bond_fitting_from_xls(control):
 
     opt_curve_rf_download['tipo_modello'] = interp_rf_model
     
-
-
     codeBenchList = ['%LS', '%DS', '%LFS', '%DFS']
     
 
@@ -454,14 +444,6 @@ def bond_fitting_from_xls(control):
         root.destroy()
         return
 
-    #print 'curve_cds.bench_dates: ',curve_cds.bench_dates
-    #print 'curve_cds.bench_values: ',curve_cds.bench_values
-    #print 'curve_cds.bench_df_val: ',curve_cds.bench_df_val
-    #print 'curve_cds.bench_model: ', curve_cds.bench_model
-    #print 'curve_cds.bench_prms: ', curve_cds.bench_prms
-    #print 'flag_loaded: ', flag_loaded
-    
-    
     
     data_zc_rf = {}
     data_zc_rf['Model'] = curve_cds.bench_model
@@ -480,8 +462,6 @@ def bond_fitting_from_xls(control):
     data_zc_rf['DiscountFactors'] = []
     """
     
-    #print 'data_zc_rf[ValoreNodo]: ', data_zc_rf['ValoreNodo']
-    #print 'data_zc_rf[DiscountFactors]: ', data_zc_rf['DiscountFactors']
     
     data_zc_infl = {}
     data_ts_infl = {}
@@ -563,7 +543,7 @@ def bond_fitting_from_xls(control):
     dictPortfolio_xls = portfolio_xl.portfolio_anag
     
 
-
+    """
     print 'data_zc_rf: ', data_zc_rf
     print 'data_zc_rf[Model]: ', data_zc_rf['Model']
     print 'data_zc_rf[ValoreNodo]: ', data_zc_rf['ValoreNodo']
@@ -573,15 +553,13 @@ def bond_fitting_from_xls(control):
     
     print 'dictPortfolio: ', dictPortfolio
     
-    
-    
     print '--------------------------------------------'
     print 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'
     print '--------------------------------------------'
-    
-    #import sys
-    #sys.exit()
+    """
 
+    #from test_plot_on_tkinter import test_tk
+    #test_tk()
     
     flag_elab, res_elab = bf.compute_bond_fitting(bf_options_elab, dictPortfolio, data_zc_rf, data_zc_infl, data_ts_infl, x0, x_bnd)
 
@@ -657,6 +635,7 @@ def save_from_xls(control):
                 tkMessageBox.showinfo("x@!#!", msg)
         root2.destroy()
     elif type == 'FitFromBoot':
+        
         pos_curve   =  W.new_window.pos_curve
         des_curve   =  W.new_window.curve
         pos_parms   =  W.new_window.new_window.pos_parms

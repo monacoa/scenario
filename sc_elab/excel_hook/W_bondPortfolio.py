@@ -810,17 +810,12 @@ class  W_boot_opt(LabelFrame):
 
 
         hr_model_tmp   = (str(self.variable1.get()).strip(""))[1]
-        print 'hr_model_tmp 0 :', hr_model_tmp
         
         
         self.hr_model = hr_model_map[int(hr_model_tmp)]
-        print 'self.hr_model :', self.hr_model
-
-        print 'xxxxxxxxxxxxxxxxxxxxxxxxxxxx'
               
         root = Tk()
-        #self.new_window =  W_setParameters(parent=self)
-        self.new_window2 =  W_setParameters(root, self.hr_model)
+        self.window_prms =  W_setParameters(root, self.hr_model)
         
         self.donothing()
 
