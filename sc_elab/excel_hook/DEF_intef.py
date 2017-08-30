@@ -15,6 +15,7 @@ nameSheetBondSpread = 'Spread BOND'
 nameSheetBondResults = 'Bond results'
 nameSheetBondFittig    = 'Bond fitting'
 nameSheetResBondFittig    = 'Results Bond fitting'
+nameSheetBondOptPrms = 'Opt prms'
 
 nameSheetCDS     = 'CDS'
 nameSheetBond     = 'Bond data'

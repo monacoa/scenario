@@ -161,7 +161,7 @@ from xls_bootCurve import writeBootstrapResOnXls
 from xls_bootCurve import writeCDSBootstrapRes1OnXls, writeCDSBootstrapRes2OnXls
 from xls_swapCurve import readCurveFromXls
 
-from xls_bondPortfolio import writeBondFittingRes1OnXls, writeBondFittingRes2OnXls, writeBondFittingRes3OnXls 
+from xls_bondPortfolio import writeBondFittingRes1OnXls, writeBondFittingRes2OnXls, writeBondFittingRes3OnXls, writeBondFittingRes4OnXls
 
 from W_bootstrapCurve import W_bootstrapSelection
 
@@ -215,7 +215,8 @@ def bootstrap_from_xls(control):
     data_opt['FutureTenor']     = 90
     data_opt['Path']            = opt_path_graph
 
-    curve        = readPortfolioFromXls(xla, curveDes, curvePos, nameSheet)
+    #curve        = readPortfolioFromXls(xla, curveDes, curvePos, nameSheet)
+    curve        = readCurveFromXls(xla, curveDes, curvePos, nameSheet, type = "SWP")
     codeL, codeR = curve.getCurveCode()
     
     boot_out     = curve.bootstrap(data_opt)
@@ -393,6 +394,8 @@ def bond_fitting_from_xls(control):
     bf_options_elab['BondModel']   = bond_model 
     bf_options_elab['HRateModel']  = hr_model
     bf_options_elab['MKTRef']      = 'de'
+    bf_options_elab['MakeGraph']      = False
+    bf_options_elab['MakeDump']      = False
     
     
     """
@@ -467,7 +470,15 @@ def bond_fitting_from_xls(control):
     data_zc_rf['prms'] = curve_cds.bench_prms
     data_zc_rf['DiscountFactors'] = curve_cds.bench_df_val
     
-    
+
+    """
+    data_zc_rf = {}    
+    data_zc_rf['Model'] =   2
+    data_zc_rf['ValoreNodo'] =  [0.001820906, 0.001820906, 0.001786091, 0.001803993, 0.001835487, 0.001995183, 0.002285516, 0.002663186, 0.00312566, 0.003658126, 0.004242336, 0.004854089, 0.005471713, 0.006076757, 0.006667271, 0.007231011, 0.007768326, 0.008283799, 0.008764564, 0.009211182, 0.009629121, 0.01002267, 0.010395239, 0.010741152, 0.011061247, 0.011358885, 0.011636853, 0.011897481, 0.012139466, 0.012363825, 0.01257249, 0.012767119, 0.012949141]
+    data_zc_rf['MatDate'] = [datetime.date(2014, 9, 30), datetime.date(2015, 8, 30), datetime.date(2016, 9, 30), datetime.date(2017, 9, 30), datetime.date(2018, 9, 30), datetime.date(2019, 8, 30), datetime.date(2020, 9, 30), datetime.date(2021, 9, 30), datetime.date(2022, 9, 30), datetime.date(2023, 8, 30), datetime.date(2024, 9, 30), datetime.date(2025, 9, 30), datetime.date(2026, 9, 30), datetime.date(2027, 8, 30), datetime.date(2028, 9, 30), datetime.date(2029, 9, 30), datetime.date(2030, 9, 30), datetime.date(2031, 8, 30), datetime.date(2032, 9, 30), datetime.date(2033, 9, 30), datetime.date(2034, 9, 30), datetime.date(2035, 8, 30), datetime.date(2036, 9, 30), datetime.date(2037, 9, 30), datetime.date(2038, 9, 30), datetime.date(2039, 8, 30), datetime.date(2040, 9, 30), datetime.date(2041, 9, 30), datetime.date(2042, 9, 30), datetime.date(2043, 8, 30), datetime.date(2044, 9, 30), datetime.date(2045, 9, 30), datetime.date(2046, 9, 30)]
+    data_zc_rf['prms'] =  {'Dates': [datetime.date(2014, 9, 30)], 'const2': [25.003520717137043], 'const1': [4.3432558798248619], 'beta2': [0.026062917739813479], 'beta1': [0.044350833251596708], 'beta0': [-0.034445432562544648], 'beta3': [0.12488641360204013]}
+    data_zc_rf['DiscountFactors'] = []
+    """
     
     #print 'data_zc_rf[ValoreNodo]: ', data_zc_rf['ValoreNodo']
     #print 'data_zc_rf[DiscountFactors]: ', data_zc_rf['DiscountFactors']
@@ -542,7 +553,7 @@ def bond_fitting_from_xls(control):
     
     dictPortfolio = bf.fromXLSToBondFittingPortfolio(portfolio_xl.portfolio_anag)
 
-    # -------------- elaborazione ---------------------------
+    # ------------ elaborazione ---------------------------
  
     #data_zc_infl['DiscountFactors'] = []
     
@@ -550,6 +561,27 @@ def bond_fitting_from_xls(control):
     #print 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
     
     dictPortfolio_xls = portfolio_xl.portfolio_anag
+    
+
+
+    print 'data_zc_rf: ', data_zc_rf
+    print 'data_zc_rf[Model]: ', data_zc_rf['Model']
+    print 'data_zc_rf[ValoreNodo]: ', data_zc_rf['ValoreNodo']
+    print 'data_zc_rf[MatDate]: ', data_zc_rf['MatDate']
+    print 'data_zc_rf[prms]: ', data_zc_rf['prms']
+    print 'data_zc_rf[prms]: ', data_zc_rf['DiscountFactors']
+    
+    print 'dictPortfolio: ', dictPortfolio
+    
+    
+    
+    print '--------------------------------------------'
+    print 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'
+    print '--------------------------------------------'
+    
+    #import sys
+    #sys.exit()
+
     
     flag_elab, res_elab = bf.compute_bond_fitting(bf_options_elab, dictPortfolio, data_zc_rf, data_zc_infl, data_ts_infl, x0, x_bnd)
 
@@ -570,6 +602,7 @@ def bond_fitting_from_xls(control):
     writeBondFittingRes1OnXls(portfolio_xl, xla, str_elab_opt, res_elab, codice_curva)
     writeBondFittingRes2OnXls(portfolio_xl, xla, str_elab_opt, res_elab, codice_curva)
     writeBondFittingRes3OnXls(portfolio_xl, xla, str_elab_opt, res_elab, codice_curva)
+    writeBondFittingRes4OnXls(portfolio_xl, xla, str_elab_opt, res_elab, codice_curva)
 
     #------------------------------------------------------------
 

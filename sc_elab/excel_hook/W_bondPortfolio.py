@@ -802,7 +802,22 @@ class  W_boot_opt(LabelFrame):
 
     def sel(self):
 
+
+        hr_model_map = {}
+        hr_model_map[0] = 'SVE'
+        hr_model_map[1] = 'NS'
+        hr_model_map[2] = 'CIR'
+
+
+        hr_model_tmp   = (str(self.variable1.get()).strip(""))[1]
+        print 'hr_model_tmp 0 :', hr_model_tmp
         
+        
+        self.hr_model = hr_model_map[int(hr_model_tmp)]
+        print 'self.hr_model :', self.hr_model
+
+        print 'xxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+              
         root = Tk()
         #self.new_window =  W_setParameters(parent=self)
         self.new_window2 =  W_setParameters(root, self.hr_model)
@@ -934,38 +949,7 @@ class  W_boot_opt(LabelFrame):
             w7.grid(row=2, column=1)
             w7.config(width=30)
             
-            hr_model_map = {}
-            hr_model_map[0] = 'SVE'
-            hr_model_map[1] = 'NS'
-            hr_model_map[2] = 'CIR'
             
-            hr_model_tmp   = (str(self.variable1.get()).strip(""))[1]
-            print 'hr_model_tmp 0 :', hr_model_tmp
-            
-            
-            self.hr_model = hr_model_map[int(hr_model_tmp)]
-            print 'self.hr_model :', self.hr_model
-
-            
-            #submenu = Menu(w7, tearoff=0)
-            
-            #from W_bondPortfolio import W_bondType, W_bondDate
-
-            #data_type = "BOND"
-            #self.new_window =  W_bondDate(master = root, parent = None, type = data_type)
-            #self.new_window =  W_bondDate(parent = self, type = data_type)
-
-            #self.new_window = W_bondDate (parent = self, bond_date=self.date, type = type)
- 
-
-            
-            #submenu.add_command(label='Spam', underline=0)
-            #submenu.add_command(label='Eggs', underline=0)
-            #w7.add_cascade(label='Stuff', menu=submenu, underline=0)
-            
-            
-            #w7.add_cascade()
-            # ---
             
 
 

@@ -7,7 +7,7 @@ from sc_elab.core.SwpCurve import dict_segm2, Segm, Curve, CdsCurve
 from sc_elab.core.BondPortfolio import BondPortfolio
 from xls_swapCurve import intestazioneSwapCurveSegmenti
 
-from DEF_intef import FORMATT, nameSheetBootstrap, nameSheetBondSurv, nameSheetBondSpread, nameSheetBondResults
+from DEF_intef import FORMATT, nameSheetBootstrap, nameSheetBondSurv, nameSheetBondSpread, nameSheetBondResults, nameSheetBondOptPrms
 
 
 from map_bf_fields import field_map
@@ -135,6 +135,83 @@ def writePortfolioAnag(xla, rangeS, crv):
     
     rangeStart = xla.Cells(topLeftRow + nRows + 2, topLeftCol).Address
     return rangeStart
+
+
+#=======================================================================================================================
+
+def writeBondFittingRes4OnXls(crv, xla, str_boot_opt, res, codice_curva):
+
+
+    nameSheet = nameSheetBondOptPrms
+    try:
+        s = xla.ActiveWorkbook.Sheets(nameSheet)
+    except:
+        s = xla.ActiveWorkbook.Sheets.Add()
+        s.Name = nameSheet
+    s.Activate()
+    rangeStart  = "B2"
+    distCurve   = 1
+    r           = s.Range(rangeStart)
+    r           = findRigthPlaceBootCurveSeg(xla, r, distCurve, "v")
+
+
+    Attributi_1 = \
+        { "Data riferimento" : crv.ref_date
+        , "Descrizione"   : crv.description
+        , "Valuta"        : crv.curr
+        , "Tipo nodo"     : "HR model prms"
+        , "Emittente"     : crv.emittente
+        , "Recovery rate" : crv.recoveryRate
+        , "Rating" : crv.rating
+        , "Modello hazard rate" : crv.HRateModel
+        , "Modello di valutazione" : crv.BondModel
+        }
+
+    
+
+    ra = intestazioneSwapCurveSegmenti(xla, s, r , Attributi_1, nCols=2, text = codice_curva)
+
+    r  = s.Range(ra)
+
+    topLeftRow = r.Row
+    topLeftCol = r.Column
+
+    xla.Cells(topLeftRow - 1, topLeftCol).Value = "Name params"
+    xla.Cells(topLeftRow - 1, topLeftCol).HorizontalAlignment = const.xlCenter
+
+    xla.Cells(topLeftRow - 1, topLeftCol + 1).Value = "Value params"
+    xla.Cells(topLeftRow - 1, topLeftCol + 1).HorizontalAlignment = const.xlCenter
+
+
+    
+    
+    name_prms = res['dict_opt_prms'].keys()
+    nRows     = len(name_prms)
+    
+
+    drawBox(xla, const.xlMedium, topLeftRow - 1, topLeftCol, topLeftRow + nRows - 1, topLeftCol + 1)
+    drawLine(xla, topLeftRow - 1, topLeftCol, topLeftRow - 1, topLeftCol + 1, "o", const.xlThin)
+
+
+
+    
+    for i in range(nRows):
+        
+
+
+        name_prms_tmp    = name_prms[i]
+        value_prms_tmp   = res['dict_opt_prms'][name_prms_tmp]
+
+
+        xla.Cells(topLeftRow + i, topLeftCol).Value = name_prms_tmp
+        #xla.Cells(topLeftRow + i, topLeftCol).NumberFormat = "0.00"
+        xla.Cells(topLeftRow + i, topLeftCol).HorizontalAlignment = const.xlCenter
+
+        xla.Cells(topLeftRow + i, topLeftCol + 1).Value = value_prms_tmp
+        xla.Cells(topLeftRow + i, topLeftCol + 1).NumberFormat = "0.00"
+        xla.Cells(topLeftRow + i, topLeftCol + 1).HorizontalAlignment = const.xlCenter
+        
+
 #=======================================================================================================================
 
 def writeBondFittingRes3OnXls(crv, xla, str_boot_opt, res, codice_curva):
@@ -221,22 +298,12 @@ def writeBondFittingRes3OnXls(crv, xla, str_boot_opt, res, codice_curva):
         xla.Cells(topLeftRow + i, topLeftCol + 2).HorizontalAlignment = const.xlCenter
 
 
-        """
-        xla.Cells(topLeftRow + i, topLeftCol).Value = bond_times
-        xla.Cells(topLeftRow + i, topLeftCol).NumberFormat = "0.00"
-        xla.Cells(topLeftRow + i, topLeftCol).HorizontalAlignment = const.xlCenter
-        
-        xla.Cells(topLeftRow + i, topLeftCol + 1).Value = mkt_clean_prices
-        xla.Cells(topLeftRow + i, topLeftCol + 1).NumberFormat = "0.00"
-        xla.Cells(topLeftRow + i, topLeftCol + 1).HorizontalAlignment = const.xlCenter
-
-        xla.Cells(topLeftRow + i, topLeftCol + 2).Value = opt_clean_prices
-        xla.Cells(topLeftRow + i, topLeftCol + 2).NumberFormat = "0.00"
-        xla.Cells(topLeftRow + i, topLeftCol + 2).HorizontalAlignment = const.xlCenter
-        """
         
 
 
+
+        
+#=======================================================================================================================
 
 def writeBondFittingRes2OnXls(crv, xla, str_boot_opt, res, codice_curva):
 
@@ -266,19 +333,6 @@ def writeBondFittingRes2OnXls(crv, xla, str_boot_opt, res, codice_curva):
         , "Modello di valutazione" : crv.BondModel
         }
 
-    """
-    Attributi_2 = \
-        { "Data riferimento"        : crv.ref_date
-        , "Descrizione"     : crv.description
-        , "Valuta"        : crv.curr
-        , "Tipo nodo"     : "Marginal Default Probability"
-        , "Emittente"     : crv.emittente
-        , "Recovery rate" : crv.recoveryRate
-        , "Rating" : crv.rating
-        , "Modello interpolante" : crv.HRateModel
-        , "Tipo Bootstrap Hazard Rate" : crv.BondModel
-        }
-    """
     Attributi_2 = \
         { "Data riferimento"        : crv.ref_date
         , "Descrizione"     : crv.description
@@ -292,12 +346,27 @@ def writeBondFittingRes2OnXls(crv, xla, str_boot_opt, res, codice_curva):
 
         }
 
+    Attributi_3 = \
+        { "Data riferimento"        : crv.ref_date
+        , "Descrizione"     : crv.description
+        , "Valuta"        : crv.curr
+        , "Tipo nodo"     : "PY Risk free"
+        , "Emittente"     : crv.emittente
+        , "Recovery rate" : crv.recoveryRate
+        , "Rating" : crv.rating
+        , "Modello risk free" : crv.HRateModel
+        , "Modello di valutazione" : crv.BondModel
+
+        }
+
+
     r2 = s.Range(xla.Cells(r.Row, r.Column + 3), xla.Cells(r.Row, r.Column + 3))
     r3 = s.Range(xla.Cells(r.Row, r.Column + 6), xla.Cells(r.Row, r.Column + 7))
+    r4 = s.Range(xla.Cells(r.Row, r.Column + 9), xla.Cells(r.Row, r.Column + 11))
 
     ra = intestazioneSwapCurveSegmenti(xla, s, r , Attributi_1, nCols=2, text = codice_curva)
     rb = intestazioneSwapCurveSegmenti(xla, s, r2, Attributi_2, nCols=2, text = codice_curva)
-    #rc = intestazioneSwapCurveSegmenti(xla, s, r3, Attributi_3, nCols=2, text = codice_curva)
+    rc = intestazioneSwapCurveSegmenti(xla, s, r3, Attributi_3, nCols=2, text = codice_curva)
 
     r  = s.Range(ra)
 
@@ -306,13 +375,19 @@ def writeBondFittingRes2OnXls(crv, xla, str_boot_opt, res, codice_curva):
 
     xla.Cells(topLeftRow - 1, topLeftCol).Value = "Date"
     xla.Cells(topLeftRow - 1, topLeftCol).HorizontalAlignment = const.xlCenter
-    xla.Cells(topLeftRow - 1, topLeftCol + 1).Value = "Value"
+    xla.Cells(topLeftRow - 1, topLeftCol + 1).Value = "Value (x 100)"
     xla.Cells(topLeftRow - 1, topLeftCol + 1).HorizontalAlignment = const.xlCenter
 
     xla.Cells(topLeftRow - 1, topLeftCol + 3).Value = "Date"
     xla.Cells(topLeftRow - 1, topLeftCol + 3).HorizontalAlignment = const.xlCenter
-    xla.Cells(topLeftRow - 1, topLeftCol + 4).Value = "Value"
+    xla.Cells(topLeftRow - 1, topLeftCol + 4).Value = "Value (x 100)"
     xla.Cells(topLeftRow - 1, topLeftCol + 4).HorizontalAlignment = const.xlCenter
+
+    xla.Cells(topLeftRow - 1, topLeftCol + 6).Value = "Date"
+    xla.Cells(topLeftRow - 1, topLeftCol + 6).HorizontalAlignment = const.xlCenter
+    xla.Cells(topLeftRow - 1, topLeftCol + 7).Value = "Value (x 100)"
+    xla.Cells(topLeftRow - 1, topLeftCol + 7).HorizontalAlignment = const.xlCenter
+
     
     #xla.Cells(topLeftRow - 1, topLeftCol + 6).Value = "Date"
     #xla.Cells(topLeftRow - 1, topLeftCol + 6).HorizontalAlignment = const.xlCenter
@@ -329,6 +404,9 @@ def writeBondFittingRes2OnXls(crv, xla, str_boot_opt, res, codice_curva):
     drawBox(xla, const.xlMedium, topLeftRow - 1, topLeftCol + 3, topLeftRow + nRows - 1, topLeftCol + 4)
     drawLine(xla, topLeftRow - 1, topLeftCol+3, topLeftRow - 1, topLeftCol + 4, "o", const.xlThin)
 
+    drawBox(xla, const.xlMedium, topLeftRow - 1, topLeftCol + 6, topLeftRow + nRows - 1, topLeftCol + 7)
+    drawLine(xla, topLeftRow - 1, topLeftCol+6, topLeftRow - 1, topLeftCol + 7, "o", const.xlThin)
+
     #drawBox(xla, const.xlMedium, topLeftRow - 1, topLeftCol + 6, topLeftRow + nRows - 1, topLeftCol + 7)
     #drawLine(xla, topLeftRow - 1, topLeftCol +6, topLeftRow - 1, topLeftCol + 7, "o", const.xlThin)
 
@@ -338,16 +416,16 @@ def writeBondFittingRes2OnXls(crv, xla, str_boot_opt, res, codice_curva):
 
 
         date   = res['outputDates'][i]
-        zspread   = res['zcSpread'][i]
-        #marg   = res['marginalDefault'][i]
-        pypread = res['pySpread'][i]
+        zspread   = float(res['zcSpread'][i]*100.0)
+        pypread = float(res['pySpread'][i]*100.0)
+        pyRiskFree = float(res['pyRiskFree'][i]*100.0)
 
 
         xla.Cells(topLeftRow + i, topLeftCol).Value = date
         xla.Cells(topLeftRow + i, topLeftCol).NumberFormat = FORMATT
         xla.Cells(topLeftRow + i, topLeftCol).HorizontalAlignment = const.xlCenter
         xla.Cells(topLeftRow + i, topLeftCol + 1).Value = zspread
-        xla.Cells(topLeftRow + i, topLeftCol + 1).NumberFormat = "0.00"
+        xla.Cells(topLeftRow + i, topLeftCol + 1).NumberFormat = "0.00000"
         xla.Cells(topLeftRow + i, topLeftCol + 1).HorizontalAlignment = const.xlCenter
 
         xla.Cells(topLeftRow + i, topLeftCol + 3).Value = date
@@ -357,18 +435,17 @@ def writeBondFittingRes2OnXls(crv, xla, str_boot_opt, res, codice_curva):
         xla.Cells(topLeftRow + i, topLeftCol + 4).NumberFormat = "0.00000"
         xla.Cells(topLeftRow + i, topLeftCol + 4).HorizontalAlignment = const.xlCenter
 
-        """
         xla.Cells(topLeftRow + i, topLeftCol + 6).Value = date
         xla.Cells(topLeftRow + i, topLeftCol + 6).NumberFormat = FORMATT
         xla.Cells(topLeftRow + i, topLeftCol + 6).HorizontalAlignment = const.xlCenter
-        xla.Cells(topLeftRow + i, topLeftCol + 7).Value = h_rate
+        xla.Cells(topLeftRow + i, topLeftCol + 7).Value = pyRiskFree
         xla.Cells(topLeftRow + i, topLeftCol + 7).NumberFormat = "0.00000"
         xla.Cells(topLeftRow + i, topLeftCol + 7).HorizontalAlignment = const.xlCenter
-        """
+        
 
 
 
-
+#=======================================================================================================================
 
 def writeBondFittingRes1OnXls(crv, xla, str_boot_opt, res, codice_curva):
 
@@ -477,7 +554,7 @@ def writeBondFittingRes1OnXls(crv, xla, str_boot_opt, res, codice_curva):
         xla.Cells(topLeftRow + i, topLeftCol).NumberFormat = FORMATT
         xla.Cells(topLeftRow + i, topLeftCol).HorizontalAlignment = const.xlCenter
         xla.Cells(topLeftRow + i, topLeftCol + 1).Value = surv
-        xla.Cells(topLeftRow + i, topLeftCol + 1).NumberFormat = "0.00"
+        xla.Cells(topLeftRow + i, topLeftCol + 1).NumberFormat = "0.00000"
         xla.Cells(topLeftRow + i, topLeftCol + 1).HorizontalAlignment = const.xlCenter
 
         xla.Cells(topLeftRow + i, topLeftCol + 3).Value = date

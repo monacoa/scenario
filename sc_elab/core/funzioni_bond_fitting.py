@@ -544,7 +544,6 @@ def convertDate2Time(date_vec):
 	for i in range(0, ln):
 		
 		timeTmp = ((date_vec[i] - date_0).days)/365.2425
-
 		time_vec.append(timeTmp)
 	
 	
@@ -553,7 +552,6 @@ def convertDate2Time(date_vec):
 	
 
 
-#def compute_bond_fitting(opt_elab, dictPortfolio, zc_times, zc_rf, zc_infl_t, zc_infl_rf, ts_infl_dates, ts_infl_values, x0, x_bnd, dict_start_params):
 def	compute_bond_fitting(opt_elab, dictPortfolio, data_zc_rf, data_zc_infl, data_ts_infl, x0, x_bnd):
 
 
@@ -627,8 +625,8 @@ def	compute_bond_fitting(opt_elab, dictPortfolio, data_zc_rf, data_zc_infl, data
 	
 	method_opt = 'TNC'
 	
-	flag_dump = 0
-	flag_plot = 0
+	flag_dump = opt_elab['MakeDump']
+	flag_plot = opt_elab['MakeGraph']
 	
 	isinList = dictPortfolio.keys()
 	is0 	 = isinList[0]
@@ -642,8 +640,6 @@ def	compute_bond_fitting(opt_elab, dictPortfolio, data_zc_rf, data_zc_infl, data
 	
 	
 
-	out_file_prices = 'output_test/bond_fitting_data/data_out_for_ITA_XXX__.txt'
-	out_file_curve	= 'output_test/bond_fitting_data/data_curve_for_ITA_XXX__.txt'
 	
 	
 	#-------------------------------------------------------------------------------------------
@@ -661,6 +657,7 @@ def	compute_bond_fitting(opt_elab, dictPortfolio, data_zc_rf, data_zc_infl, data
 	#-------------------------- unpack/set opt params -----------------------------------------
 
 	dict_opt_params = setOptParams(ff, h_model)#
+	#print 'dict_opt_params: ',dict_opt_params
 	
 	#------------------------ COMPUTE RESULTS -------------------------------------------------
 	
@@ -673,20 +670,26 @@ def	compute_bond_fitting(opt_elab, dictPortfolio, data_zc_rf, data_zc_infl, data
 	
 	sw_ry, sw_rf, sw_spread, z_spread, surv, hr_values, sw_times = computePYmodel_rate_n(dict_opt_params, time_ref, freq, LGD, zc_times, zc_rf, h_model)
 	
-	list_bond_times, list_ytm_mkt, list_ytm_model, list_opt_clean_prices, list_mkt_clean_prices = set_var_out(dictPortfolio, sw_ry, sw_times, ytm_mkt, dict_bond_times, opt_clean_prices, out_file_prices)
+	list_bond_times, list_ytm_mkt, list_ytm_model, list_opt_clean_prices, list_mkt_clean_prices = set_var_out(dictPortfolio, sw_ry, sw_times, ytm_mkt, dict_bond_times, opt_clean_prices)
 	
-	print 'list_opt_clean_prices: ', list_opt_clean_prices
-	print 'list_mkt_clean_prices: ', list_mkt_clean_prices
 	
 	x2 = computeX2(list_opt_clean_prices, list_mkt_clean_prices)
 	
-	if (flag_dump == 1):
+	if (flag_dump == True):
+
+
+		#out_file_prices = 'output_test/bond_fitting_data/data_out_for_ITA_XXX__.txt'
+		#out_file_curve	= 'output_test/bond_fitting_data/data_curve_for_ITA_XXX__.txt'
+
+		out_file_prices = opt_elab['out_file_prices']
+		out_file_curve	= opt_elab['out_file_curve']
+
 	
 		write_dump_out(dictPortfolio, sw_ry, sw_times, ytm_mkt, dict_bond_times, opt_clean_prices, out_file_prices)
-		write_dump_out_v2(sw_times, surv, hr_values, z_spread, sw_spread, out_file_curve)
+		write_dump_out_v2(sw_times, surv, hr_values, z_spread, sw_spread, sw_rf, out_file_curve)
 
 
-	if (flag_plot == 1):
+	if (flag_plot == True):
 		
 		ln = len(list_bond_times)
 		t_max = list_bond_times[ln-1]
@@ -697,7 +700,8 @@ def	compute_bond_fitting(opt_elab, dictPortfolio, data_zc_rf, data_zc_infl, data
 	output_data ={}
 	
 	output_data['x2']    = x2
-	
+
+	output_data['pyRiskFree']       = sw_rf	
 	output_data['zcSpread']         = z_spread
 	output_data['pySpread']         = sw_spread
 	output_data['hazardRate']       = hr_values
@@ -709,6 +713,7 @@ def	compute_bond_fitting(opt_elab, dictPortfolio, data_zc_rf, data_zc_infl, data
 	output_data['bondTimes']        = list_bond_times
 	output_data['opt_clean_prices'] = list_opt_clean_prices
 	output_data['mkt_clean_prices'] = list_mkt_clean_prices
+	output_data['dict_opt_prms'] 	= dict_opt_params
 	
 	#--------------------------------------------------------------------------------------------------------------
 	
@@ -835,18 +840,18 @@ def fromXLSToBondFittingPortfolio(dict_start):
 			dict_out[isin_Tmp]['isin']  	= isin_Tmp 			
 			dict_out[isin_Tmp]['emission price']  	= dict_start[id_Tmp]['Prezzo emissione'] 
 			dict_out[isin_Tmp]['emission date'] 	= dict_start[id_Tmp]['Data emissione']  
-			dict_out[isin_Tmp]['inflRatio']			= dict_start[id_Tmp]['Prezzo rimborso / Inflation Ratio'] 
+			dict_out[isin_Tmp]['inflRatio']			= float(dict_start[id_Tmp]['Prezzo rimborso / Inflation Ratio']/100.0) 
 	
 			
 			dict_out[isin_Tmp]['end date'] 			= dict_start[id_Tmp]['Data scadenza']
 			dict_out[isin_Tmp]['day count']			= dict_start[id_Tmp]['Basis']	
-			dict_out[isin_Tmp]['BDay'] 				= dict_start[id_Tmp]['Adjustment']
+			dict_out[isin_Tmp]['BDay'] 				= (dict_start[id_Tmp]['Adjustment']).lower()
 			
 			dict_out[isin_Tmp]['freq'] 				= int(dict_start[id_Tmp]['Periodicita cedola (mesi)'])
 			dict_out[isin_Tmp]['weights']  			= dict_start[id_Tmp]['Peso']	
 			dict_out[isin_Tmp]['tenor rate']    	= dict_start[id_Tmp]['Tenor del tasso floater (anni)']	
-			dict_out[isin_Tmp]['fixed rate'] 		= dict_start[id_Tmp]['Tasso cedolare annuo (Fisso/spread)']
-			dict_out[isin_Tmp]['coupon']   			= dict_start[id_Tmp]['Cedola in corso']	
+			dict_out[isin_Tmp]['fixed rate'] 		= float(dict_start[id_Tmp]['Tasso cedolare annuo (Fisso/spread)']/100.0)
+			dict_out[isin_Tmp]['coupon']   			= float(dict_start[id_Tmp]['Cedola in corso']/100.0)	
 			dict_out[isin_Tmp]['clean price']  		= dict_start[id_Tmp]['Prezzo-MID']
 			dict_out[isin_Tmp]['ytm'] 				= dict_start[id_Tmp]['YTM/DM (MID)']	
 			dict_out[isin_Tmp]['index rate']      	= dict_start[id_Tmp]['Indicizzazione']
@@ -2061,7 +2066,7 @@ def set_prms_for_fit(model_fit):
 	return x0, x_bnd
 
 
-def settingDefaultOptions(prms_file, model_in, RR, date_ref, h_model):
+def settingDefaultOptions(prms_file, model_in, RR, date_ref, h_model, flag_make_graph, flag_dump, out_file_prices, out_file_curve):
 
 
 	modello_h_rate = h_model
@@ -2074,6 +2079,12 @@ def settingDefaultOptions(prms_file, model_in, RR, date_ref, h_model):
 	opt_elab['HRateModel']  = modello_h_rate
 	opt_elab['DataRef']     = date_ref
 	opt_elab['MKTRef']      = 'de'
+	opt_elab['MakeGraph']   = flag_make_graph
+	opt_elab['MakeDump']    = flag_dump
+	opt_elab['out_file_prices']    = out_file_prices
+	opt_elab['out_file_curve']    = out_file_curve
+	
+
 
 	return opt_elab 
 
@@ -2216,6 +2227,7 @@ def computePYmodel_rate_n(dict_opt_params, time_ref, freq, LGD, zc_times, zc_rf,
 	time_vec  = []
 	
 	z_rf_i = 1
+	
 
 	for t_tmp in time_ref:
 		
@@ -2232,6 +2244,14 @@ def computePYmodel_rate_n(dict_opt_params, time_ref, freq, LGD, zc_times, zc_rf,
 		
 		sp_tmp = z_model(model_type, dict_opt_params, t_tmp)
 		rf_tmp = interp_lin(zc_times, zc_rf, t_tmp)
+
+		"""		
+		print 't_tmp: ', t_tmp
+		print 'rf_tmp: ', rf_tmp
+		print 'h_tmp: ', h_tmp
+		print 'sp_tmp: ', sp_tmp
+		print '----------------------------'
+		"""
 		
 		z_rf_tmp  = exp(-rf_tmp*t_tmp)
 		z_sp_tmp  = sp_tmp**(LGD)
@@ -2270,7 +2290,7 @@ def computePYmodel_rate_n(dict_opt_params, time_ref, freq, LGD, zc_times, zc_rf,
 
 			z_rf_i  = 1.0/(1.0  + rf_i*t_tmp)
 			z_ry_i  = z_sp_i*z_rf_i
-			z_sp_i  = sp**(LGD)
+			#z_sp_i  = sp**(LGD)
 
 			sw_ry = ((1.0/z_ry_i) - 1.0)/t_tmp
 			sw_rf = ((1.0/z_rf_i) - 1.0)/t_tmp
@@ -2300,8 +2320,8 @@ def computePYmodel_rate_n(dict_opt_params, time_ref, freq, LGD, zc_times, zc_rf,
 	h_vec[0] 	= h_vec[1]
 	
 	sw_ry_vec[0] = sw_ry_vec[1]
-	sw_rf_vec[0]= sw_rf_vec[1]
-	sw_sp_vec[0]= sw_sp_vec[1]
+	sw_rf_vec[0] = sw_rf_vec[1]
+	sw_sp_vec[0] = sw_sp_vec[1]
 
 	return sw_ry_vec, sw_rf_vec, sw_sp_vec, z_sp_vec, sp_vec, h_vec, time_vec
 	#except:
@@ -2554,11 +2574,11 @@ def computePortfolioCF(dictPortfolio, opt_elab, zc_times, zc_rf, rf_prms, rf_mod
 
 
 
-def write_dump_out_v2(times, surv, h_rate, z_spread, sw_spread, out_file_curve):
+def write_dump_out_v2(times, surv, h_rate, z_spread, sw_spread, sw_rf, out_file_curve):
 
 	fout   = open(out_file_curve, 'w')
 	
-	fout.write('Times\t Survival\t HazardRate\t zSpread\t pySpread\n')
+	fout.write('Times\t Survival\t HazardRate\t zSpread\t pySpread\t pyRiskFree\n')
 	
 
 	
@@ -2569,8 +2589,9 @@ def write_dump_out_v2(times, surv, h_rate, z_spread, sw_spread, out_file_curve):
 		hTmp 		=  h_rate[i]
 		zSpreadTmp  =  z_spread[i]
 		swSpreadTmp =  sw_spread[i]
+		swRFTmp 	=  sw_rf[i]
 		
-		fout.write('%2.5f\t %2.5f\t %2.5f\t %2.5f\t  %2.5f\n'%(timeTmp, survTmp, hTmp, zSpreadTmp, swSpreadTmp))
+		fout.write('%2.5f\t %2.5f\t %2.5f\t %2.5f\t  %2.5f\t %2.5f\n'%(timeTmp, survTmp, hTmp, zSpreadTmp, swSpreadTmp, swRFTmp))
 	
 	fout.close()
 
@@ -2621,7 +2642,7 @@ def write_dump_out(dictPortfolio, sw_ry, sw_times, ytm_mkt, dict_bond_times, opt
 	fout.close()
 	
 
-def set_var_out(dictPortfolio, sw_ry, sw_times, ytm_mkt, dict_bond_times, opt_clean_prices, out_file):
+def set_var_out(dictPortfolio, sw_ry, sw_times, ytm_mkt, dict_bond_times, opt_clean_prices):
 	
 	
 	list_k_ref = sorted(dict_bond_times, key = lambda key: dict_bond_times[key])
