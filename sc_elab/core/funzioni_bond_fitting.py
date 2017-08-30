@@ -2486,7 +2486,7 @@ def	plotResults(model_bond, time_ref, sw_rf, sw_spread, sw_ry, list_bond_times, 
 	
 	
 	root = Tk.Tk()
-	root.wm_title("Embedding in TK")
+	root.wm_title("Plot Bond fitting results")
 	
 	
 	#f = Figure(figsize=(5, 4), dpi=100)
