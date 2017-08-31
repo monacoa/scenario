@@ -405,6 +405,16 @@ def bond_fitting_from_xls(control):
     bf_options_elab['RR'] = portfolio_xl.recoveryRate
     bf_options_elab['DataRef'] =  datetime.datetime.fromordinal(portfolio_xl.ref_date.toordinal())
 
+    if (bf_options_elab['RR'] >0.99):
+        # significa che ho intercettato un errore!
+        root = Tk()
+        root.withdraw()
+        msg0 = "Elaborazione non avviata: livello recovery rate (RR = %s) maggiore di 0.99 !!" %(bf_options_elab['RR'])
+        tkMessageBox.showinfo("Attenzione!!", msg0)
+        
+        root.destroy()
+        return
+
     portfolio_xl.BondModel = bond_model
     portfolio_xl.HRateModel = hr_model
 
@@ -413,7 +423,7 @@ def bond_fitting_from_xls(control):
 
     interp_rf_model = curve_cds.mapCodeModelInv(rf_interp_tmp)
 
-    # ------------ dat to download_curve risk free ------------------------------
+    # ------------ dati to download_curve risk free ------------------------------
 
     opt_curve_rf_download = {}
 
@@ -738,6 +748,8 @@ def bootstrap_cds_from_xls(control):
     data_opt['DataRef']        = curve_xl.ref_date
     data_opt['RecoveryRate'] = float(curve_xl.recovery)/100.0
     data_opt['opt_path_graph']  =  'C:\\'
+    
+    
     
     yy = str(curve_xl.ref_date.year) 
     gg = str(curve_xl.ref_date.day)
