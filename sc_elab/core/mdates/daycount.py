@@ -35,6 +35,8 @@ _dc_norm = dict({
     'ACTUAL/365': 'ACTUAL/ACTUAL ISDA',
     'ACT/365': 'ACTUAL/ACTUAL ISDA',
     'ACT/ACT': 'ACTUAL/ACTUAL ISDA',
+    'ACT/ACT NON-EOM': 'ACTUAL/ACTUAL ISDA',
+
     'ACTUAL/ACTUAL': 'ACTUAL/ACTUAL ISDA',
 
     'ACTUAL/365 FIXED': 'ACTUAL/365 FIXED',
@@ -54,8 +56,30 @@ _dc_norm = dict({
     'ACT/ACT AFB': 'ACTUAL/ACTUAL AFB'
 })
 
+
+
+
 def _normalize_daycount_convention(convention):
     convention = convention.upper()
+    
+    try:
+        _dc_norm[convention]
+
+    except:
+        from Tkinter import *
+        import tkMessageBox
+        
+        root = Tk()
+        root.withdraw()
+        
+        msg0 = "Day count convention non codificata!!" 
+        tkMessageBox.showinfo("Attenzione!!", msg0)
+        
+        root.destroy()
+        return
+   
+    
+    
     return _dc_norm[convention]
 
 def _period_has_29feb(dt1, dt2):

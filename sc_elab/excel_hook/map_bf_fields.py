@@ -9,8 +9,8 @@ field_map = {'Isin':			['isin', None],
 			'Tipo rimborso':	[None, 'Bullet'],
 			'Prezzo emissione':	['issueprice', 100.0],
 			'Prezzo rimborso / Inflation Ratio':	['ValoreRimborso', 'principalfactor'],
-			'Data emissione':	['issuedate'],
-			'Data scadenza':	['Scadenza'],
+			'Data emissione':	['issuedate', None],
+			'Data scadenza':	['Scadenza', None],
 			'Tempo scadenza': 	[None, None],
 			'Giorni di fixing':	[None, 0],
 			'Tipo fixing':		['FixingMethod', None],
@@ -31,7 +31,7 @@ field_map = {'Isin':			['isin', None],
 			'Data prezzo di mercato':	['LastUpdate', None],
 			'Contributor':	['Contributor',None],
 			'Peso':	[None, 1],
-			'Indicizzazione':	['Indicizzazione', None]}
+			'Indicizzazione':	['Indicizzazione', '']}
 
 
 

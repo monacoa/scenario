@@ -448,6 +448,8 @@ def bond_fitting_from_xls(control):
         # significa che ho intercettato un errore!
         root = Tk()
         root.withdraw()
+        
+        print 'curve_rf.ref_date: ', curve_rf.ref_date
         msg0 = "Curva benchmark associata al modello %s non presente alla data del %s, cambia modello o data!!" %(interp_rf_model, curve_rf.ref_date)
         tkMessageBox.showinfo("Attenzione!!", msg0)
 
@@ -551,6 +553,10 @@ def bond_fitting_from_xls(control):
     #print 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
     
     dictPortfolio_xls = portfolio_xl.portfolio_anag
+
+    print 'dictPortfolio_xls: ', dictPortfolio_xls
+    
+    #print 'dictPortfolio: ', dictPortfolio
     
 
     """

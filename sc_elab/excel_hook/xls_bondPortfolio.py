@@ -83,12 +83,14 @@ def writePortfolioAnag(xla, rangeS, crv):
     for i in range(0, n_bonds):
         for j in range(0, n_field):
             
+            
             a = xla.Cells(topLeftRow  + i + 1, topLeftCol+j)
             
             
             fieldNameTmp = field_list[j]
             fieldNameDBTmp = field_map[fieldNameTmp][0]
             
+            print 'fieldNameDBTmp: ', fieldNameDBTmp
             
             
             if (fieldNameDBTmp != None):
@@ -898,7 +900,11 @@ def readPortfolioAnag(xla, r, cc):
     portfolio_anag = {}
 
     i = 0
-    while r.Value != None:
+    r_pesi = ''
+
+    
+    #while r.Value != None and r_pesi != None:
+    while r_pesi != None:
 
         portfolio_anag[i] = {}
         
@@ -924,9 +930,11 @@ def readPortfolioAnag(xla, r, cc):
                 
                 fieldValueTmp = r.Value
 
-
-            
             portfolio_anag[i][fieldNameTmp] = fieldValueTmp
+        r_pesi = portfolio_anag[i]['Peso']
+
+        
+        
         i = i + 1
         
 

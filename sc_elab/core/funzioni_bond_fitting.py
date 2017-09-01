@@ -16,6 +16,8 @@ from sc_elab.core.mdates import busdayrule
 from sc_elab.core.mdates import dateutils
 
 
+from Tkinter import *
+import tkMessageBox
 
 import datetime
 import dateutil.relativedelta
@@ -679,12 +681,41 @@ def fromXLSToBondFittingPortfolio(dict_start):
 			dict_out[isin_Tmp]['weights']  			= dict_start[id_Tmp]['Peso']	
 			dict_out[isin_Tmp]['tenor rate']    	= dict_start[id_Tmp]['Tenor del tasso floater (anni)']	
 			dict_out[isin_Tmp]['fixed rate'] 		= float(dict_start[id_Tmp]['Tasso cedolare annuo (Fisso/spread)']/100.0)
-			dict_out[isin_Tmp]['coupon']   			= float(dict_start[id_Tmp]['Cedola in corso']/100.0)	
+
+			dict_out[isin_Tmp]['bond type']			= dict_start[id_Tmp]['Tipo tasso'] 	
+			
+			#if (dict_out[isin_Tmp]['bond type'] == 'FLOATING' or dict_out[isin_Tmp]['bond type'] == 'FLOATER') and dict_start[id_Tmp]['Cedola in corso'] == None:
+			#	# significa che ho intercettato un errore!
+				
+			if (dict_out[isin_Tmp]['emission date'] == None):
+
+				root = Tk()
+				root.withdraw()
+				
+				msg0 = "Data emissione non valorizzata correttamente!!" 
+				tkMessageBox.showinfo("Attenzione!!", msg0)
+		
+				root.destroy()
+				return
+			
+			try:
+				dict_out[isin_Tmp]['coupon']   			= float(dict_start[id_Tmp]['Cedola in corso']/100.0)
+			
+			except:
+
+				root = Tk()
+				root.withdraw()
+				
+				msg0 = "Cedola in corso non valorizzata correttamente!!" 
+				tkMessageBox.showinfo("Attenzione!!", msg0)
+		
+				root.destroy()
+				return
+				
 			dict_out[isin_Tmp]['clean price']  		= dict_start[id_Tmp]['Prezzo-MID']
 			dict_out[isin_Tmp]['ytm'] 				= dict_start[id_Tmp]['YTM/DM (MID)']	
 			dict_out[isin_Tmp]['index rate']      	= dict_start[id_Tmp]['Indicizzazione']
 	
-			dict_out[isin_Tmp]['bond type']			= dict_start[id_Tmp]['Tipo tasso'] 	
 	
 			#dict_start[isin_Tmp]['Tasso di riferiemnto']
 			#dict_start[isin_Tmp]['Tasso repo']	
@@ -1645,6 +1676,9 @@ def computeBondCF(data_portfolio, zc_times, zc_rf, rf_prms, rf_model, mkt_ref, d
 		emissionPrice = data_portfolio['emission price']
 		emiDate 	  = data_portfolio['emission date']
 		
+		print 'date_end_val: ', date_end_val
+		print 'emiDate: ', emiDate
+		
 		time_zc_gg = (date_end_val - emiDate).days
 		t_rateo_gg = (date_ref - emiDate).days
 
@@ -1943,7 +1977,6 @@ def computePYmodel_rate_n(dict_opt_params, time_ref, freq, LGD, zc_times, zc_rf,
 	freq = 2.0
 	dt_gg = 1.0/365.2425
 	dt_swp = 1.0/freq
-	print 'dt_swp: ', dt_swp
 	
 	sw_ry_vec = []
 	sw_sp_vec = []
@@ -2450,7 +2483,7 @@ def set_var_out(dictPortfolio, zc_times, zc_rf, h_model, dict_opt_params, LGD, s
 
 
 
-def	plotResults(model_bond, time_ref, sw_rf, sw_spread, sw_ry, list_bond_times, list_ytm_mkt, list_ytm_model, list_opt_clean_prices, list_mkt_clean_prices, indx_to_plot, flag_plot_price):
+def	plotResults(model_bond, time_ref, sw_rf, sw_spread, sw_ry, list_bond_times, list_ytm_mkt, list_ytm_model, list_opt_clean_prices_n, list_mkt_clean_prices_n, indx_to_plot, flag_plot_price):
 
 
 	import matplotlib
@@ -2473,6 +2506,8 @@ def	plotResults(model_bond, time_ref, sw_rf, sw_spread, sw_ry, list_bond_times, 
 
 	#flag_plot_price = False
 	
+	if (len(list_bond_times) < 2): flag_plot_price = True
+	
 	if(model_bond == 'RMV' and flag_plot_price != True):
 	#if(model_bond == 'RMV'):
 
@@ -2491,9 +2526,12 @@ def	plotResults(model_bond, time_ref, sw_rf, sw_spread, sw_ry, list_bond_times, 
 		
 	else:
 
-		#a.plot(list_bond_times, list_opt_clean_prices, 'x', label = 'Fit prices', list_bond_times, list_mkt_clean_prices, 'o', label = 'MKT prices', )
-		a.plot(list_bond_times, list_opt_clean_prices, 'x', label = 'Fit prices')
-		a.plot(list_bond_times, list_mkt_clean_prices, 'o', label = 'MKT prices')
+		a.plot(list_bond_times, list_opt_clean_prices_n, 'x', label = 'Fit prices')
+		a.plot(list_bond_times, list_mkt_clean_prices_n, 'o', label = 'MKT prices')
+		
+		print 'list_opt_clean_prices: ', list_opt_clean_prices_n
+		print 'list_mkt_clean_prices: ', list_mkt_clean_prices_n
+
 
 		a.set_title('Fitting clean bond prices using %s model' %(model_bond) )
 		a.set_xlabel('Maturities [years]')
@@ -2529,6 +2567,7 @@ def	plotResults(model_bond, time_ref, sw_rf, sw_spread, sw_ry, list_bond_times, 
 	button.pack(side=Tk.BOTTOM)
 	
 	Tk.mainloop()
+
 
 
 def chk_inflatio_ratio(dictPortfolio, date_ref, ts_infl_dates, ts_infl_values):
