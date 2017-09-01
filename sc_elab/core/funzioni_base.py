@@ -2126,6 +2126,64 @@ def purge_data(data_out, ref_field, val_not_allowed):
 def graphrates(dep_times, dep_rates, fu_times, fu_rates, sw_times, sw_rates, boot_tims, boot_rates):
 
 
+    import matplotlib
+    matplotlib.use('TkAgg')
+    
+    from numpy import arange, sin, pi
+    from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
+    from matplotlib.backend_bases import key_press_handler
+    
+    
+    from matplotlib.figure import Figure
+    
+    import Tkinter as Tk
+    
+    root = Tk.Tk()
+    root.wm_title("Plot Bond fitting results")
+    
+    f = Figure(figsize=(5, 4), dpi=100)
+    a = f.add_subplot(111)
+
+    a.plot(dep_times, dep_rates, '-o', label='depositi')
+
+    if (fu_times[0] != 999): a.plot(fu_times, fu_rates, '-o', label='futures')   
+    if (sw_times[0] != 999): a.plot(sw_times, sw_rates,'-o', label='swap')
+    
+    a.plot(boot_tims, boot_rates,'--o', label='bootstrap')
+    
+    a.set_title('Bootstrap curve')
+    a.set_xlabel('Tempo [anni]')
+    a.set_ylabel('Livello tassi')
+    legend = a.legend(loc='upper left', shadow=False)
+    a.grid()
+    
+    #------------------------------------------------------------
+    canvas = FigureCanvasTkAgg(f, master=root)
+    canvas.show()
+    canvas.get_tk_widget().pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
+    
+    toolbar = NavigationToolbar2TkAgg(canvas, root)
+    toolbar.update()
+    canvas._tkcanvas.pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
+
+    def _quit():
+        root.quit()     # stops mainloop
+        root.destroy()  # this is necessary on Windows to prevent
+
+    def on_key_event(event):
+        print('you pressed %s' % event.key)
+        key_press_handler(event, canvas, toolbar)
+
+    canvas.mpl_connect('key_press_event', on_key_event)
+
+    button = Tk.Button(master=root, text='Quit', command=_quit)
+    button.pack(side=Tk.BOTTOM)
+    
+    Tk.mainloop()
+
+
+    
+    """
     g1 = plt.figure()
     plt.plot(dep_times, dep_rates, '-o', label='depositi')
 
@@ -2140,27 +2198,81 @@ def graphrates(dep_times, dep_rates, fu_times, fu_rates, sw_times, sw_rates, boo
     plt.grid()
     plt.legend()
     plt.show()
+    """
     
-    return g1
 
 
 
 def graphdf(dep_times, dep_df, fu_times, fu_df, sw_times, sw_df):
 
-    g1 = plt.figure()
 
-    plt.plot(dep_times, dep_df, 'o-', label='depositi')
-
-    if (fu_times[0] != 999): plt.plot(fu_times, fu_df, 'o-', label='futures')
-    if (sw_times[0] != 999): plt.plot(sw_times, sw_df,'o-', label='swap')
+    import matplotlib
+    matplotlib.use('TkAgg')
+    
+    from numpy import arange, sin, pi
+    from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
+    from matplotlib.backend_bases import key_press_handler
     
     
+    from matplotlib.figure import Figure
+    
+    import Tkinter as Tk
+    
+    root = Tk.Tk()
+    root.wm_title("Plot Bond fitting results")
+    
+    f = Figure(figsize=(5, 4), dpi=100)
+    a = f.add_subplot(111)
+
+
+
+    #g1 = plt.figure()
+
+    a.plot(dep_times, dep_df, 'o-', label='depositi')
+
+    if (fu_times[0] != 999): a.plot(fu_times, fu_df, 'o-', label='futures')
+    if (sw_times[0] != 999): a.plot(sw_times, sw_df,'o-', label='swap')
+    
+    a.set_title('Bootstrap curve')
+    a.set_xlabel('Tempo [anni]')
+    a.set_ylabel('Livello fattore di sconto')
+    legend = a.legend(loc='upper right', shadow=False)
+    a.grid()
+    
+    """
     plt.xlabel('Tempi [anni]')
     plt.ylabel('Livello fattore di sconto')
     plt.grid()
     plt.legend()
     plt.show()
     return g1
+    """
+
+    #------------------------------------------------------------
+    #------------------------------------------------------------
+
+    canvas = FigureCanvasTkAgg(f, master=root)
+    canvas.show()
+    canvas.get_tk_widget().pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
+    
+    toolbar = NavigationToolbar2TkAgg(canvas, root)
+    toolbar.update()
+    canvas._tkcanvas.pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
+
+    def _quit():
+        root.quit()     # stops mainloop
+        root.destroy()  # this is necessary on Windows to prevent
+
+    def on_key_event(event):
+        print('you pressed %s' % event.key)
+        key_press_handler(event, canvas, toolbar)
+
+    canvas.mpl_connect('key_press_event', on_key_event)
+
+    button = Tk.Button(master=root, text='Quit', command=_quit)
+    button.pack(side=Tk.BOTTOM)
+    
+    Tk.mainloop()
 
 
 
@@ -2978,20 +3090,20 @@ def boot3s_elab_v2(data_opt, data_raw):
 
 
     
-    flag_make_graph = 0
+    flag_make_graph = 1
     if (flag_make_graph == 1):
 
-        g1 = graphrates(seg1_times[1:], seg1_values, futures_end_times, futures_rates, swap_times, swap_val, merge_times, merge_rates)
-        g2 = graphdf(seg1_times, seg1_df, futures_times, futures_df, swap_times, swap_discount_factor)
+        graphrates(seg1_times[1:], seg1_values, futures_end_times, futures_rates, swap_times, swap_val, merge_times, merge_rates)
+        graphdf(seg1_times, seg1_df, futures_times, futures_df, swap_times, swap_discount_factor)
 
         '--------------- save graph ------------------------------------------------------------'
 
     flag_save_graph = 0
     if (flag_save_graph == 1):
     
-        
-        g1.savefig('fig/plot_tassi_%s.png' %(ref_date))
-        g2.savefig('fig/plot_discount_%s.png' %(ref_date))
+        print 'AAAAAA'
+        #g1.savefig('fig/plot_tassi_%s.png' %(ref_date))
+        #g2.savefig('fig/plot_discount_%s.png' %(ref_date))
  
     #%-------------------------------------------------------------------------
     #%-------------- SET OUTPUT  ROUTINES -------------------------------------
