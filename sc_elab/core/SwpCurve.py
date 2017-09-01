@@ -1188,7 +1188,6 @@ class CdsCurve(Curve):
         data_raw_swp = data_raw_bench
 
         
-        res = fb.boot_cds(data_opt, data_raw_cds, data_raw_bench, data_raw_swp)
 
         try:
             res = fb.boot_cds(data_opt, data_raw_cds, data_raw_bench, data_raw_swp)

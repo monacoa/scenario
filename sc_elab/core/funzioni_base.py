@@ -3909,7 +3909,62 @@ def    formPytoZC(T, py_values, pay_rate):
     return time_out, zr_out
     
     
+def  plotCDS(cds_times, cds_values,timeOut, pySpread):
+
+    import matplotlib
+    matplotlib.use('TkAgg')
     
+    from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
+    from matplotlib.backend_bases import key_press_handler
+    
+    
+    from matplotlib.figure import Figure
+    
+    import Tkinter as Tk
+    
+    root = Tk.Tk()
+    root.wm_title("Plot Bond fitting results")
+    
+    f = Figure(figsize=(5, 4), dpi=100)
+    a = f.add_subplot(111)
+
+    
+    a.plot(cds_times, cds_values,'o', label='CDS Mkt')
+    a.plot(timeOut, pySpread,'-.k', label='Py Spread')
+    
+    a.set_title('CDS bootstrap results')
+    a.set_xlabel('Tempo [anni]')
+    a.set_ylabel('Livello CDS')
+    a.legend(loc='lower right', shadow=False)
+    a.grid()
+    
+    #------------------------------------------------------------
+    canvas = FigureCanvasTkAgg(f, master=root)
+    canvas.show()
+    canvas.get_tk_widget().pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
+    
+    toolbar = NavigationToolbar2TkAgg(canvas, root)
+    toolbar.update()
+    canvas._tkcanvas.pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
+
+    def _quit():
+        root.quit()     # stops mainloop
+        root.destroy()  # this is necessary on Windows to prevent
+
+    def on_key_event(event):
+        print('you pressed %s' % event.key)
+        key_press_handler(event, canvas, toolbar)
+
+    canvas.mpl_connect('key_press_event', on_key_event)
+
+    button = Tk.Button(master=root, text='Quit', command=_quit)
+    button.pack(side=Tk.BOTTOM)
+    
+    Tk.mainloop()
+
+
+
+
 
 
 def boot_cds(opt_dict, raw_data, bench_data, swap_data):
@@ -4123,7 +4178,14 @@ def boot_cds(opt_dict, raw_data, bench_data, swap_data):
     marg_d_n = np.insert(marg_d, 0, 0)
 
     #dumpDataOnFile(cds_times_n, marg_d_n, fileOutMDefault)
+    
+    print 'AAAA'
+    
+    plotCDS(cds_times, cds_values,timeOut, pySpread) 
 
+    #------ set up Output---------------------
+
+    output_data['outputTimes']     = timeOut
     output_data['outputDates']     = dateOut
     output_data['zcSpread']        = zcSpread
     output_data['pySpread']        = pySpread
@@ -4134,7 +4196,6 @@ def boot_cds(opt_dict, raw_data, bench_data, swap_data):
     return output_data     
     
 
-    #------ set up Output---------------------
 
 
 
