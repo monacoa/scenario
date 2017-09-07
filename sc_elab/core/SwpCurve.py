@@ -1190,7 +1190,10 @@ class CdsCurve(Curve):
         
 
         try:
-            res = fb.boot_cds(data_opt, data_raw_cds, data_raw_bench, data_raw_swp)
+            
+            import funzioni_boot_cds as f_cds
+            
+            res = f_cds.boot_cds(data_opt, data_raw_cds, data_raw_bench, data_raw_swp)
             #res = fb.boot3s_elab_v2(data_opt, raw_data)
         except ValueError as ve:
             from Tkinter import *
