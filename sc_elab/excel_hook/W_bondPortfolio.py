@@ -915,22 +915,11 @@ class  W_boot_opt(LabelFrame):
             w1.grid(row=0, column=1)
             w1.config(width=30)
             
-            #fileMenu = Menu(self)
-            
-            #w1.add_cascade(label="File", menu=fileMenu)
-
-            #T7 = Label(self,height=1, width=30, text = "Model evaluation:").grid(row=0, sticky = "e")
-            #self.variable2 = StringVar(self)
-            #self.variable2.set("(0) Linear")  # default value
-            #w7 = OptionMenu(self, self.variable7,  "(0) RMV", "(1) RFV")
-            #w7.grid(row=0, column=1)
-            #w7.config(width=30)
-            
             
             T6 = Label(self, height=1, width=30, text="Risk free interpolation model:").grid(row=1, sticky="e")
             self.variable6 = StringVar(self)
             self.variable6.set("(0) Linear")  # default value
-            w6 = OptionMenu(self, self.variable6, "(0) LIN", "(1) AVD", "(2) SVE", "(3) CIR", "(4) NS")
+            w6 = OptionMenu(self, self.variable6, "(0) LIN", "(1) AVD", "(2) SVE", "(4) NS")
             w6.grid(row=1, column=1)
             w6.config(width=30)
 

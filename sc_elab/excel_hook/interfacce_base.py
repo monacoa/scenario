@@ -554,9 +554,9 @@ def bond_fitting_from_xls(control):
     #print 'data_zc_infl: ', data_zc_infl
     #print 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
     
-    dictPortfolio_xls = portfolio_xl.portfolio_anag
+    #dictPortfolio_xls = portfolio_xl.portfolio_anag
 
-    print 'dictPortfolio_xls: ', dictPortfolio_xls
+    #print 'dictPortfolio_xls: ', dictPortfolio_xls
     
     #print 'dictPortfolio: ', dictPortfolio
     

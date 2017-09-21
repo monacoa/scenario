@@ -172,7 +172,8 @@ class  W_boot_opt(LabelFrame):
             T7 = Label(self, height=1, width=30, text="Bootstrap Method for HR:").grid(row=2, sticky="e")
             self.variable7 = StringVar(self)
             self.variable7.set("(0) Constant Hazard Rate")  # default value
-            w7 = OptionMenu(self, self.variable7, "(0) Constant Hazard Rate", "(0) Linear Credit spread")
+            #w7 = OptionMenu(self, self.variable7, "(0) Constant Hazard Rate", "(0) Linear Credit spread")
+            w7 = OptionMenu(self, self.variable7, "(0) Constant Hazard Rate")
             w7.grid(row=2, column=1)
             w7.config(width=30)
             # ---
