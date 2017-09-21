@@ -262,6 +262,8 @@ def fitting_from_xls(control):
     opt_dict['opt_fwd_tenor']   = (str(W.new_window.new_window.variable2.get()).strip(""))[1]
     opt_dict['opt_path_graph']  =  W.new_window.new_window.variable5.get()
     opt_dict['fit_type']        = fit_type
+    
+    opt_dict['MakeGraph'] = True
 
     opt_dict['bound_min_sve'] = []
     opt_dict['bound_max_sve'] = []

@@ -16,7 +16,9 @@ from sc_elab.core.mdates import busdayrule
 from sc_elab.core.mdates import dateutils
 
 
-from Tkinter import *
+#from Tkinter import *
+import Tkinter as Tk
+
 import tkMessageBox
 
 import datetime
@@ -689,7 +691,7 @@ def fromXLSToBondFittingPortfolio(dict_start):
 				
 			if (dict_out[isin_Tmp]['emission date'] == None):
 
-				root = Tk()
+				root = Tk.Tk()
 				root.withdraw()
 				
 				msg0 = "Data emissione non valorizzata correttamente!!" 
@@ -703,7 +705,7 @@ def fromXLSToBondFittingPortfolio(dict_start):
 			
 			except:
 
-				root = Tk()
+				root = Tk.Tk()
 				root.withdraw()
 				
 				msg0 = "Cedola in corso non valorizzata correttamente!!" 
@@ -2489,14 +2491,12 @@ def	plotResults(model_bond, time_ref, sw_rf, sw_spread, sw_ry, list_bond_times, 
 	import matplotlib
 	matplotlib.use('TkAgg')
 	
-	from numpy import arange, sin, pi
 	from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
 	from matplotlib.backend_bases import key_press_handler
 	
 	
 	from matplotlib.figure import Figure
 	
-	import Tkinter as Tk
 	
 	root = Tk.Tk()
 	root.wm_title("Plot Bond fitting results")
@@ -2529,8 +2529,6 @@ def	plotResults(model_bond, time_ref, sw_rf, sw_spread, sw_ry, list_bond_times, 
 		a.plot(list_bond_times, list_opt_clean_prices_n, 'x', label = 'Fit prices')
 		a.plot(list_bond_times, list_mkt_clean_prices_n, 'o', label = 'MKT prices')
 		
-		print 'list_opt_clean_prices: ', list_opt_clean_prices_n
-		print 'list_mkt_clean_prices: ', list_mkt_clean_prices_n
 
 
 		a.set_title('Fitting clean bond prices using %s model' %(model_bond) )
@@ -2541,15 +2539,19 @@ def	plotResults(model_bond, time_ref, sw_rf, sw_spread, sw_ry, list_bond_times, 
 
 	#plt.show()
 	
-
+	
 	canvas = FigureCanvasTkAgg(f, master=root)
+	
+	
 	canvas.show()
+	
+	
 	canvas.get_tk_widget().pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
 	
 	toolbar = NavigationToolbar2TkAgg(canvas, root)
 	toolbar.update()
 	canvas._tkcanvas.pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
-
+	
 
 	def on_key_event(event):
 		print('you pressed %s' % event.key)
@@ -2591,11 +2593,11 @@ def chk_inflatio_ratio(dictPortfolio, date_ref, ts_infl_dates, ts_infl_values):
 		
 		else:
 			
-			from Tkinter import *
+			#from Tkinter import *
 			import tkMessageBox
 			
 			# significa che ho intercettato un errore!
-			root = Tk()
+			root = Tk.Tk()
 			root.withdraw()
 			msg0 = "Inflation ratio non coerente con i nostri dati storici sull'inflazione" 
 			tkMessageBox.showinfo("Attenzione!!", msg0)

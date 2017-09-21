@@ -659,21 +659,80 @@ def chk_graph(mkt_times, mkt_values, model_type, dict_model_par):
 
     mdl_values = makeRatesFromModel(mkt_times, mkt_values, dict_model_par, target_times, model_type)
         
+   
+
+    import matplotlib
+    matplotlib.use('TkAgg')
     
+    from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
+    from matplotlib.backend_bases import key_press_handler
+    
+    
+    from matplotlib.figure import Figure
+    
+    import Tkinter as Tk
+
+    root = Tk.Tk()
+    root.wm_title("Plot Bond fitting results")
+    
+    f = Figure(figsize=(5, 4), dpi=100)
+    a = f.add_subplot(111)
+
+
+    a.plot(mkt_times, mkt_values, 'o', label = 'market')
+    a.plot(target_times, mdl_values, '-', label = 'model')
+        
+    
+
+    a.set_title('Fitting via %s model' %(modelRef) )
+    a.set_xlabel('Tempi [anni]')
+    a.set_ylabel('Livello tassi zc')
+    legend = a.legend(loc='upper left', shadow=False)
+    
+    
+    #plt.show()
+    
+    
+ 
     #print 'mdl_values: ', mdl_values
     
-    plt.plot(mkt_times, mkt_values, 'o', label='market')
-    plt.plot(target_times, mdl_values, '-', label='model')
+    #plt.plot(mkt_times, mkt_values, 'o', label='market')
+    #plt.plot(target_times, mdl_values, '-', label='model')
 
+    
+    """
     plt.xlabel('Tempi [anni]')
     plt.ylabel('Livello tassi zc')
     plt.title('Fitting via %s model' %(modelRef))
 
     plt.legend()
+    
+  
     plt.show()
+    """
 
+    canvas = FigureCanvasTkAgg(f, master=root)
+    canvas.show()
+    canvas.get_tk_widget().pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
+    
+    toolbar = NavigationToolbar2TkAgg(canvas, root)
+    toolbar.update()
+    canvas._tkcanvas.pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
 
+    def _quit():
+        root.quit()     # stops mainloop
+        root.destroy()  # this is necessary on Windows to prevent
 
+    def on_key_event(event):
+        print('you pressed %s' % event.key)
+        key_press_handler(event, canvas, toolbar)
+
+    canvas.mpl_connect('key_press_event', on_key_event)
+
+    button = Tk.Button(master=root, text='Quit', command=_quit)
+    button.pack(side=Tk.BOTTOM)
+    
+    Tk.mainloop()
 
 def  fitting(c_dates, c_values, opt_dict):
     
@@ -2135,8 +2194,7 @@ def graphrates(dep_times, dep_rates, fu_times, fu_rates, sw_times, sw_rates, boo
     
     
     from matplotlib.figure import Figure
-    
-    import Tkinter as Tk
+
     
     root = Tk.Tk()
     root.wm_title("Plot Bond fitting results")

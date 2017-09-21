@@ -525,7 +525,7 @@ class BootstrappedCurve(Curve):
         
         c_rates = np.array(c_rates)
         c_rates = c_rates/100.0
-
+        
         return fb.fitting(c_dates, c_rates, optDict)
 
 
