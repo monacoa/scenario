@@ -908,6 +908,10 @@ class CdsCurve(Curve):
         c_a.execute(qry0)
         res = c_a.fetchall()
         
+        print '----------------------------'     
+        print 'qry0: ', qry0
+        print 'res: ', res
+        
         if len(res) != 0:
             code_curve = res[0][0]
         else:
@@ -918,6 +922,12 @@ class CdsCurve(Curve):
 
         c_a.execute(qry1)
         res = c_a.fetchall()
+        
+        print '----------------------------'        
+        print 'qry1: ', qry1
+        print 'res1: ', res
+        
+        
         #print 'res: ', res
         
         valueList = []
@@ -959,9 +969,12 @@ class CdsCurve(Curve):
             
         
         """  %(fonte_dato, quotazioni, tipo_scarico, ref_date, valuta, tipo_modello, codeSeg, SS1, SS2)
-        #print qry2
         c_a.execute(qry2)
         res = c_a.fetchall()
+
+
+        print 'qry2: ', qry2
+        print 'res: ', res
 
         if len(res) != 0:
             codice_modello = res[0][0]
@@ -991,6 +1004,9 @@ class CdsCurve(Curve):
             parTmp = res[i][0]
             mdl_prms_list.append(parTmp)
         
+        print '----------------------------'
+        print 'qry2: ', qry3
+        print 'res3: ', res
         
         prms_dict = fb.packModelPrms(tipo_modello, self.bench_dates, mdl_prms_list)
         

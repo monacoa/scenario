@@ -221,7 +221,7 @@ def saveParmsOnDB(curve, cursor):
             qry2 += sep + "('%s', '%d', '%.8f')"%(curve.getCurveCode(), counter, value )
             counter += 1
             sep = ","
-    #---
+    
 
     print qry2
     cursor.execute(qry2)
@@ -257,10 +257,10 @@ def saveInterpolationParmsOnDb(cc):
     res = saveParmsOnDB(cc, c)
     connection.commit()
     if not res:
-        msg = "Something's wrong saving parms..... SEPPUKU!!!!!"
+        msg = "Something's wrong saving parms.....!"
         tkMessageBox.showinfo("x@!#!", msg)
     else:
-        msg = "Fitting results are on DB, well done Comollis!"
+        msg = "Fitting results are on DB!"
         tkMessageBox.showinfo("YES WE CAN!", msg)
     connection.close()
     root2.destroy()

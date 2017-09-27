@@ -168,7 +168,7 @@ def writeFittingResSVE(xla, s, r, Attributi, res):
     xla.Cells(topLeftRow, topLeftCol+5).HorizontalAlignment = const.xlCenter
 
 def writeFittingResNS(xla, s, r, Attributi, res):
-    text = "PIS" + Attributi['Currency'] + Attributi['Return'] +"BLM" + str(Attributi['Date Ref'])[8:10] + str(Attributi['Date Ref'])[5:7] + str( Attributi['Date Ref'])[2:4] + "_" + Attributi['Segms']
+    text = "PIN" + Attributi['Currency'] + Attributi['Return'] +"BLM" + str(Attributi['Date Ref'])[8:10] + str(Attributi['Date Ref'])[5:7] + str( Attributi['Date Ref'])[2:4] + "_" + Attributi['Segms']
     ra = intestazioneSwapCurveSegmenti(xla, "", r, Attributi, nCols=2, text = text)
     r = s.Range(ra)
 
@@ -405,7 +405,7 @@ def readIntestazioneFitting(xla , r , cc):
 
 def readParmsNames(xla , r , cc):
     code = (cc.getCurveCode())[2]
-    if ((code.upper() == 'S') or (code.upper() == 'C')) : offset = 0
+    if ((code.upper() == 'S') or (code.upper() == 'C') or (code.upper() == 'N')) : offset = 0
     else                                                : offset = 1
     rp = xla.Range(xla.Cells(r.Row, r.Column+offset), xla.Cells(r.Row, r.Column+offset))
     print rp.Value, rp.Address
@@ -456,6 +456,7 @@ def readInterpParmsFromXls (xla, range_curve, pos_parms):
         if p_i == pos_parms:  break
 
         if nome_parms[0:3] == "PIL":  distanzaO = 4
+        elif nome_parms[0:3] == "PIN":  distanzaO = 7
         else                       :  distanzaO = 7
 
         rp = xla.Range(xla.Cells(rp.Row, rp.Column + distanzaO), xla.Cells(rp.Row, rp.Column+ distanzaO))

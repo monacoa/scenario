@@ -1029,7 +1029,11 @@ def z_cir(parameters, T):
 	#-------------------------------------------------
 
 
+
 	tmp = B*r0 - A
+	tmp = max(-100, tmp)
+	tmp = min(+100, tmp)
+
 	
 	z = exp (-tmp)
 	
@@ -1294,6 +1298,9 @@ def computeBondPriceFromCF(model_params, data_portfolio, opt_elab, zc_times, zc_
 	
 	LGD       = 1.0 - RR
 	
+	#print 'ISIN_val: ', ISIN_val
+	#print 'CTimes: ', coupon_times
+	
 
 	#----------------------------------------------------------------------------------
 	#------------------------------ START COMPUTATION ---------------------------------
@@ -1351,8 +1358,10 @@ def computeBondPriceFromCF(model_params, data_portfolio, opt_elab, zc_times, zc_
 		c_i   = cf_val[i] 
 
 		
-		
 		if (h_modello == 'CIR'):
+			
+			#print 't_i: ', t_i
+
 			sp_p  = z_cir(model_params, float(t_i))	 	
 		elif (h_modello == 'NS'):
 			sp_p  = z_ns(model_params, float(t_i))	 

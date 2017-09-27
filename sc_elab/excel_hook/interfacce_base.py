@@ -632,7 +632,7 @@ def save_from_xls(control):
         root2 = Tk()
         root2.withdraw()
         if (res):
-            msg = "Bootstrap results are on DB, well done Comollis!"
+            msg = "Bootstrap results are on DB!"
             tkMessageBox.showinfo("YES WE CAN!", msg)
         else:
             ans = tkMessageBox.askquestion("Unable to save Bootstrap results because they're already on DB.", "DELETING... Are You Sure?", icon='warning')
@@ -642,11 +642,11 @@ def save_from_xls(control):
                 print "ora entro in save"
                 r, cd = saveZcDfOnDB(xla, nameSheet, des, pos, DF, ZC)
                 if not r:
-                    msg = "Something's wrong..... SEPPUKU!!!!!"
+                    msg = "Something's wrong!!!!!"
                     tkMessageBox.showinfo("x@!#!", msg)
 
                 else:
-                    msg = "Bootstrap results are on DB, well done Comollis!"
+                    msg = "Bootstrap results are on DB!"
                     tkMessageBox.showinfo("YES WE CAN!", msg)
             else:
                 msg = "Unable to save Bootstrap results because they're already on DB... Please delete IT before!!"
@@ -661,11 +661,13 @@ def save_from_xls(control):
         xla         =  xl_app()
         nameSheet   =  nameSheetBootstrap
         int_curve   =  readInterpolatedCurveFromXls(xla,nameSheet, pos_curve, pos_parms)
+        
+        print 'int_curve: ', int_curve
         # ---
         saveInterpolationParmsOnDb(int_curve)
         # ---
     else:
-        msg = "Unable to save your selection...\n but well done Comollis, anywhere!! \n;)"
+        msg = "Unable to save your selection...!! \n;)"
         tkMessageBox.showinfo("OOOOPS!", msg)
 
 # ==========================================

@@ -1034,9 +1034,9 @@ def packModelPrms(tipo_modello, bench_dates, mdl_prms_list):
             
             prms_dict['Dates']  = [bench_dates[0]]
             prms_dict['const1'] = [mdl_prms_list[0]]
-            prms_dict['beta0']  = [mdl_prms_list[2]]
-            prms_dict['beta1']  = [mdl_prms_list[3]]
-            prms_dict['beta2']  = [mdl_prms_list[4]]
+            prms_dict['beta0']  = [mdl_prms_list[1]]
+            prms_dict['beta1']  = [mdl_prms_list[2]]
+            prms_dict['beta2']  = [mdl_prms_list[3]]
 
         elif (tipo_modello == 'CIR'):
             
@@ -2195,7 +2195,8 @@ def graphrates(dep_times, dep_rates, fu_times, fu_rates, sw_times, sw_rates, boo
     
     from matplotlib.figure import Figure
 
-    
+    import Tkinter as Tk
+
     root = Tk.Tk()
     root.wm_title("Plot Bond fitting results")
     
