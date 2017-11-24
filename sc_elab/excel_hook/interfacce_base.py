@@ -776,7 +776,8 @@ def bootstrap_cds_from_xls(control):
     curve_xl.cds_boot_method    = data_opt['hr_bootMethod']
     curve_xl.rf_interp_type     = data_opt['bench_interp']  
     curve_xl.recovery           = data_opt['RecoveryRate']
-
+    
+    
 
     # -------------- elaborazione ---------------------------
     boot_out     = curve_xl.bootstrap(data_opt)

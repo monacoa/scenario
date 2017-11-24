@@ -995,19 +995,26 @@ def  fitting(c_dates, c_values, opt_dict):
 
 def packModelPrms(tipo_modello, bench_dates, mdl_prms_list):
     
+        
+        
         prms_dict = {}
         par1List  = []
         par2List  = []
+        
         
         bench_dates_list = []
         if (tipo_modello == 'LIN'):
         
             ln = len(bench_dates)
+            indx_start = ln
+
             for i in range(1, ln):
                 
                 dateTmp = bench_dates[i]
-                par1Tmp    = mdl_prms_list[2*(i-1)]
-                par2Tmp    = mdl_prms_list[2*(i-1) + 1]
+
+                par1Tmp    = mdl_prms_list[i]
+                par2Tmp    = mdl_prms_list[indx_start + i]
+
                 bench_dates_list.append(dateTmp)
                 
                 par1Tmp = np.array([par1Tmp])
@@ -3357,8 +3364,18 @@ def fromCurveToSpread(df_bench_values, zc_bench_dates, prms_bench, bench_model, 
     
     prms_risky_for_py      = fitting(py_risky_dates, py_risky_val, fitting_opt_dict)
 
+
+
     py_risky_val_fitted    = makeRatesFromModel(py_risky_times, py_risky_val, prms_risky_for_py, targetTimes, risky_model)
     zc_risk_free           = makeRatesFromModel(zc_bench_times, df_bench_values, prms_bench, targetTimes, bench_model)
+    
+    
+    #for i in range(0, len(zc_risk_free)):
+        
+    #    zc_risk_free[i] = zc_risk_free[i]*100.0
+        
+        
+    #zc_risk_free           = zc_risk_free*100.0
     
     pyFreq = 0.25
     py_risk_free = computePYRates(zc_bench_times, df_bench_values, pyFreq, 0.0, targetTimes)

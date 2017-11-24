@@ -526,6 +526,14 @@ class BootstrappedCurve(Curve):
         c_rates = np.array(c_rates)
         c_rates = c_rates/100.0
         
+        res_out = fb.fitting(c_dates, c_rates, optDict)
+        
+        print 'c_dates: ', c_dates
+        print 'c_rates: ', c_rates
+        print 'optDict: ', optDict
+        print 'res_out: ', res_out
+        print 'XXXXXXXXXXXXXXXXXXXXXXXXXXXX'
+        
         return fb.fitting(c_dates, c_rates, optDict)
 
 
@@ -1154,7 +1162,7 @@ class CdsCurve(Curve):
 
         data_opt['tenor']          = 3 # 
         data_opt['Basis']          = 'ACT/365' #ACT/365
-        data_opt['interp']         = '2' # 
+        data_opt['interp']         = '0' # 
         data_opt['BusConv']        = 'modfollow'
         data_opt['fixingDays']     = 2
         data_opt['compounding']    = 0   #0 = semplice, 1 = composto, 2 = continuo
@@ -1211,6 +1219,7 @@ class CdsCurve(Curve):
             
             res = f_cds.boot_cds(data_opt, data_raw_cds, data_raw_bench, data_raw_swp)
             #res = fb.boot3s_elab_v2(data_opt, raw_data)
+
         except ValueError as ve:
             from Tkinter import *
             import tkMessageBox

@@ -22,19 +22,20 @@ import calendar
 import funzioni_base as fb
 
 
-def set_data_opt_for_cds():
+def set_data_opt_for_cds(data_ref):
 
     # bench_boot_method 
     # interp_method 
     
     opt_dict = {}
 
-    opt_dict['DataRef']        = datetime.date(2005, 12, 31)
+    #opt_dict['DataRef']        = datetime.date(2005, 12, 31)
+    opt_dict['DataRef']        = data_ref
 
     opt_dict['MKT']            = 'de'
     opt_dict['tenor']          = 3 # 
     opt_dict['Basis']          = 'ACT/365' #ACT/365
-    opt_dict['interp']         = '2' # 
+    opt_dict['interp']         = '0' # 
     opt_dict['BusConv']        = 'modfollow'
     opt_dict['fixingDays']     = 2
     opt_dict['compounding']    = 0   #0 = semplice, 1 = composto, 2 = continuo
@@ -47,8 +48,8 @@ def set_data_opt_for_cds():
     opt_dict['opt_path_graph']  =  'C:\\'
 
     #data_opt['hr_bootMethod']  = opt_boot_meth #0 = LCS, 1 = CHR
-    opt_dict['bench_interp']   ='2' #
-    opt_dict['hr_interp']      ='2'
+    opt_dict['bench_interp']   ='0' #
+    opt_dict['hr_interp']      ='0'
     
 
     return opt_dict
