@@ -17,7 +17,7 @@ def getCurvesListFromDb(curve_date, type):
           ( select distinct BloombergTicker from alm.%s %s
           )and Data = '%s'
           ''' %(table, where_clause, c_date_qry)
-    print qry
+    #print qry
     c_data = con.db_data()
     c_data.execute(qry)
     tickers = c_data.fetchall()
@@ -35,18 +35,18 @@ def getCurvesListFromDb(curve_date, type):
             )
           )ORDER BY description
           ''' % tkrs
-    print "qry:", qry
+    #print "qry:", qry
     c_anag.execute(qry)
     res = c_anag.fetchall()
-    print res
+    #print res
     ll = []
     for c in res:
-        print "c", c
+        #print "c", c
         curva = str(c[0])
         id    = int(c[1])
         a =[curva,id]
         ll.append(a)
-        print "ll", ll
+        #print "ll", ll
     con.close()
     return ll
     # -----------
@@ -66,20 +66,20 @@ def getBondListFromDb(bond_date, type):
           ''' %(c_date_qry)
           
           
-    print "qry:", qry
+    #print "qry:", qry
     c_anag.execute(qry)
     res = c_anag.fetchall()
-    print 'risultato qry: ', res
+    #print 'risultato qry: ', res
     ll = []
     k = 0
     for c in res:
-        print "c", c
+        #print "c", c
         bond_des = str(c[0])
         id    = k + 1
         a =[bond_des,id]
         
         ll.append(a)
-        print "ll", ll
+        #print "ll", ll
     con.close()
     return ll
     # -----------
@@ -131,7 +131,7 @@ def getProvidersFromDb (table):
             '''%table
     c.execute(qry)
     res=c.fetchall()
-    print res
+    #print res
     sects = []
     for record in res:
         sects.append(record[0])

@@ -1090,11 +1090,11 @@ def  fitting_with_plot(c_dates, c_values, opt_dict, flag_plot):
 
 
     
-    if (model_type == '0'): # caso lineare
+    if (model_type == '0' or model_type == 'LIN'): # caso lineare
 
         prms_lin = estimate_linear_params(t_mkt, zc_mkt)
         
-    elif (model_type == '1'): # caso AVD
+    elif (model_type == '1' or model_type == 'AVD'): # caso AVD
         
         prms_avd = estimate_avd_params(t_mkt, zc_mkt)
         
@@ -1103,7 +1103,7 @@ def  fitting_with_plot(c_dates, c_values, opt_dict, flag_plot):
         x_bnd = []
         x0 = []
         
-        if (model_type == '2'): # caso SVE
+        if (model_type == '2' or model_type == 'SVE'): # caso SVE
             
             ln_prms = len(opt_dict['bound_min_sve'])
 
@@ -1117,7 +1117,7 @@ def  fitting_with_plot(c_dates, c_values, opt_dict, flag_plot):
                 x0.append(x0Tmp)
 
 
-        if (model_type == '3'): # caso CIR
+        if (model_type == '3' or model_type == 'CIR'): # caso CIR
         
             ln_prms = len(opt_dict['bound_min_cir'])
             
@@ -1130,7 +1130,7 @@ def  fitting_with_plot(c_dates, c_values, opt_dict, flag_plot):
                 x_bnd.append([x_bnd_minTmp, x_bnd_maxTmp])
                 x0.append(x0Tmp)
         
-        if (model_type == '4'): # caso NS
+        if (model_type == '4' or  model_type == 'NS'): # caso NS
         
             ln_prms = len(opt_dict['bound_min_ns'])
             
@@ -1165,7 +1165,7 @@ def  fitting_with_plot(c_dates, c_values, opt_dict, flag_plot):
     """
     
 
-    if (model_type == '0'): # Linear
+    if (model_type == '0' or model_type == 'LIN' ): # Linear
 
         date_prms = []
         a_prms = []
@@ -1192,7 +1192,7 @@ def  fitting_with_plot(c_dates, c_values, opt_dict, flag_plot):
         dict_model_par['b']      = b_prms
         dict_model_par['Dates']  = date_prms
 
-    elif (model_type == '1'): # AVD
+    elif (model_type == '1' or model_type == 'AVD'  ): # AVD
 
         date_prms = []
         a_prms = []
@@ -1231,7 +1231,7 @@ def  fitting_with_plot(c_dates, c_values, opt_dict, flag_plot):
 
         dict_model_par['Dates']  = date_prms
 
-    elif (model_type == '2'): # Svensson
+    elif (model_type == '2' or model_type == 'SVE' ): # Svensson
 
         #dataRef = data_raw['MatDate'][0]
         dataRef = c_dates[0]
@@ -1244,7 +1244,7 @@ def  fitting_with_plot(c_dates, c_values, opt_dict, flag_plot):
         dict_model_par['beta2']  = [res.x[4]]
         dict_model_par['beta3']  = [res.x[5]]
         
-    elif (model_type == '3'): # CIR
+    elif (model_type == '3' or model_type == 'CIR' ): # CIR
 
         #dataRef = data_raw['MatDate'][0]
         dataRef = c_dates[0]
@@ -3364,18 +3364,9 @@ def fromCurveToSpread(df_bench_values, zc_bench_dates, prms_bench, bench_model, 
     
     prms_risky_for_py      = fitting(py_risky_dates, py_risky_val, fitting_opt_dict)
 
-
-
     py_risky_val_fitted    = makeRatesFromModel(py_risky_times, py_risky_val, prms_risky_for_py, targetTimes, risky_model)
     zc_risk_free           = makeRatesFromModel(zc_bench_times, df_bench_values, prms_bench, targetTimes, bench_model)
     
-    
-    #for i in range(0, len(zc_risk_free)):
-        
-    #    zc_risk_free[i] = zc_risk_free[i]*100.0
-        
-        
-    #zc_risk_free           = zc_risk_free*100.0
     
     pyFreq = 0.25
     py_risk_free = computePYRates(zc_bench_times, df_bench_values, pyFreq, 0.0, targetTimes)

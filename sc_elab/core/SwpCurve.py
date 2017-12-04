@@ -367,9 +367,9 @@ class Curve(object):
 
             else:
                 #CSwap1M, CSwap3M, CSwap6M
-                print "segmento:", segm
+                #print "segmento:", segm
                 self.floater_tenor = segm[-2:]
-                print "floater tenor:", self.floater_tenor
+                #print "floater tenor:", self.floater_tenor
 
                 qry = '''
                         SELECT      alm.DProCurve.maturityInt, alm.DProTS_master.%s
@@ -385,10 +385,10 @@ class Curve(object):
 
             c_d.execute(qry)
             res = c_d.fetchall()
-            print "*"*120
-            print qry
-            print res
-            print "*" * 120
+            #print "*"*120
+            #print qry
+            #print res
+            #print "*" * 120
             if ((segm == "CDepositi") or (segm == "CSwap") or (segm == 'CLibor')or (segm == 'CFuture')):
                 s = Segm()
                 s.name = dict_segm[segm]
@@ -527,12 +527,6 @@ class BootstrappedCurve(Curve):
         c_rates = c_rates/100.0
         
         res_out = fb.fitting(c_dates, c_rates, optDict)
-        
-        print 'c_dates: ', c_dates
-        print 'c_rates: ', c_rates
-        print 'optDict: ', optDict
-        print 'res_out: ', res_out
-        print 'XXXXXXXXXXXXXXXXXXXXXXXXXXXX'
         
         return fb.fitting(c_dates, c_rates, optDict)
 
@@ -693,10 +687,10 @@ class CdsCurve(Curve):
         qry = '''
                  SELECT ticker FROM AnagMktObject_D where ID_object ='%s'
               ''' % res[0][0]
-        print qry
+        #print qry
         c_a.execute(qry)
         res = c_a.fetchall()
-        print res
+        #print res
         blm_tckrs_lst_str = ""
         sep = ""
         for record in res:
@@ -717,7 +711,7 @@ class CdsCurve(Curve):
                         DATA = '%s'
                      )
               ''' % (blm_tckrs_lst_str, str(self.ref_date).replace("-",""))
-        print qry
+        #print qry
         c_d.execute(qry)
         res = c_d.fetchall()
         if len(res) <> 1: bbbbbbbbbbbbbbbb
@@ -730,16 +724,16 @@ class CdsCurve(Curve):
         qry = '''
                  SELECT descrizione from ZEmittente where codice_emittente = '%s'
              '''%(code_issuer)
-        print qry
+        #print qry
         c_a.execute(qry)
         self.emittente = c_a.fetchall()[0][0]
-        print "self.emi", self.emittente
+        #print "self.emi", self.emittente
 
         # ---
         qry = '''
                          SELECT descrizione from ZSeniority where codice_seniority = '%s'
                      ''' % (code_sen)
-        print qry
+        #print qry
         c_a.execute(qry)
         self.seniority = c_a.fetchall()[0][0]
 
@@ -752,7 +746,7 @@ class CdsCurve(Curve):
                   descrizione = '%s' 
             '''%self.description
 
-        print qry
+        #print qry
         c_a.execute(qry)
         res             = c_a.fetchall()
         self.code       = res[0][0]
@@ -784,13 +778,13 @@ class CdsCurve(Curve):
                     AND FONTE = '%s'
                     order by date desc
                   '''%(code_issuer, str(self.ref_date), self.sectorProvider)
-            print qry
+            #print qry
             c_a.execute(qry)
             res = c_a.fetchall()
             self.settore = res[0][0]
         #ora converto il settore da codice a descrizione
         qry = ''' SELECT DESCRIZIONE FROM ZSettore WHERE CODICE_SETTORE = '%s' '''%(self.settore)
-        print qry
+        #print qry
         c_a.execute(qry)
         res = c_a.fetchall()
         self.settore = res[0][0]
@@ -804,7 +798,7 @@ class CdsCurve(Curve):
                           order by date desc
                            LIMIT 1
                        ''' % (code_issuer,str(self.ref_date), self.ratingProvider)
-            print qry
+            #print qry
             c_a.execute(qry)
             res = c_a.fetchall()
             if len(res) > 1: zzzzzzzzz
@@ -812,7 +806,7 @@ class CdsCurve(Curve):
 
          # ora converto il settore da codice a descrizione
         qry = ''' SELECT DESCRIZIONE FROM ZRating WHERE CODICE_RATING = '%s' ''' % (self.rating)
-        print qry
+        #print qry
         c_a.execute(qry)
         res = c_a.fetchall()
         self.rating = res[0][0]
@@ -838,7 +832,7 @@ class CdsCurve(Curve):
         else:
             mmmmmmmmmmmmmmmm
 
-        print res
+        #print res
 
         qry = '''
                      SELECT      alm.DProCDS.maturityInt, alm.DProTS_master.%s
@@ -849,25 +843,25 @@ class CdsCurve(Curve):
                      AND         alm.DProCDS.BloombergTicker in (%s)
                      ORDER BY    alm.DProCDS.maturityInt
               ''' % (quotazione, str(self.ref_date).replace("-", ""), blm_tckrs_lst_str)
-        print qry
+        #print qry
         c_d.execute(qry)
         res = c_d.fetchall()
-        print "*" * 120
-        print qry
+        #print "*" * 120
+        #print qry
 
-        print res
+        #print res
 
         for record in res:
-            print "record:", record
+            #print "record:", record
             mat = float(record[0])/360.
             if (mat-int(mat)) < 1.e-8: mat = int(mat)
             tag = str(mat)+"Y"
             val = float(record[1])
-            print mat, tag, val
+            #print mat, tag, val
             self.mats.append(mat)
             self.tags.append(tag)
             self.values.append(val)
-            print self.mats, self.tags, self.values
+            #print self.mats, self.tags, self.values
 
         self.show()
 
@@ -916,9 +910,6 @@ class CdsCurve(Curve):
         c_a.execute(qry0)
         res = c_a.fetchall()
         
-        print '----------------------------'     
-        print 'qry0: ', qry0
-        print 'res: ', res
         
         if len(res) != 0:
             code_curve = res[0][0]
@@ -931,9 +922,6 @@ class CdsCurve(Curve):
         c_a.execute(qry1)
         res = c_a.fetchall()
         
-        print '----------------------------'        
-        print 'qry1: ', qry1
-        print 'res1: ', res
         
         
         #print 'res: ', res
@@ -981,8 +969,6 @@ class CdsCurve(Curve):
         res = c_a.fetchall()
 
 
-        print 'qry2: ', qry2
-        print 'res: ', res
 
         if len(res) != 0:
             codice_modello = res[0][0]
@@ -1012,9 +998,6 @@ class CdsCurve(Curve):
             parTmp = res[i][0]
             mdl_prms_list.append(parTmp)
         
-        print '----------------------------'
-        print 'qry2: ', qry3
-        print 'res3: ', res
         
         prms_dict = fb.packModelPrms(tipo_modello, self.bench_dates, mdl_prms_list)
         

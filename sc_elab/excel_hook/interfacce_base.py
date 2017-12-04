@@ -451,13 +451,14 @@ def bond_fitting_from_xls(control):
         root = Tk()
         root.withdraw()
         
-        print 'curve_rf.ref_date: ', curve_rf.ref_date
+        #print 'curve_rf.ref_date: ', curve_rf.ref_date
         msg0 = "Curva benchmark associata al modello %s non presente alla data del %s, cambia modello o data!!" %(interp_rf_model, curve_rf.ref_date)
         tkMessageBox.showinfo("Attenzione!!", msg0)
 
         root.destroy()
         return
 
+    
     
     data_zc_rf = {}
     data_zc_rf['Model'] = curve_cds.bench_model
@@ -581,6 +582,9 @@ def bond_fitting_from_xls(control):
     
     flag_elab, res_elab = bf.compute_bond_fitting(bf_options_elab, dictPortfolio, data_zc_rf, data_zc_infl, data_ts_infl, x0, x_bnd)
 
+    
+
+    
     if flag_elab == None:
         # significa che ho intercettato un errore!
         root = Tk()

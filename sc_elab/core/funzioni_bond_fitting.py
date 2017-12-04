@@ -482,6 +482,7 @@ def loadModelParams(inputFile):
 		
 		prmsLineTmp  = listInput[i].split("=")
 		
+		#print  prmsLineTmp
 		prmsValueTmp = float(prmsLineTmp[1].strip())
 		prmsNameTmp  = str(prmsLineTmp[0].strip())
 		
@@ -777,6 +778,10 @@ def loadPortfolio_fromFile_v2(inputFile):
 			ytm_Tmp    		= 0.0
 			
 		
+		
+		#print 'line_splitted: ', line_splitted
+		
+		#FQ(999)
 		weight_Tmp    	= float(line_splitted[29])
 		indx_rate_Tmp 	= str(line_splitted[30])
 
@@ -1305,6 +1310,12 @@ def computeBondPriceFromCF(model_params, data_portfolio, opt_elab, zc_times, zc_
 	#----------------------------------------------------------------------------------
 	#------------------------------ START COMPUTATION ---------------------------------
 	#----------------------------------------------------------------------------------
+	
+	
+	#if (ISIN_val == 'XS1689739347'):
+
+	#	print 'AAAA'
+	#	print 'model_params: ', model_params
 
 	#ln_titoli = len(ISIN_val)
 
@@ -1350,6 +1361,8 @@ def computeBondPriceFromCF(model_params, data_portfolio, opt_elab, zc_times, zc_
 		cf_s_rf_vec  = []
 
 
+	
+	#FQ(9988)
 	for i in range(1, ln_b):
 
 
@@ -1369,6 +1382,8 @@ def computeBondPriceFromCF(model_params, data_portfolio, opt_elab, zc_times, zc_
 			sp_p  = z_sve(model_params, float(t_i))	 
 
 		rf_i   = interp_lin(zc_times, zc_rf, float(t_i))
+		
+		
 		z_i_rf = (1.0 + rf_i)**(-t_i)
 
 		#-----------------------------------------------------------------------------
@@ -1442,7 +1457,7 @@ def computeBondPriceFromCF(model_params, data_portfolio, opt_elab, zc_times, zc_
 		"""
 		print 't_i: ', t_i
 		print 'z_i_rf: ', z_i_rf
-		print 'z_infl: ', z_infl
+		#print 'z_infl: ', z_infl
 		print 'z_i_risky: ', z_i_risky
 		print 'c_i: ', c_i
 		print 'price_tmp: ', price_tmp		
@@ -1562,6 +1577,11 @@ def computeBondPriceFromCF(model_params, data_portfolio, opt_elab, zc_times, zc_
 	
 	#clean_price = 100*(price - rateo)
 	
+	#print 
+	
+	
+	#dump_flag = 0
+	
 
 	if (dump_flag == 1):
 	
@@ -1579,7 +1599,9 @@ def computeBondPriceFromCF(model_params, data_portfolio, opt_elab, zc_times, zc_
 			cf_rf_vec.append(zRisky)
 			cf_ry_vec.append(priceTmp)
 
-			output_file = 'dump/' + ISIN_val + '_' + h_modello + '_RMV.txt'
+			#output_file = 'dump/' + ISIN_val + '_' + h_modello + '_RMV_XX.txt'
+			#output_file = 'output_test/bond_fitting_data/dump/' + ISIN_val + '_' + h_modello + '_RMV_XX.txt'
+			output_file = 'output_test/bond_fitting_data/dump/' + ISIN_val + '_' + h_modello + '_RMV_XX.txt'
 
 			
 			dump_vec_rmv(h_modello, model_params, date_vec, t_vec, dt_vec, rf_vec, 
@@ -1687,8 +1709,8 @@ def computeBondCF(data_portfolio, zc_times, zc_rf, rf_prms, rf_model, mkt_ref, d
 		emissionPrice = data_portfolio['emission price']
 		emiDate 	  = data_portfolio['emission date']
 		
-		print 'date_end_val: ', date_end_val
-		print 'emiDate: ', emiDate
+		#print 'date_end_val: ', date_end_val
+		#print 'emiDate: ', emiDate
 		
 		time_zc_gg = (date_end_val - emiDate).days
 		t_rateo_gg = (date_ref - emiDate).days
@@ -1697,7 +1719,8 @@ def computeBondCF(data_portfolio, zc_times, zc_rf, rf_prms, rf_model, mkt_ref, d
 		t_rateo = float(t_rateo_gg)/365.2425
 		rateo   = ((100.0 - emissionPrice)/time_zc)*t_rateo
 
-	coupon_values.append(rateo)	
+	coupon_values.append(rateo)
+	#print 'rateo: ', rateo	
 
 	for i in range(1, ln_b):
 
@@ -1739,6 +1762,8 @@ def computeBondCF(data_portfolio, zc_times, zc_rf, rf_prms, rf_model, mkt_ref, d
 				c_i    = 0.0
 
 		coupon_values.append(c_i)
+		
+	#print 'coupon_values: ', coupon_values
 
 
 	return 	coupon_dates, coupon_times, coupon_values, coupon_dt  	
@@ -1931,11 +1956,11 @@ def	computeTimesDatesRef(opt_elab, dictPtf):
 		
 		if (i<4):
 			timeTmp = float(i*0.5)
+			dateTmp = date_0 + relativedelta(months=int(12*i*0.5))
+			
 		else:
 			timeTmp = i - 2
-
-		
-		dateTmp = date_0 + relativedelta(months=12*i)
+			dateTmp = date_0 + relativedelta(months=12*(i-2))
 		#dateTmp = date_0 + relativedelta(months=12*timeTmp)
 		
 		dd = int(dateTmp.day)
@@ -2026,7 +2051,12 @@ def computePYmodel_rate_n(dict_opt_params, time_ref, freq, LGD, zc_times, zc_rf,
 		
 		h_tmp  = fwd_rate(model_type, dict_opt_params, t_tmp, t_tmp + dt_gg)
 		
-		sp_tmp = z_model(model_type, dict_opt_params, t_tmp)
+		if (t_tmp <= 0.00001):
+			sp_tmp = 1.0
+		else:
+			sp_tmp = z_model(model_type, dict_opt_params, t_tmp)
+			
+		
 		rf_tmp = interp_lin(zc_times, zc_rf, t_tmp)
 
 		"""		
@@ -2061,13 +2091,14 @@ def computePYmodel_rate_n(dict_opt_params, time_ref, freq, LGD, zc_times, zc_rf,
 
 				t_sw_tmp     = dt_swp*(i+1)
 				
-				sp   = z_model(model_type, dict_opt_params, t_sw_tmp)
+				sp     = z_model(model_type, dict_opt_params, t_tmp)
+				sp_i   = z_model(model_type, dict_opt_params, t_sw_tmp)
 
 				rf_i    = interp_lin(zc_times, zc_rf, t_sw_tmp)
 
 				z_rf_i  = 1/(1.0  + rf_i*dt_swp)**i
 
-				z_sp_i  = sp**(LGD)
+				z_sp_i  = sp_i**(LGD)
 				z_ry_i  = z_sp_i*z_rf_i
 
 				sum_ry = sum_ry + z_ry_i
@@ -2140,6 +2171,10 @@ def computePYmodel_rate_n(dict_opt_params, time_ref, freq, LGD, zc_times, zc_rf,
 	sw_ry_vec_n = np.interp(time_ref, time_ref_new, sw_ry_vec)
 	sw_rf_vec_n = np.interp(time_ref, time_ref_new, sw_rf_vec)
 	sw_sp_vec_n = np.interp(time_ref, time_ref_new, sw_sp_vec)
+	
+	if (time_vec_n[0] <= 0.001):
+		sp_vec_n[0] = 1.0
+		
 
 	return sw_ry_vec_n, sw_rf_vec_n, sw_sp_vec_n, z_sp_vec_n, sp_vec_n, h_vec_n, time_vec_n
 	#return sw_ry_vec, sw_rf_vec, sw_sp_vec, z_sp_vec, sp_vec, h_vec, time_vec
@@ -2375,6 +2410,7 @@ def computePortfolioCF(dictPortfolio, opt_elab, zc_times, zc_rf, rf_prms, rf_mod
 
 		isin_tmp = isin_list[i]
 		
+		#print 'isin-tmp: ', isin_tmp
 		coupon_dates, coupon_times, coupon_values, coupon_dt = computeBondCF(dictPortfolio[isin_tmp], zc_times, zc_rf, rf_prms, rf_model, mkt_ref, date_ref, zc_infl_t, zc_infl_val, infl_prms, infl_model)
 		
 
@@ -2785,13 +2821,8 @@ def	compute_bond_fitting(opt_elab, dictPortfolio, data_zc_rf, data_zc_infl, data
 	
 	if (indx_bond =='CPTFEMU'):
 		
-		
-
 		date_ref =	opt_elab['DataRef']
-
-		
 		chk_inflatio_ratio(dictPortfolio, date_ref, ts_infl_dates, ts_infl_values)
-		
 	
 	
 	if (model_bond == 'RFV') or (indx_bond == 'CPTFEMU'):
@@ -2832,12 +2863,25 @@ def	compute_bond_fitting(opt_elab, dictPortfolio, data_zc_rf, data_zc_infl, data
 	time_ref, dateOut = computeTimesDatesRef(opt_elab, dictPortfolio_new)
 	freq = 2.0
 	
+
+	"""
+	print '------- AAAAAAAAAAAAAAA------------'
+	print 'dict_opt_params: ', dict_opt_params
+	print 'opt_elab: ', opt_elab
+	print 'zc_times: ', zc_times
+	print 'zc_rf: ', zc_rf
+	print 'rf_prms: ', rf_prms
+	print 'rf_model: ', rf_model
+	print '-------- BBBBBBBBBBBBBB-------------'
+	"""
+	
 	
 	opt_clean_prices, opt_dirty_prices, dict_bond_times     = computePortfolioPricesFromCF(dict_opt_params, dictPortfolio_new, opt_elab, zc_times, zc_rf, rf_prms, rf_model, zc_infl_t, zc_infl_val, infl_prms, infl_model, ts_infl_dates, ts_infl_values)
 	
 	ytm_mkt   = computePortfolioYTM(dictPortfolio, refDate)
 	
 	sw_ry, sw_rf, sw_spread, z_spread, surv, hr_values, sw_times = computePYmodel_rate_n(dict_opt_params, time_ref, freq, LGD, zc_times, zc_rf, h_model)
+	
 	
 	list_bond_times, list_ytm_mkt, list_ytm_model, list_opt_clean_prices, list_mkt_clean_prices = set_var_out(dictPortfolio, zc_times, zc_rf, h_model, dict_opt_params, LGD, sw_ry, sw_times, ytm_mkt, dict_bond_times, opt_clean_prices)
 	
@@ -2884,6 +2928,7 @@ def	compute_bond_fitting(opt_elab, dictPortfolio, data_zc_rf, data_zc_infl, data
 	output_data['opt_clean_prices'] = list_opt_clean_prices
 	output_data['mkt_clean_prices'] = list_mkt_clean_prices
 	output_data['dict_opt_prms'] 	= dict_opt_params
+	
 	
 	#--------------------------------------------------------------------------------------------------------------
 	

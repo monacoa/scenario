@@ -477,19 +477,6 @@ def writeBondFittingRes1OnXls(crv, xla, str_boot_opt, res, codice_curva):
         , "Modello di valutazione" : crv.BondModel
         }
 
-    """
-    Attributi_2 = \
-        { "Data riferimento"        : crv.ref_date
-        , "Descrizione"     : crv.description
-        , "Valuta"        : crv.curr
-        , "Tipo nodo"     : "Marginal Default Probability"
-        , "Emittente"     : crv.emittente
-        , "Recovery rate" : crv.recoveryRate
-        , "Rating" : crv.rating
-        , "Modello interpolante" : crv.HRateModel
-        , "Tipo Bootstrap Hazard Rate" : crv.BondModel
-        }
-    """
     Attributi_2 = \
         { "Data riferimento"        : crv.ref_date
         , "Descrizione"     : crv.description
