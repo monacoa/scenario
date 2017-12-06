@@ -2551,7 +2551,9 @@ def	plotResults(model_bond, time_ref, sw_rf, sw_spread, sw_ry, list_bond_times, 
 
 	#flag_plot_price = False
 	
-	if (len(list_bond_times) < 2): flag_plot_price = True
+	if (len(list_bond_times) < 2): 
+		flag_plot_price = True
+		flag_single_bond = True
 	
 	if(model_bond == 'RMV' and flag_plot_price != True):
 	#if(model_bond == 'RMV'):
@@ -2567,6 +2569,7 @@ def	plotResults(model_bond, time_ref, sw_rf, sw_spread, sw_ry, list_bond_times, 
 		#a.legend(['YTM mkt', 'SW rf', 'SW spread', 'SW risky'], loc = 0)
 		a.set_xlabel('Maturities [years]')
 		a.set_ylabel('YTM')
+		
 		legend = a.legend(loc='upper left', shadow=False)
 		
 	else:
@@ -2580,6 +2583,10 @@ def	plotResults(model_bond, time_ref, sw_rf, sw_spread, sw_ry, list_bond_times, 
 		a.set_xlabel('Maturities [years]')
 		a.set_ylabel('Prices')
 		legend = a.legend(loc='upper left', shadow=False)
+		
+		
+		if (flag_single_bond == True): 
+			a.axes.set_ylim([10,200])
 	
 
 	#plt.show()
