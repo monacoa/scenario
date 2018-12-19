@@ -279,7 +279,7 @@ class Curve(object):
         c_a = con.db_data()
         #qry = "SELECT BloombergTicker FROM test_db_mkt_data.dprocurve where Currency = 'EUR' and (TipoDato = 'CLibor' or  TipoDato = 'CSwap' or TipoDato = 'CDeopositi') and contributor = 'MTA'" 
         #qry = "SELECT distinct BloombergTicker FROM test_db_mkt_data.dprocurve where (TipoDato = 'CLibor' or  TipoDato = 'CSwap' or TipoDato = 'CDeopositi' or TipoDato = 'CFuture')" 
-        qry = "SELECT distinct BloombergTicker FROM test_db_mkt_data.dprocurve where (TipoDato = 'CLibor' or  TipoDato = 'CSwap' or TipoDato = 'CDeopositi')" 
+        qry = "SELECT distinct BloombergTicker FROM dprocurve where (TipoDato = 'CLibor' or  TipoDato = 'CSwap' or TipoDato = 'CDeopositi')"
 
         #SELECT BloombergTicker FROM test_db_mkt_data.dprocurve where Currency = 'EUR' and (TipoDato = 'CLibor' or  TipoDato = 'CSwap' or TipoDato = 'CDeopositi') and contributor = 'MTA';
 

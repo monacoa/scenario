@@ -1,13 +1,8 @@
-from pyxll import xl_func, xl_app, xl_menu, xl_macro, xlcAlert
+from pyxll import xl_func, xl_app
 from xls_utils import *
-from Tkinter import *
-import tkMessageBox
-from db_qrys import getCurvesListFromDb, getDatesListFromDb
 from sc_elab.core.SwpCurve import *
 from sc_elab.core.BondPortfolio import *
 
-from win32com.client import constants as const
-from sc_elab.core import funzioni_base as fb
 from sc_elab.core import funzioni_bond_fitting as bf
 
 
@@ -18,13 +13,13 @@ from sc_elab.core import funzioni_bond_fitting as bf
 # =======================================================================================================================
 
 from W_swapCurve import W_curveType,W_curveDate
-from W_bondPortfolio import W_bondType, W_bondDate, W_setParameters, W_bondFitting
+from W_bondPortfolio import W_bondDate, W_bondFitting
 
 from xls_swapCurve import writeCurveOnXls
 from xls_bondPortfolio import writePortfoliOnXls,readPortfolioFromXls
 
 from DEF_intef import nameSheetCurve, nameSheetCDS, nameSheetBond
-import sc_elab
+
 
 @xl_func
 def load_swap_curve_from_db(control):
@@ -157,15 +152,14 @@ def load_bond_data_from_db(control):
 # punto di ingresso per bootstrap curve SWAP
 #=======================================================================================================================
 
-from xls_bootCurve import writeBootstrapResOnXls
-from xls_bootCurve import writeCDSBootstrapRes1OnXls, writeCDSBootstrapRes2OnXls
+from xls_bootCurve import writeBootstrapResOnXls,writeCDSBootstrapRes1OnXls, writeCDSBootstrapRes2OnXls
 from xls_swapCurve import readCurveFromXls
 
 from xls_bondPortfolio import writeBondFittingRes1OnXls, writeBondFittingRes2OnXls, writeBondFittingRes3OnXls, writeBondFittingRes4OnXls
 
 from W_bootstrapCurve import W_bootstrapSelection
 
-import ctypes
+
 @xl_func
 def bootstrap_from_xls(control):
 
@@ -238,11 +232,6 @@ def bootstrap_from_xls(control):
 #=======================================================================================================================
 # punto di ingresso per fitting
 #=======================================================================================================================
-
-from W_fittingCurve import W_fittingType
-from xls_bootCurve import readBootstrappedCurveFromXls
-from xls_fittingCurve import writeFittingBootResOnXls, writeFittingPyResOnXls
-from DEF_intef import nameSheetBootstrap
 
 @xl_func
 def fitting_from_xls(control):
@@ -800,4 +789,88 @@ def bootstrap_cds_from_xls(control):
     writeCDSBootstrapRes1OnXls(curve_xl, xla, str_boot_opt, boot_out, codice_curva)
     writeCDSBootstrapRes2OnXls(curve_xl, xla, str_boot_opt, boot_out, codice_curva)
     
-   
+
+# ==========================================
+# punto d'ingresso per calibrazione
+# ==========================================
+
+from sc_elab.excel_hook.W_calibration import W_calib_models
+from scipy.optimize import minimize
+import matplotlib.pyplot as plt
+from sc_elab.core.funzioni_calibrazioni import *
+from sc_elab.excel_hook.xls_Calibration import *
+
+@xl_func
+def calibration_from_xls(control):
+
+    nameSheet = nameSheetCalib
+
+    xla = xl_app()
+    book = xla.ActiveWorkbook
+
+    root = Tk()
+
+    # -------------- controllo l'esistenza del foglio di input CalibData ----------------
+    try:
+        s = book.Sheets(nameSheet)
+        s.Activate()
+    except:
+        msg = "Missing input sheet(%s) for Calibration in your workbook... \nNothing to do for me!" %nameSheetCalib
+        tkMessageBox.showinfo("Warning!", msg)
+        root.destroy()
+        return
+    # -------------- apro la finestra di input della scelta  ----------------------------
+
+    wbName = str(book.FullName)
+    book.Save()
+
+    W = W_calib_models(master = root, nameWorkbook= wbName, nameWorksheet=nameSheet)
+    root.mainloop()
+
+    W1 = W.newWindow
+    loss_function_type = W1.loss_function_type.get()
+    model_dict = W1.param_dict
+
+    model = W.model.get()
+    type_data = W1.set_mkt_ts.get()
+
+    if type_data == 'MKT':
+
+        if (model in ['CIR','VSCK']):
+            mkt_value, mkt_to_fit, type_cap = preProcessignCurve(W1.CurveChosen)
+
+            x0_m  = []
+            x_bnd = []
+
+            l_bound = []
+            h_bound = []
+
+            for p_name in W1.params_names:
+                x0_m.append(float(W1.param_dict[p_name]['sv']))
+                x_bnd.append([float(W1.param_dict[p_name]['min']), float(W1.param_dict[p_name]['max'])])
+                l_bound.append(float(W1.param_dict[p_name]['min']))
+                h_bound.append(float(W1.param_dict[p_name]['max']))
+
+            if W.model.get() == 'CIR':
+                ff = minimize(loss_zc_model_cir, args = (mkt_to_fit , W1.loss_function_type.get()), x0 = x0_m, method='TNC', bounds=x_bnd)
+            else:
+                ff = minimize(loss_zc_model_vsck, args = (mkt_to_fit , W1.loss_function_type.get()), x0 = x0_m, method='TNC', bounds=x_bnd)
+
+            list_model_params_opt, mkt_value, chi2 = set_output_calibration(ff=ff, mkt_value=mkt_value,type_cap=type_cap)
+
+            # scrivo su foglio Excel
+            writeCalibrationResOnXls(model = model, W_class = W1, xla = xla, chi2 = chi2, opt_dict = list_model_params_opt, res = mkt_value)
+
+            # produco il grafico
+            mkt_value.set_index('TIME',inplace=True)
+            mkt_value.plot(style=['o', '-'])
+            plt.title('Calibration results')
+            plt.xlabel('Time')
+            plt.ylabel('Rate')
+            plt.show()
+
+        if W1.NameOption.get() != "":
+            opt_total = W1.OptionChosen
+
+    else:
+        ts_total = W1.TSChosen

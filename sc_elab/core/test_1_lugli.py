@@ -1488,7 +1488,7 @@ def boot3s_elab(data_opt, data_raw):
                 nz  = find_indx(id_swt_n, times_tmp) #% indice del vettore times_out corrispondente a n anni
                 mz  = find_indx(id_swt_m, times_tmp) #% indice del vettore times_out corrispondente a m anni
     
-                #!!!index_stop = find_index_p(z_out~=0, 1, 'last'); #% selezione dell'(n-1)-mo indice
+                #!!!index_sself = find_index_p(z_out~=0, 1, 'last'); #% selezione dell'(n-1)-mo indice
                 fid_cond = z_out != 0
                 index_stop = find_indx_p(False, fid_cond); #% selezione dell'(n-1)-mo indice
     

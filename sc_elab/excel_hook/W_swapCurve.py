@@ -151,7 +151,7 @@ class W_settoreRatingSelection(LabelFrame):
     def __init__(self, parent = None, type = "CDS"):
         if parent:
             self.master = parent.master
-            parent.close_window(type)
+            parent.destroy()
         LabelFrame.__init__(self, self.master)
         self.config(text="Provider selection:")
         # ---

@@ -17,5 +17,7 @@ nameSheetBondFittig    = 'Bond fitting'
 nameSheetResBondFittig    = 'Results Bond fitting'
 nameSheetBondOptPrms = 'Opt prms'
 
-nameSheetCDS     = 'CDS'
+nameSheetCDS      = 'CDS'
 nameSheetBond     = 'Bond data'
+nameSheetCalib    = 'Calib data'
+nameSheetCalibRes = 'Calib result'
