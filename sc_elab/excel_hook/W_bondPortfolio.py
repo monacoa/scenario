@@ -61,7 +61,10 @@ class W_bondDate(LabelFrame):
         self.mylist = Listbox(self, yscrollcommand=self.bar.set)
         dl = getDatesListFromDb(type)
         for d in dl:
-           date = d.date()
+           try:
+               date = d.date()
+           except:
+               date = d
            self.mylist.insert(END, str(date))
 
         self.mylist.pack(side=LEFT, fill='y')
