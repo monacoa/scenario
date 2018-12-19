@@ -29,8 +29,9 @@ import sc_elab
 @xl_func
 def load_swap_curve_from_db(control):
     root = Tk()
-    app  = W_curveType(root)
+    app = W_curveType(root)
     root.mainloop()
+
 
     curve_des = app.new_window.new_window.curve
     curve_date= app.new_window.date
@@ -800,4 +801,57 @@ def bootstrap_cds_from_xls(control):
     writeCDSBootstrapRes1OnXls(curve_xl, xla, str_boot_opt, boot_out, codice_curva)
     writeCDSBootstrapRes2OnXls(curve_xl, xla, str_boot_opt, boot_out, codice_curva)
     
-   
+
+# ==========================================
+# punto d'ingresso per calibrazione
+# ==========================================
+
+
+from loading_data import test_load_nuovi_dati
+
+
+@xl_func
+def caricamento_dati(control):
+
+    xla = xl_app()
+    book = xla.ActiveWorkbook
+
+    wbName = str(book.FullName)
+    book.Save()
+
+    #pathwb = 'C:/Users/scalambrinm/workspace/scenario/sc_elab/core/input/files_caricamento_datastream/Curva_Depositi_EUR_ICAP.xlsx'
+    test_load_nuovi_dati(wbName)
+
+
+from swaption_test_scrittura_2 import write_matrix
+#from swaption_scrittura_lista_1  import write_matrix
+from DEF_intef import nameSheetScaricoSwaption
+### test per matrice swaption
+
+@xl_func
+def test_matrix(control):
+
+    nameSheet = nameSheetScaricoSwaption
+    xla = xl_app()
+    book = xla.ActiveWorkbook
+
+
+    # -------------- controllo l'esistenza del foglio di input  ----------------
+    try:
+        s = book.Sheets(nameSheet)
+        s.Activate()
+    except:
+        root = Tk()
+        msg = "Missing input sheet(%s) \nNothing to do for me!" % nameSheetScaricoSwaption
+        tkMessageBox.showinfo("Warning!", msg)
+        root.destroy()
+        return
+    # -------------- apro la finestra di input della scelta  ----------------------------
+
+    wbName = str(book.FullName)
+    book.Save()
+    write_matrix(wbName,xla)
+
+
+
+
