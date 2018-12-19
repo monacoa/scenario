@@ -1,6 +1,7 @@
 
 from connection import *
 
+"""
 def getCurvesListFromDb(curve_date, type):
 
     if type == "SWP":
@@ -13,8 +14,8 @@ def getCurvesListFromDb(curve_date, type):
     c_date_qry = str(curve_date).replace("-", "")
     con = Connection()
     qry = '''
-          select distinct BloombergTicker FROM alm.DProTS_master where BloombergTicker in
-          ( select distinct BloombergTicker from alm.%s %s
+          select distinct BloombergTicker FROM DProTS_master where BloombergTicker in
+          ( select distinct BloombergTicker from %s %s
           )and Data = '%s'
           ''' %(table, where_clause, c_date_qry)
     #print qry
@@ -47,9 +48,63 @@ def getCurvesListFromDb(curve_date, type):
         a =[curva,id]
         ll.append(a)
         #print "ll", ll
-    con.close()
+    #con.close()
     return ll
     # -----------
+"""
+
+def getCurvesListFromDb(curve_date, type):
+
+    if type == "SWP":
+        table        = "DProCurve"
+        where_clause = " where TipoDato in ('CDepositi', 'CSwap', 'CLibor', 'CFuture') "
+    elif type == "CDS":
+        table = "DProCDS"
+        where_clause = ""
+
+    c_date_qry = str(curve_date).replace("-", "")
+    con = Connection()
+    qry = '''
+          select distinct BloombergTicker FROM DProTS_master where BloombergTicker in
+          ( select distinct BloombergTicker from %s %s
+          )and Data = '%s'
+          ''' %(table, where_clause, c_date_qry)
+
+    c_data = con.db_data()
+    c_data.execute(qry)
+    tickers = c_data.fetchall()
+    tkrs = ""
+    sep  = ""
+    for tic in tickers:
+        tkrs += sep + "'" + tic[0] + "'"
+        sep = ","
+    #================
+    
+    
+    c_anag = con.db_data()
+    qry = '''
+          SELECT DISTINCT Descrizione FROM %s WHERE BloombergTicker in
+          (%s)
+          ORDER BY Descrizione
+          ''' % (table, tkrs)
+
+    c_anag.execute(qry)
+    res = c_anag.fetchall()
+
+    ll = []
+    for c in res:
+        curva = str(c[0])
+        #id    = int(c[1])
+        #a =[curva,id]
+        a =[curva]
+
+        ll.append(a)
+        #print "ll", ll
+    #con.close()
+    return ll
+    # -----------
+
+
 
 def getBondListFromDb(bond_date, type):
 
@@ -62,7 +117,7 @@ def getBondListFromDb(bond_date, type):
 
     
     qry = '''
-          SELECT DISTINCT Descrizione FROM view_Bond_master  WHERE Data = '%s' 
+          SELECT DISTINCT Descrizione FROM Bond_master  WHERE Data = '%s' 
           ''' %(c_date_qry)
           
           
@@ -92,35 +147,49 @@ def getDatesListFromDb(type):
     if type == "SWP":
 
         qry = '''
-                     select distinct Data from alm.DProTS_master where BloombergTicker in
-                     ( select distinct BloombergTicker from alm.DProCurve where TipoDato in
+                     select distinct Data from DProTS_master where BloombergTicker in
+                     ( select distinct BloombergTicker from DProCurve where TipoDato in
+                         ('CDepositi', 'CSwap', 'CLibor')
+                      )
+                     order by Data desc
+                    '''
+
+
+        """
+        qry = '''
+                     select distinct Data from DProTS_master where BloombergTicker in
+                     ( select distinct BloombergTicker from DProCurve where TipoDato in
                          ('CDepositi', 'CSwap', 'CLibor', 'CFuture')
                       )
                      order by Data desc
                     '''
+        """
     elif type == "CDS":
         qry = '''
-                    select distinct Data from alm.DProTS_master where BloombergTicker in
+                    select distinct Data from DProTS_master where BloombergTicker in
                     (
-                        select distinct BloombergTicker from alm.DProCDS
+                        select distinct BloombergTicker from DProCDS
                     )
                     order by Data desc
                     '''
 
     elif type == "BOND":
         qry = '''
-                    select distinct Data from view_Bond_master where EMITTENTE 
+                    select distinct Data from bond_master where EMITTENTE 
                     is not Null order by Data desc
                     '''
 
+    cur.execute(qry)
+    res         = cur.fetchall()
 
 
     cur.execute(qry)
-    res         = cur.fetchall()
+    
     date_list   = []
     for record in res:
         date_list.append(record[0])
-    cn.close()
+ 
+    #cn.close()
     return date_list
 
 def getProvidersFromDb (table):
