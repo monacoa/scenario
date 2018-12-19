@@ -16,28 +16,34 @@ class W_curveType (Frame):
     def __init__(self, master = None):
         Frame.__init__(self, master)
         self.master = master
-        self.menubar = Menu(self)
-        filemenu = Menu(self.menubar, tearoff=0)
 
-        filemenu.add_command(label="swap - RF curve", command= lambda : self.load_swp_RF_curve("SWP"))
-        filemenu.add_command(label="govt curve", command=donothing)
-        filemenu.add_command(label="sector curve", command=donothing)
+        curve_type = StringVar()
+        curve_type.set('SWP')
 
-        filemenu.add_separator()
-        filemenu.add_command(label="Exit", command=donothing)
+        Label(self,text="""Choose curve :""",justify=LEFT,padx=100).pack()
 
-        self.menubar.add_cascade(label="Click & Select Curve Type", menu=filemenu)
-        self.master.config(menu=self.menubar)
-        self.canvas = Canvas(self, bg="grey", width=200, height=200,
-                             bd=0, highlightthickness=0)
-        self.canvas.pack()
+        self.rb_calib1 = Radiobutton(self,text='swap - RF curve',justify='left',variable=curve_type,value='SWP').pack(anchor=W)
+        self.rb_calib2 = Radiobutton(self,text='govt curve'     ,justify='left',variable=curve_type,value='GVT').pack(anchor=W)
+        self.rb_calib3 = Radiobutton(self,text='sector curve'   ,justify='left',variable=curve_type,value='SCT').pack(anchor=W)
+        #                padx=20,
 
-    def load_swp_RF_curve(self, type):
-        print "type", type
-        self.new_window = W_curveDate(master = None, parent = self, type = type)
+        # create button
+        self.btn2 = Button(self, text="Cancel",  command=lambda:self.close_window())
+        self.btn2.pack(side=BOTTOM, fill = 'x')
+        # create button
+        self.btn1 = Button(self, text="Select", command= lambda:self.load_curve(curve_type.get()))
+        self.btn1.pack(side=BOTTOM, fill='x')
+        self.pack()
+
+    def load_curve(self, c_type):
+        print "type", c_type
+        if c_type == 'SWP':
+            self.new_window = W_curveDate(master = None, parent = self, type = c_type)
+        else:
+            donothing()
 
     def close_window(self):
-        self.destroy()
+        self.master.destroy()
 
 
 #-------------
@@ -47,7 +53,7 @@ class W_curveDate(LabelFrame):
         if master: self.master = master
         elif parent:
             self.master = parent.master
-            parent.close_window()
+            parent.destroy()
         # create labelframe
         LabelFrame.__init__(self, master)
 
@@ -77,7 +83,7 @@ class W_curveDate(LabelFrame):
         self.btn1.pack(side=BOTTOM, fill='x')
 
     def close_window(self):
-        self.destroy()
+        self.master.destroy()
 
     def selected_date(self, type):
         #recupero la data selezionata
@@ -93,7 +99,7 @@ class W_curveSelection (LabelFrame):
         c_date = None
         if parent:
             self.master = parent.master
-            parent.close_window()
+            parent.destroy()
         LabelFrame.__init__(self, self.master)
         #self.geometry("800x600")
         #self.master.geometry("400x500")
@@ -122,16 +128,15 @@ class W_curveSelection (LabelFrame):
         self.btn1 = Button(self, text="Select", command=lambda:self.selected_curve(type))
         self.btn1.pack(side=BOTTOM, fill='x')
 
-    def close_window(self, type):
-        self.destroy()
-        if (type == "SWP") : self.master.destroy()
+    def close_window(self):
+        self.master.destroy()
 
     def selected_curve(self, type):
         #recupero la data selezionata
         curve_des = str((self.mylist.get(ACTIVE)))
         self.curve = curve_des
         if type == "SWP":
-            self.close_window(type)
+            self.close_window()
         elif type == "CDS":
             print "XXXXXXXXXXXXXX caso CDS!!!!!!!!!"
             self.new_window = W_settoreRatingSelection(parent=self, type = type)
