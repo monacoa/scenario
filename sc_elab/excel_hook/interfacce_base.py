@@ -892,3 +892,56 @@ def calibration_from_xls(control):
 
     else:
         ts_total = W1.TSChosen
+
+
+
+# ==========================================
+# punto d'ingresso per calibrazione
+# ==========================================
+
+
+from loading_data import test_load_nuovi_dati
+
+
+@xl_func
+def caricamento_dati(control):
+
+    xla = xl_app()
+    book = xla.ActiveWorkbook
+
+    wbName = str(book.FullName)
+    book.Save()
+
+    #pathwb = 'C:/Users/scalambrinm/workspace/scenario/sc_elab/core/input/files_caricamento_datastream/Curva_Depositi_EUR_ICAP.xlsx'
+    test_load_nuovi_dati(wbName)
+
+
+from swaption_test_scrittura_2 import write_matrix
+#from swaption_scrittura_lista_1  import write_matrix
+from DEF_intef import nameSheetScaricoSwaption
+### test per matrice swaption
+
+@xl_func
+def test_matrix(control):
+
+    nameSheet = nameSheetScaricoSwaption
+    xla = xl_app()
+    book = xla.ActiveWorkbook
+
+
+    # -------------- controllo l'esistenza del foglio di input  ----------------
+    try:
+        s = book.Sheets(nameSheet)
+        s.Activate()
+    except:
+        root = Tk()
+        msg = "Missing input sheet(%s) \nNothing to do for me!" % nameSheetScaricoSwaption
+        tkMessageBox.showinfo("Warning!", msg)
+        root.destroy()
+        return
+    # -------------- apro la finestra di input della scelta  ----------------------------
+
+    wbName = str(book.FullName)
+    book.Save()
+    write_matrix(wbName,xla)
+

@@ -190,9 +190,9 @@ def findRigthPlaceBootCurveSeg(xla, r, distCurve, dir="O"):
             #porto avanti ancora per controllare
             if (r.Value == None):  r = xla.Range(xla.Cells(row + j + distCurve , col), xla.Cells(row + j+distCurve, col))
         r = xla.Range(xla.Cells(row + j + distCurve, col), xla.Cells(row+j+distCurve, col))
+
     else:
         while (r.Value != None):
-
             nCols = r.Columns.Count
             row =r.Row
             col =r.Column

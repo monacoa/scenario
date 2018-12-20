@@ -2,7 +2,31 @@
             loadImage="pyxll.load_image">
     <ribbon>
         <tabs>
-			<tab id="AndreaTab" label="Scenario">                    
+            <tab id="CustomTab" label="Pytho Simviewer" >
+                <group id="ContentGroup" label="Session">
+                    <button id="textButton" label="Connect to Pytho"
+                        image="C:\Users\scalambrinm\SimViewer\Miniconda\login.png" onAction="gsf.simviewer.core.connect_form"/>                                        
+                    <button id="openReport" label="Open Report on Browser"
+                        image="C:\Users\scalambrinm\SimViewer\Miniconda\link.png" onAction="gsf.simviewer.core.go_to_report"/>                                        
+                </group>                
+                <group id="Report" label="Report">                    
+                    <button id="openreport" label="Sync with Pytho"
+                        image="C:\Users\scalambrinm\SimViewer\Miniconda\update.png" onAction="gsf.simviewer.core.load_report"/>
+                    <button id="savereport" label="Save Report"
+                        image="C:\Users\scalambrinm\SimViewer\Miniconda\save.png" onAction="gsf.simviewer.core.save_report"/>
+                    <button id="savereportas" label="Save Report As"
+                        image="C:\Users\scalambrinm\SimViewer\Miniconda\saveas.png" onAction="gsf.simviewer.core.create_report"/>                                                              
+                </group>                
+                <group id="Tools" label="Tools">                    
+                    <button id="logs" label="Open Logs"
+                        image="C:\Users\scalambrinm\SimViewer\Miniconda\logs.png" onAction="gsf.simviewer.core.on_open_logfile"/>                   
+                    <button id="update" label="Check for updates"
+                        image="C:\Users\scalambrinm\SimViewer\Miniconda\download.png" onAction="gsf.simviewer.core.check_updates"/>                    
+                    <button id="reload" label="Reset Simviewer session"
+                        image="C:\Users\scalambrinm\SimViewer\Miniconda\reload.png" onAction="gsf.simviewer.core.on_empty_cache"/>                                        
+                </group>
+            </tab>
+            <tab id="CustomTabScenarioManager" label="Scenario Manager" >
                 <group id="Swap_Curves" label="Swap Curves">
                     <button id="load_swp_curve" label="Load" image=".\fig\bottone_rosso.jpg" onAction="sc_elab.excel_hook.interfacce_base.load_swap_curve_from_db" />
                     <button id="bootstrap" label="Bootstrap" image=".\fig\bottone_rosso.jpg" onAction="sc_elab.excel_hook.interfacce_base.bootstrap_from_xls" />
@@ -17,7 +41,13 @@
                     <button id="load_bond_data" label="Load" image=".\fig\bottone_rosso.jpg" onAction="sc_elab.excel_hook.interfacce_base.load_bond_data_from_db" />
                     <button id="bond_fitting" label="Bond fitting" image=".\fig\bottone_rosso.jpg" onAction="sc_elab.excel_hook.interfacce_base.bond_fitting_from_xls" />
                 </group>
-			</tab>
+                <group id="Matteo_" label="Matteo">
+                    <button id="load_Matteo" label="Inserisci nuovi dati" image=".\fig\bottone_rosso.jpg" onAction="sc_elab.excel_hook.interfacce_base.caricamento_dati" />
+                </group>
+                <group id="Matteo2" label="Matteo2">
+                    <button id="download_Matteo" label="matrice" image=".\fig\bottone_rosso.jpg" onAction="sc_elab.excel_hook.interfacce_base.test_matrix" />
+                </group>
+            </tab>
         </tabs>
     </ribbon>
 </customUI>

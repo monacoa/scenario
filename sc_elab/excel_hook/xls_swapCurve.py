@@ -112,6 +112,7 @@ def segmentoSwapCurve(xla, rangeS, code, segm):
                 f += 1
             else :
                 a.Value = ll[j]
+                print a.Value
                 #print 'a: ', a
                 #print 'a.NumberFormat: ', a.NumberFormat
                 if (type(ll[j]) == datetime.date) or (type(ll[j]) == datetime.datetime): a.NumberFormat = FORMATT
@@ -183,6 +184,7 @@ def writeCurveOnXls(crv, nameSheet, xla, curve_type):
     r     = sheet.Range(rangeStart)
     rOut  =  findRigthPlaceBootCurveSeg(xla, r, distCurve)
 
+
     # ---
     #Genero il blocco di intestazione della curva
     # ---
@@ -220,7 +222,7 @@ def writeCurveOnXls(crv, nameSheet, xla, curve_type):
     else: mmmmmmmmmmmmmm
 
     rangeStartNew = intestazioneSwapCurveSegmenti ( xla, sheet , rOut, Attributi)
-
+    print 'rangeStartNew :',rangeStartNew
     if curve_type == "SWP":
         # Genero il blocco per i parametri di Hull e White
         rangeStartNew = displayHWParamSwCurve(xla, rangeStartNew, Attributi)
@@ -233,7 +235,6 @@ def writeCurveOnXls(crv, nameSheet, xla, curve_type):
                 if code == s[0]:
                     # visualizzo segmento
                     rangeStartNew = segmentoSwapCurve(xla, rangeStartNew, code, crv.segms[s])
-
     elif  curve_type == "CDS":
         rangeStartNew = SegmentoCdsCurve(xla, rangeStartNew, crv)
     else:
