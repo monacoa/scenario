@@ -21,3 +21,10 @@ nameSheetCDS      = 'CDS'
 nameSheetBond     = 'Bond data'
 nameSheetCalib    = 'Calib data'
 nameSheetCalibRes = 'Calib result'
+
+#INSERITA PER IL CARICAMENTO DATI, ANCORA DA UTILIZZARE
+nameSheetLoadAnagrafica = 'Anagrafica'
+nameSheetLoadDati = 'Dati'
+
+#INSERITA PER LO SCARICO DELLA MATRICE SWAPTION
+nameSheetScaricoSwaption='Matrix_Swaption'
