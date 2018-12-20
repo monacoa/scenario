@@ -856,7 +856,25 @@ def calibration_from_xls(control):
             else:
                 ff = minimize(loss_zc_model_vsck, args = (mkt_to_fit , W1.loss_function_type.get()), x0 = x0_m, method='TNC', bounds=x_bnd)
 
-            list_model_params_opt, mkt_value, chi2 = set_output_calibration(ff=ff, mkt_value=mkt_value,type_cap=type_cap)
+            # creo la lista dei risultati ottimali
+            list_model_params_opt = []
+            list_model_params_opt.append(ff.x[0])
+            list_model_params_opt.append(ff.x[1])
+            list_model_params_opt.append(ff.x[2])
+            list_model_params_opt.append(ff.x[3])
+
+            if W.model.get() == 'CIR':
+                mkt_value['VALUE_OPT'] = compute_zc_cir_rate(list_model_params_opt, mkt_value["TIME"])
+            else:
+                mkt_value['VALUE_OPT'] = compute_zc_vsck_rate(list_model_params_opt, mkt_value["TIME"])
+
+
+            # converto i risultati in composto nel caso in cui in input lo siano
+            if type_cap == 'CMP':
+                mkt_value['VALUE_OPT'] = fromContinuousToCompost(mkt_value['VALUE_OPT'])
+
+            # calcolo il chi quadro
+            chi2 = computeCHI2(mkt=mkt_value["VALUE"], mdl=mkt_value['VALUE_OPT'])
 
             # scrivo su foglio Excel
             writeCalibrationResOnXls(model = model, W_class = W1, xla = xla, chi2 = chi2, opt_dict = list_model_params_opt, res = mkt_value)

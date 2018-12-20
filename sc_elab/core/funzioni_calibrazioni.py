@@ -184,22 +184,24 @@ def computeCHI2(mkt, mdl):
 
     return tmp.sum()
 
-def set_output_calibration(ff, mkt_value, type_cap):
-
-    # creo la lista dei risultati ottimali
-    list_model_params_opt = []
-    list_model_params_opt.append(ff.x[0])
-    list_model_params_opt.append(ff.x[1])
-    list_model_params_opt.append(ff.x[2])
-    list_model_params_opt.append(ff.x[3])
-
-    mkt_value['VALUE_OPT'] = compute_zc_cir_rate(list_model_params_opt, mkt_value["TIME"])
-
-    # converto i risultati in composto nel caso in cui in input lo siano
-    if type_cap == 'CMP':
-        mkt_value['VALUE_OPT'] = fromContinuousToCompost(mkt_value['VALUE_OPT'])
-
-    # calcolo il chi quadro
-    chi2 = computeCHI2(mkt=mkt_value["VALUE"], mdl=mkt_value['VALUE_OPT'])
-
-    return list_model_params_opt,mkt_value,chi2
+# NOT USED!
+#def set_output_calibration(ff, mkt_value, type_cap):
+#
+#    # creo la lista dei risultati ottimali
+#    list_model_params_opt = []
+#    list_model_params_opt.append(ff.x[0])
+#    list_model_params_opt.append(ff.x[1])
+#    list_model_params_opt.append(ff.x[2])
+#    list_model_params_opt.append(ff.x[3])
+#
+#    mkt_value['VALUE_OPT'] = compute_zc_cir_rate(list_model_params_opt, mkt_value["TIME"])
+#
+#    # converto i risultati in composto nel caso in cui in input lo siano
+#    if type_cap == 'CMP':
+#        mkt_value['VALUE_OPT'] = fromContinuousToCompost(mkt_value['VALUE_OPT'])
+#
+#    # calcolo il chi quadro
+#    chi2 = computeCHI2(mkt=mkt_value["VALUE"], mdl=mkt_value['VALUE_OPT'])
+#
+#    return list_model_params_opt,mkt_value,chi2
+#
