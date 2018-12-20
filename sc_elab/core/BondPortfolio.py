@@ -386,7 +386,7 @@ class BondPortfolio(object):
 
     
         qry = ''' 
-                SELECT * FROM ricky.view_Bond_master WHERE Data = '%s'  AND descrizione = '%s'  
+                SELECT * FROM Bond_master WHERE Data = '%s'  AND descrizione = '%s'  
                 ORDER BY Scadenza ASC
             ''' %(c_date_qry, self.description)
 

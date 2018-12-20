@@ -599,13 +599,13 @@ def loadPortfolio_fromFile(inputFile):
 		
 		dictPortfolio[isin_Tmp] = {}
 		
-		dictPortfolio[isin_Tmp]['bond type']= tipo_bondTmp
-		dictPortfolio[isin_Tmp]['day count']= dayCountTmp
-		dictPortfolio[isin_Tmp]['end date'] = data_endTmp
-		dictPortfolio[isin_Tmp]['coupon']   = couponTmp
-		dictPortfolio[isin_Tmp]['isin']     = isin_Tmp
-		dictPortfolio[isin_Tmp]['freq']     = freqTmp
-		dictPortfolio[isin_Tmp]['BDay']     = bdaysTmp
+		dictPortfolio[isin_Tmp]['bond type']		= tipo_bondTmp
+		dictPortfolio[isin_Tmp]['day count']		= dayCountTmp
+		dictPortfolio[isin_Tmp]['end date'] 		= data_endTmp
+		dictPortfolio[isin_Tmp]['coupon']   		= couponTmp
+		dictPortfolio[isin_Tmp]['isin']     		= isin_Tmp
+		dictPortfolio[isin_Tmp]['freq']     		= freqTmp
+		dictPortfolio[isin_Tmp]['BDay']             = bdaysTmp
 		dictPortfolio[isin_Tmp]['clean price']      = priceTmp
 		dictPortfolio[isin_Tmp]['fixed rate']       = fixedRateTmp
 		dictPortfolio[isin_Tmp]['coupon dates']     = []
@@ -639,7 +639,6 @@ def loadTS_fromFile(inputFile):
 		
 		date_Tmp    = line_splitted[0]
 		value_Tmp   = float(line_splitted[1])
-
 
 		date_Tmp 	  = date_Tmp.split('/')
 		dateDate_Tmp  = datetime.datetime(int(date_Tmp[2]),int(date_Tmp[1]),int(date_Tmp[0]))
@@ -1300,6 +1299,7 @@ def computeBondPriceFromCF(model_params, data_portfolio, opt_elab, zc_times, zc_
 
 	startDate      = data_portfolio['emission date']  
 	inflRatio_anag = data_portfolio['inflRatio'] 
+	
 	
 	LGD       = 1.0 - RR
 	

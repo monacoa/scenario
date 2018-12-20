@@ -203,6 +203,7 @@ class Curve(object):
         calendar = holy.get_calendar(self.cal)
         tmp = int(days)
         while tmp > 0:
+
             ds = ds + datetime.timedelta(days=1)
             ds = busD.rolldate_from_db(ds, calendar, adj)
             tmp = tmp - 1
@@ -221,11 +222,15 @@ class Curve(object):
             day_count = self.segms[s].anag['DAY COUNT CONV.']
             fix_days  = self.segms[s].anag['LAG']
 
+            print 's: ', s
+            print 'self.segms[s].mats: ', self.segms[s].mats
+
             #per i futures non faccio nulla
             if s[0] == 'F':
                 i = 0
                 for do in self.segms[s].mats:
                     i = i+1
+                    print 'do: ', do
                     ds = self.addWorkingDays(do, fix_days, adj)
                     self.segms[s].dates.append(ds)
                     self.segms[s].tags.append(str(i))
@@ -270,6 +275,37 @@ class Curve(object):
 
     def loadDataFromDB(self):
         con = Connection()
+
+        c_a = con.db_data()
+        #qry = "SELECT BloombergTicker FROM test_db_mkt_data.dprocurve where Currency = 'EUR' and (TipoDato = 'CLibor' or  TipoDato = 'CSwap' or TipoDato = 'CDeopositi') and contributor = 'MTA'" 
+        #qry = "SELECT distinct BloombergTicker FROM test_db_mkt_data.dprocurve where (TipoDato = 'CLibor' or  TipoDato = 'CSwap' or TipoDato = 'CDeopositi' or TipoDato = 'CFuture')" 
+        qry = "SELECT distinct BloombergTicker FROM dprocurve where (TipoDato = 'CLibor' or  TipoDato = 'CSwap' or TipoDato = 'CDeopositi')"
+
+        #SELECT BloombergTicker FROM test_db_mkt_data.dprocurve where Currency = 'EUR' and (TipoDato = 'CLibor' or  TipoDato = 'CSwap' or TipoDato = 'CDeopositi') and contributor = 'MTA';
+
+        #qry = '''
+        #             select BloombergTicker from DProTS_master where BloombergTicker in
+        #             ( select distinct BloombergTicker from DProCurve where TipoDato in
+        #                 ('CDepositi', 'CSwap', 'CLibor', 'CFuture')
+        #              )
+        #             order by Data desc
+        #            '''
+
+
+
+        c_a.execute(qry)
+        res = c_a.fetchall()
+
+        blm_tckrs_lst_str_n = ""
+        sep = ""
+        for record in res:
+            blm_tckrs_lst_str_n += sep + "'" + record[0] + "'"
+            sep = ","
+
+
+
+        
+        """
         c_a = con.db_anag()
         qry = "SELECT DISTINCT  ID_object, Tipo, rating FROM AnagMktObject WHERE description = '%s' " % (
         self.description)
@@ -278,7 +314,7 @@ class Curve(object):
         res = c_a.fetchall()
 
         if len(res) != 1:
-            aaaaaaaaaaaaaaaaaaaaaaa
+            print 'AAA'
         self.rating = res[0][2]
         self.type = res[0][1]
         # ----
@@ -294,15 +330,23 @@ class Curve(object):
             blm_tckrs_lst_str += sep + "'" + record[0] + "'"
             sep = ","
 
+        print 'blm_tckrs_lst_str: ', blm_tckrs_lst_str
+        """
+
+        #SELECT * FROM test_db_mkt_data.dprocurve where Currency = 'EUR' and (TipoDato = 'CLibor' or  TipoDato = 'CSwap' or TipoDato = 'CDeopositi') and contributor = 'MTA';
+        
+        #blm_tckrs_lst_str = "'ER1 ','ER2 ','ER3 ','ER4 ','ER5 ','ER6 ','ER7 ','ER8 ','ERM0','ERU0','EUDR1','EUDR1T','EUDR1Z','EUDR2T','EUDR2Z','EUDRA','EUDRB','EUDRC','EUDRD','EUDRE','EUDRF','EUDRG','EUDRH','EUDRI','EUDRJ','EUDRK','EUR001M','EUR001W','EUR002M','EUR002W','EUR003M','EUR003W','EUR004M','EUR005M','EUR006M','EUR007M','EUR008M','EUR009M','EUR012M','EUSA1','EUSA10','EUSA12','EUSA15','EUSA2','EUSA20','EUSA25','EUSA3','EUSA30','EUSA4','EUSA40','EUSA5','EUSA50','EUSA6','EUSA7','EUSA8','EUSA9'"
+        blm_tckrs_lst_str = blm_tckrs_lst_str_n 
+
         # ---------
         # RECUPERO CURRENCY E NUMERO/TIPOLOGIA DI SEGMENTI
         # ---------
 
         c_d = con.db_data()
         qry = '''
-             SELECT DISTINCT currency, TipoDato FROM alm.DProCurve where BloombergTicker IN
+             SELECT DISTINCT currency, TipoDato FROM DProCurve where BloombergTicker IN
              (
-                SELECT DISTINCT BLOOMBERGTICKER FROM alm.DProTS_master WHERE
+                SELECT DISTINCT BLOOMBERGTICKER FROM DProTS_master WHERE
                 BLOOMBERGTICKER IN (%s) AND
                  DATA = '%s'
                 )
@@ -344,25 +388,25 @@ class Curve(object):
             if ((segm == "CDepositi") or (segm == "CSwap") or (segm == 'CLibor')):
 
                 qry = '''
-                        SELECT      alm.DProCurve.maturityInt, alm.DProTS_master.%s
-                        FROM        alm.DProCurve
-                        INNER JOIN  alm.DProTS_master
-                        ON          alm.DProCurve.BloombergTicker = alm.DProTS_master.BloombergTicker
-                        WHERE       alm.DProTS_master.data='%s'
-                        AND         alm.DProCurve.TipoDato = '%s'
-                        AND         alm.DProCurve.BloombergTicker in (%s)
-                        ORDER BY    alm.DProCurve.maturityInt
+                        SELECT      DProCurve.maturityInt, DProTS_master.%s
+                        FROM        DProCurve
+                        INNER JOIN  DProTS_master
+                        ON          DProCurve.BloombergTicker = DProTS_master.BloombergTicker
+                        WHERE       DProTS_master.data='%s'
+                        AND         DProCurve.TipoDato = '%s'
+                        AND         DProCurve.BloombergTicker in (%s)
+                        ORDER BY    DProCurve.maturityInt
                         ''' % (quotazione, str(self.ref_date).replace("-", ""), segm, blm_tckrs_lst_str)
             elif segm == "CFuture":
                 qry = '''
-                        SELECT      alm.DProTS_master.ScadenzaFuture, alm.DProTS_master.%s
-                        FROM        alm.DProCurve
-                        INNER JOIN  alm.DProTS_master
-                        ON          alm.DProCurve.BloombergTicker = alm.DProTS_master.BloombergTicker
-                        WHERE       alm.DProTS_master.data= '%s'
-                        AND         alm.DProCurve.TipoDato ='%s'
-                        AND         alm.DProCurve.BloombergTicker in (%s)
-                        ORDER BY    alm.DProTS_master.ScadenzaFuture
+                        SELECT      DProTS_master.ScadenzaFuture, DProTS_master.%s
+                        FROM        DProCurve
+                        INNER JOIN  DProTS_master
+                        ON          DProCurve.BloombergTicker = DProTS_master.BloombergTicker
+                        WHERE       DProTS_master.data= '%s'
+                        AND         DProCurve.TipoDato ='%s'
+                        AND         DProCurve.BloombergTicker in (%s)
+                        ORDER BY    DProTS_master.ScadenzaFuture
                         ''' % (quotazione, str(self.ref_date).replace("-", ""), segm, blm_tckrs_lst_str)
 
             else:
@@ -372,14 +416,14 @@ class Curve(object):
                 #print "floater tenor:", self.floater_tenor
 
                 qry = '''
-                        SELECT      alm.DProCurve.maturityInt, alm.DProTS_master.%s
-                        FROM        alm.DProCurve
-                        INNER JOIN  alm.DProTS_master
-                        ON          alm.DProCurve.BloombergTicker = alm.DProTS_master.BloombergTicker
-                        WHERE       alm.DProTS_master.data='%s'
-                        AND         alm.DProCurve.TipoDato = '%s'
-                        AND         alm.DProCurve.BloombergTicker in (%s)
-                        ORDER BY    alm.DProCurve.maturityInt
+                        SELECT      DProCurve.maturityInt, DProTS_master.%s
+                        FROM        DProCurve
+                        INNER JOIN  DProTS_master
+                        ON          DProCurve.BloombergTicker = DProTS_master.BloombergTicker
+                        WHERE       DProTS_master.data='%s'
+                        AND         DProCurve.TipoDato = '%s'
+                        AND         DProCurve.BloombergTicker in (%s)
+                        ORDER BY    DProCurve.maturityInt
                         ''' % (quotazione, str(self.ref_date).replace("-", ""), segm, blm_tckrs_lst_str)
 
 
@@ -392,6 +436,14 @@ class Curve(object):
             if ((segm == "CDepositi") or (segm == "CSwap") or (segm == 'CLibor')or (segm == 'CFuture')):
                 s = Segm()
                 s.name = dict_segm[segm]
+                
+                if (segm == 'CFuture'):
+                    
+                    print 'res: ', res
+                else:
+ 
+                    print 'res: ', res
+                
                 for record in res:
                     mat = record[0]
                     val = record[1]
@@ -670,6 +722,230 @@ class CdsCurve(Curve):
     def loadDataFromDB(self):
         self.description.strip()
         con = Connection()
+        c_a = con.db_data()
+
+        # ---
+        #recupero elenco tickers
+        # ---
+        
+
+        blm_tckrs_lst_str = ""
+        sep = ""
+
+        qry = "SELECT DISTINCT  BloombergTicker FROM DProCDS WHERE Descrizione = '%s' " % (
+            self.description)
+        c_a.execute(qry)
+        res = c_a.fetchall()
+        
+        
+        for record in res:
+            blm_tckrs_lst_str += sep + "'" + record[0] + "'"
+            sep = ","
+
+        
+        # ---------
+        # RECUPERO DATI DA DB
+        # ---------
+
+
+        c_d = con.db_data()
+        qry = '''
+                     SELECT DISTINCT currency, Emittente, Seniority  FROM DProCDS where BloombergTicker IN
+                     (
+                        SELECT DISTINCT BLOOMBERGTICKER FROM DProTS_master WHERE
+                        BLOOMBERGTICKER IN (%s) AND
+                        DATA = '%s'
+                     )
+              ''' % (blm_tckrs_lst_str, str(self.ref_date).replace("-",""))
+        #print qry
+        c_d.execute(qry)
+        res = c_d.fetchall()
+        if len(res) <> 1: 'AAAA'
+        self.curr      = res[0][0]
+        code_sen    = res[0][2]
+        code_issuer = res[0][1]
+        # ---
+        # traduzione dei codici per seniority e emittente
+        # ---
+        """
+        qry = '''
+                 SELECT descrizione from ZEmittente where codice_emittente = '%s'
+             '''%(code_issuer)
+        #print qry
+        c_a.execute(qry)
+        self.emittente = c_a.fetchall()[0][0]
+        """
+        #print "self.emi", self.emittente
+
+        # ---
+        """
+        qry = '''
+                         SELECT descrizione from ZSeniority where codice_seniority = '%s'
+                     ''' % (code_sen)
+        #print qry
+        c_a.execute(qry)
+        self.seniority = c_a.fetchall()[0][0]
+        """
+
+        # ---
+        # recupero le altre info di anagrafica dalla tabella MKT_Curve, dove sono censite le curve CDS (hanno data_rif == Null)
+        # ---
+        
+        """
+        qry = '''
+                SELECT codice_curva, tipo_curva, rendimento, tipo_nodo, lag, recovery_rate, codice_segmentazione, codice_settore, codice_rating, periodicita
+                FROM MKT_Curve WHERE
+                  descrizione = '%s' 
+            '''%self.description
+        
+
+        #print qry
+        
+        c_a.execute(qry)
+        """
+        """
+        res             = c_a.fetchall()
+        self.code       = res[0][0]
+        self.type       = res[0][1]
+        self.rendimento = res[0][2]
+        self.node_type  = res[0][3]
+        self.lag        = res[0][4]
+        self.recovery   =  res[0][5]
+        cod_segm        = res[0][6] #codice_segmentazione
+        self.settore    = res[0][7]
+        self.rating     = res[0][8]
+        self.frequency  = res[0][9]
+        """
+
+
+        #self.code       = res[0][0]
+        #self.code       = res[0][0]
+        self.type       = 'CDS'
+        self.rendimento = 'Par Yield'
+        self.node_type  = 'CDS'
+        self.lag       = 2
+        self.recovery  =  40
+        cod_segm       = 'SCDS' #codice_segmentazione
+        self.settore   = 999
+        self.rating    = 999
+        self.frequency = 6
+
+        """
+        qry = '''
+                SELECT daycount, dayadj, capitalizzazione FROM MKT_Segmentazione_D where codice_segmentazione = '%s'
+                '''%cod_segm
+
+        c_a.execute(qry)
+        res = c_a.fetchall()
+
+        self.dayCount = res[0][0]
+        self.dayAdj   = res[0][1]
+        self.capitalization = res[0][2]
+        """
+
+        """
+        if self.settore == 999:
+            qry = '''
+                    SELECT   codice_settore from MKT_EmittenteSettore where codice_emittente = '%s'
+                    AND date <= '%s'
+                    AND FONTE = '%s'
+                    order by date desc
+                  '''%(code_issuer, str(self.ref_date), self.sectorProvider)
+            #print qry
+            c_a.execute(qry)
+            res = c_a.fetchall()
+            self.settore = res[0][0]
+        #ora converto il settore da codice a descrizione
+        qry = ''' SELECT DESCRIZIONE FROM ZSettore WHERE CODICE_SETTORE = '%s' '''%(self.settore)
+        #print qry
+        c_a.execute(qry)
+        res = c_a.fetchall()
+        self.settore = res[0][0]
+        """
+
+        """
+        if self.rating == 999:
+            qry = '''
+                         SELECT codice_rating from MKT_EmittenteRating where
+                         codice_emittente = '%s' AND
+                          DATE <= '%s' and
+                          fonte = '%s'
+                          order by date desc
+                           LIMIT 1
+                       ''' % (code_issuer,str(self.ref_date), self.ratingProvider)
+            #print qry
+            c_a.execute(qry)
+            res = c_a.fetchall()
+            if len(res) > 1: print 'AAA'
+            self.rating = res[0][0]
+
+        qry = ''' SELECT DESCRIZIONE FROM ZRating WHERE CODICE_RATING = '%s' ''' % (self.rating)
+        #print qry
+        c_a.execute(qry)
+        res = c_a.fetchall()
+        self.rating = res[0][0]
+        """
+        
+        #----
+        if self.curr == "EUR":
+            self.cal = "de.eurex"
+        elif self.curr == "USD":
+            self.cal = 'us'
+        elif self.curr == 'GBP':
+            self.cal = 'uk'
+        elif self.curr == 'CAD':
+            self.cal = 'ca'
+        else:
+            self.cal = 'us'
+        # ----
+        if self.quotation == "MID":
+            quotazione = "valoremid"
+        elif self.quotation == "ASK":
+            quotazione = "valoreask"
+        elif self.quotation == "BID":
+            quotazione = "valorebid"
+        else:
+            print 'AAAA'
+
+        #print res
+
+        qry = '''
+                     SELECT      DProCDS.maturityInt, DProTS_master.%s
+                     FROM        DProCDS
+                     INNER JOIN  DProTS_master
+                     ON          DProCDS.BloombergTicker = DProTS_master.BloombergTicker
+                     WHERE       DProTS_master.data='%s'
+                     AND         DProCDS.BloombergTicker in (%s)
+                     ORDER BY    DProCDS.maturityInt
+              ''' % (quotazione, str(self.ref_date).replace("-", ""), blm_tckrs_lst_str)
+        #print qry
+        c_d.execute(qry)
+        res = c_d.fetchall()
+        #print "*" * 120
+        #print qry
+
+        #print res
+
+        for record in res:
+            #print "record:", record
+            mat = float(record[0])/365.0
+            #if (mat-int(mat)) < 1.e-2: mat = int(mat)
+            mat = round(mat, 1)
+            tag = str(mat)+"Y"
+            val = float(record[1])
+            #print mat, tag, val
+            self.mats.append(mat)
+            self.tags.append(tag)
+            self.values.append(val)
+            #print self.mats, self.tags, self.values
+
+        self.show()
+
+
+
+    def loadDataFromDB_old(self):
+        self.description.strip()
+        con = Connection()
         c_a = con.db_anag()
 
         # ---
@@ -680,7 +956,7 @@ class CdsCurve(Curve):
         c_a.execute(qry)
         res = c_a.fetchall()
         if len(res) != 1:
-            aaaaaaaaaaaaaaaaaaaaaaa
+            print 'AAA'
 
         self.type = res[0][1]
         # ----
@@ -704,9 +980,9 @@ class CdsCurve(Curve):
 
         c_d = con.db_data()
         qry = '''
-                     SELECT DISTINCT currency, Emittente, Seniority  FROM alm.DProCDS where BloombergTicker IN
+                     SELECT DISTINCT currency, Emittente, Seniority  FROM DProCDS where BloombergTicker IN
                      (
-                        SELECT DISTINCT BLOOMBERGTICKER FROM alm.DProTS_master WHERE
+                        SELECT DISTINCT BLOOMBERGTICKER FROM DProTS_master WHERE
                         BLOOMBERGTICKER IN (%s) AND
                         DATA = '%s'
                      )
@@ -714,7 +990,7 @@ class CdsCurve(Curve):
         #print qry
         c_d.execute(qry)
         res = c_d.fetchall()
-        if len(res) <> 1: bbbbbbbbbbbbbbbb
+        if len(res) <> 1: 'XXX'
         self.curr      = res[0][0]
         code_sen    = res[0][2]
         code_issuer = res[0][1]
@@ -830,18 +1106,18 @@ class CdsCurve(Curve):
         elif self.quotation == "BID":
             quotazione = "valorebid"
         else:
-            mmmmmmmmmmmmmmmm
+            print 'AAAA'
 
         #print res
 
         qry = '''
-                     SELECT      alm.DProCDS.maturityInt, alm.DProTS_master.%s
-                     FROM        alm.DProCDS
-                     INNER JOIN  alm.DProTS_master
-                     ON          alm.DProCDS.BloombergTicker = alm.DProTS_master.BloombergTicker
-                     WHERE       alm.DProTS_master.data='%s'
-                     AND         alm.DProCDS.BloombergTicker in (%s)
-                     ORDER BY    alm.DProCDS.maturityInt
+                     SELECT      DProCDS.maturityInt, DProTS_master.%s
+                     FROM        DProCDS
+                     INNER JOIN  DProTS_master
+                     ON          DProCDS.BloombergTicker = DProTS_master.BloombergTicker
+                     WHERE       DProTS_master.data='%s'
+                     AND         DProCDS.BloombergTicker in (%s)
+                     ORDER BY    DProCDS.maturityInt
               ''' % (quotazione, str(self.ref_date).replace("-", ""), blm_tckrs_lst_str)
         #print qry
         c_d.execute(qry)
@@ -864,6 +1140,7 @@ class CdsCurve(Curve):
             #print self.mats, self.tags, self.values
 
         self.show()
+
 
 
 
@@ -1079,7 +1356,7 @@ class CdsCurve(Curve):
         # RECUPERO SERIE STORICA TS            
 
         qry0 = """
-                SELECT DATA, VALORE FROM alm.indice_master WHERE
+                SELECT DATA, VALORE FROM indice_master WHERE
                 AssetClass = 'CPTFEMU' 
                 AND CodicePaese = '%s'
             """  %(valuta)
@@ -1199,6 +1476,8 @@ class CdsCurve(Curve):
         try:
             
             import funzioni_boot_cds as f_cds
+            
+            print 'data_opt: ', data_opt
             
             res = f_cds.boot_cds(data_opt, data_raw_cds, data_raw_bench, data_raw_swp)
             #res = fb.boot3s_elab_v2(data_opt, raw_data)
