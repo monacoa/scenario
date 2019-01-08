@@ -82,6 +82,7 @@ def writeResultPandas( xla, rng , df):
     drawBox(xla, 3 , topLeftRow, topLeftCol,topLeftRow + nRows, topLeftCol + nCols - 1, 0)
 
     for j in xrange(0,nCols):
+        xla.Cells(topLeftRow, topLeftCol + j).Font.Bold = True
         xla.Cells(topLeftRow , topLeftCol + j).Value = df.columns.values[j]
 
     for i in xrange(0,nRows):

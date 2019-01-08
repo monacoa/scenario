@@ -2,7 +2,8 @@ import pandas as pd
 from Tkinter import *
 
 import tkMessageBox
-import mysql.connector
+#import mysql.connector
+import pyodbc
 
 from sc_elab.core.db_tipodato_censimento import tipologia_dict
 from sc_elab.core.table_traslation import from_bond_table_to_datastream
@@ -14,26 +15,15 @@ from sc_elab.core.table_traslation import min_field_set
 #    sys.exit()
 
 
-def TEST_insert_bond_data_record(db_credential, db_name, table_data, data_values):
+def TEST_insert_bond_data_record(connection_status, table_data, data_values):
 
-
-    db = mysql.connector.connect(host=db_credential['host'],
-                                 user=db_credential['user'],
-                                 passwd=db_credential['pwd'],
-                                 database=db_name)
-
-    cursor = db.cursor()
-
+    cursor = connection_status['cursor']
+    db = connection_status['db_connection']
     db.autocommit = False
 
     field_ref = 'ISIN'  # pk della tabella
     isin_list = data_values[field_ref]
     n_records = len(isin_list)
-
-    connection_status = {}
-    connection_status['type'] = True
-    connection_status['cursor'] = cursor
-    connection_status['db_connection'] = db
 
     msg = 'Inserimento andato a buon fine'
     result_val = True
@@ -63,8 +53,7 @@ def TEST_insert_bond_data_record(db_credential, db_name, table_data, data_values
         isinTmp = data_dict_to_insert_tmp['isin'][0]
 
         try:
-            result_data = insert_data_on_table(db_credential, table_data, db_name, data_dict_to_insert_tmp,
-                                               connection_status, verboseFlag)
+            result_data = insert_data_on_table(cursor, table_data, data_dict_to_insert_tmp,verboseFlag)
 
         except Exception as e:
 
@@ -80,25 +69,15 @@ def TEST_insert_bond_data_record(db_credential, db_name, table_data, data_values
     return result_val, msg
 
 
-def TEST_insert_cds_data_record(db_credential, db_name, table_data, table_anag, data_values):
+def TEST_insert_cds_data_record(connection_status, table_data, table_anag, data_values):
 
-    db = mysql.connector.connect(host=db_credential['host'],
-                                 user=db_credential['user'],
-                                 passwd=db_credential['pwd'],
-                                 database=db_name)
-
-    cursor = db.cursor()
-
+    cursor = connection_status['cursor']
+    db = connection_status['db_connection']
     db.autocommit = False
 
     field_ref = 'BloombergTicker'  # pk della tabella
     ticker_list = data_values['Ticker']
     n_records = len(ticker_list)
-
-    connection_status = {}
-    connection_status['type'] = True
-    connection_status['cursor'] = cursor
-    connection_status['db_connection'] = db
 
     msg = 'Inserimento andato a buon fine'
     result_val = True
@@ -117,8 +96,7 @@ def TEST_insert_cds_data_record(db_credential, db_name, table_data, table_anag, 
         value_ref = tickerTmp
 
         print 'record n. %s' % i
-        result_anag, anag_dict_res = retrive_record_from_table(db_credential, db_name, table_anag, field_ref, value_ref,
-                                                               connection_status)
+        result_anag, anag_dict_res = retrive_record_from_table(cursor, table_anag, field_ref, value_ref)
 
         if (result_anag == False):
             msg = 'Ticker %s non censito in %s!!' % (tickerTmp, table_anag)
@@ -143,8 +121,7 @@ def TEST_insert_cds_data_record(db_credential, db_name, table_data, table_anag, 
         data_dict_to_insert_tmp['BloombergTicker'][0] = data_values['Ticker'][i]
 
         try:
-            result_data = insert_data_on_table(db_credential, table_data, db_name, data_dict_to_insert_tmp,
-                                               connection_status, verboseFlag)
+            result_data = insert_data_on_table(cursor, table_data, data_dict_to_insert_tmp, verboseFlag)
 
         except Exception as e:
 
@@ -155,27 +132,19 @@ def TEST_insert_cds_data_record(db_credential, db_name, table_data, table_anag, 
             return result_val, msg
 
     db.commit()
-    db.close()
+    #db.close()
 
     return result_val, msg
 
 
-def insert_anag_record(db_credential, db_name, table_anag, data_anag):
-    db = mysql.connector.connect(host=db_credential['host'],
-                                 user=db_credential['user'],
-                                 passwd=db_credential['pwd'],
-                                 database=db_name)
+def insert_anag_record(connection_status, table_anag, data_anag):
 
-    cursor = db.cursor()
+    cursor = connection_status['cursor']
+    db = connection_status['db_connection']
 
     field_ref = 'BloombergTicker'
     ticker_list = data_anag[field_ref]
     n_records = len(ticker_list)
-
-    connection_status = {}
-    connection_status['type'] = True
-    connection_status['cursor'] = cursor
-    connection_status['db_connection'] = db
 
     msg = 'Inserimento andato a buon fine'
     result_val = True
@@ -196,8 +165,7 @@ def insert_anag_record(db_credential, db_name, table_anag, data_anag):
         value_ref = tickerTmp
 
         print 'record n. %s' % i
-        result_anag, anag_dict_res = retrive_record_from_table(db_credential, db_name, table_anag, field_ref,
-                                                               value_ref, connection_status)
+        result_anag, anag_dict_res = retrive_record_from_table(cursor, table_anag, field_ref, value_ref)
 
         if (result_anag == True):
             msg = 'Ticker %s gia censito in %s!!' % (tickerTmp, table_anag)
@@ -206,8 +174,7 @@ def insert_anag_record(db_credential, db_name, table_anag, data_anag):
             return result_val, msg
 
         try:
-            result_data = insert_data_on_table(db_credential, table_anag, db_name, data_dict_to_insert_tmp,
-                                               connection_status, verboseFlag)
+            result_data = insert_data_on_table(cursor, table_anag, data_dict_to_insert_tmp,verboseFlag)
 
         # except:
         except Exception as e:
@@ -218,7 +185,7 @@ def insert_anag_record(db_credential, db_name, table_anag, data_anag):
             return result_val, msg
 
     db.commit()
-    db.close()
+    #db.close()
 
     return result_val, msg
 
@@ -240,22 +207,8 @@ def chk_data_fields(field_ref_list, data_dict1):
     return val_out, msg
 
 
-def insert_data_on_table(db_credential, table_name, db_name, data_dict, connection_status, verboseFlag):
+def insert_data_on_table(cursor, table_name, data_dict, verboseFlag):
     # data_dict [NOME CAMPO TABELLA][N. RECORD] = VALORE
-
-    if (connection_status['type'] == False):
-
-        db = mysql.connector.connect(host=db_credential['host'],
-                                     user=db_credential['user'],
-                                     passwd=db_credential['pwd'],
-                                     database=db_name)
-
-        cursor = db.cursor()
-
-    else:
-
-        cursor = connection_status['cursor']
-        db = connection_status['db_connection']
 
     field_list = data_dict.keys()
     f0 = field_list[0]
@@ -336,32 +289,15 @@ def insert_data_on_table(db_credential, table_name, db_name, data_dict, connecti
 
         cursor.execute(qry_to_execute)
 
-
-
-    if (connection_status['type'] == False):
-            db.commit()
-            db.close()
     return True
 
 
-def retrive_table_from_ticker(db_credential, db_name, table_name, tickerTmp, field_ref ,connection_status):
+def retrive_table_from_ticker(cursor, table_name, tickerTmp, field_ref):
+
     #QUESTA QUERY CERCA PER OGNI TABELLA
 
     table_name_anag =""
     result_flag = False
-    if (connection_status['type'] == False):
-        db = mysql.connector.connect(host=db_credential['host'],
-                                     user=db_credential['user'],
-                                     passwd=db_credential['pwd'],
-                                     database=db_name)
-
-        cursor = db.cursor()
-
-    else:
-
-        cursor = connection_status['cursor']
-        db = connection_status['db_connection']
-
 
     qry_to_execute = "SELECT * FROM %s WHERE %s = '%s' " % (table_name, field_ref, tickerTmp)
 
@@ -374,31 +310,18 @@ def retrive_table_from_ticker(db_credential, db_name, table_name, tickerTmp, fie
     else:
         result_flag = False
 
-    if (connection_status['type'] == False):
-        db.commit()
-        db.close()
-
     return result_flag, result
 
 
-def TEST_insert_data_record(db_credential, db_name, table_data, table_anag, data_values):
-    db = mysql.connector.connect(host=db_credential['host'],
-                                 user=db_credential['user'],
-                                 passwd=db_credential['pwd'],
-                                 database=db_name)
+def TEST_insert_data_record(connection_status, table_data, table_anag, data_values):
 
-    cursor = db.cursor()
-
+    cursor = connection_status['cursor']
+    db = connection_status['db_connection']
     db.autocommit = False
 
     field_ref = 'BloombergTicker'  # pk della tabella
     ticker_list = data_values['Ticker']
     n_records = len(ticker_list)
-
-    connection_status = {}
-    connection_status['type'] = True
-    connection_status['cursor'] = cursor
-    connection_status['db_connection'] = db
 
     msg = 'Inserimento andato a buon fine'
     result_val = True
@@ -424,8 +347,7 @@ def TEST_insert_data_record(db_credential, db_name, table_data, table_anag, data
         value_ref = tickerTmp
 
         print 'record n. %s' % i
-        result_anag, anag_dict_res = retrive_record_from_table(db_credential, db_name, table_anag, field_ref, value_ref,
-                                                               connection_status)
+        result_anag, anag_dict_res = retrive_record_from_table(cursor, table_anag, field_ref, value_ref)
 
         if (result_anag == False):
             msg = 'Ticker %s non censito in %s!!' % (tickerTmp, table_anag)
@@ -448,8 +370,7 @@ def TEST_insert_data_record(db_credential, db_name, table_data, table_anag, data
         data_dict_to_insert_tmp['BloombergTicker'][0] = data_values['Ticker'][i]
 
         try:
-            result_data = insert_data_on_table(db_credential, table_data, db_name, data_dict_to_insert_tmp,
-                                               connection_status, verboseFlag)
+            result_data = insert_data_on_table(cursor, table_data, data_dict_to_insert_tmp, verboseFlag)
 
         except Exception as e:
 
@@ -467,19 +388,7 @@ def TEST_insert_data_record(db_credential, db_name, table_data, table_anag, data
 
 
 
-def retrive_record_from_table(db_credential, db_name, table_name, field_ref, ticker_tmp, connection_status):
-    if (connection_status['type'] == False):
-        db = mysql.connector.connect(host=db_credential['host'],
-                                     user=db_credential['user'],
-                                     passwd=db_credential['pwd'],
-                                     database=db_name)
-
-        cursor = db.cursor()
-
-    else:
-
-        cursor = connection_status['cursor']
-        db = connection_status['db_connection']
+def retrive_record_from_table(cursor, table_name, field_ref, ticker_tmp):
 
     qry_to_execute = "SELECT * FROM %s WHERE %s = '%s' " % (table_name, field_ref, ticker_tmp)
 
@@ -504,47 +413,42 @@ def retrive_record_from_table(db_credential, db_name, table_name, field_ref, tic
     else:
         result_flag = False
 
-    if (connection_status['type'] == False):
-        db.commit()
-        db.close()
-
     return result_flag, dict_results
+
+from sc_elab.excel_hook.connection import Connection
 
 #def test_load_nuovi_dati(file_new_data='C:/Users/scalambrinm/workspace/scenario/sc_elab/core/input/files_caricamento_datastream/Curva_Depositi_EUR_ICAP.xlsx'):
 def test_load_nuovi_dati(file_new_data):
 
 
         # SETUP CREDENZIALI
-        db_credential = {}
-        #db_credential['host'] = "10.103.65.195"
-        #db_credential['user'] = "xxx3"
-        #db_credential['pwd'] = "yyy2"
+     #   db_credential = {}
+     #   #db_credential['host'] = "10.103.65.195"
+     #   #db_credential['user'] = "xxx3"
+     #   #db_credential['pwd'] = "yyy2"
+#
+#
+     #   db_credential['host'] = "localhost"
+     #   db_credential['user'] = "root"
+     #   db_credential['pwd'] = "DatabaseRepl1ca"
+     #   db_name = "db_mercato_matteo"
+#
+     #   db = pyodbc.connect(r'DSN=db_mercato_matteo;UID=lucap;PWD=lucap')
+     #   cursor = db.cursor()
 
-
-        db_credential['host'] = "localhost"
-        db_credential['user'] = "root"
-        db_credential['pwd'] = "DatabaseRepl1ca"
-        db_name = "db_mercato_matteo"
-
-
-        db = mysql.connector.connect(host=db_credential['host'],
-                                     user=db_credential['user'],
-                                     passwd=db_credential['pwd'],
-                                     database=db_name)
-        cursor = db.cursor()
+        con = Connection()
+        cursor = con.db_data()
 
         connection_status = {}
         connection_status['type'] = True
         connection_status['cursor'] = cursor
-        connection_status['db_connection'] = db
+        connection_status['db_connection'] = con.db
 
-        #db = mysql.connector.connect(host="localhost",user="root",password="DatabaseRepl1ca",database='db_mercato_matteo',auth_plugin='mysql_native_password')
-        #cursor = db.cursor()
         # CARICAMENTO DATI
         #file_new_data = 'input/files_caricamento_datastream/Curva_Depositi_EUR_ICAP.xlsx'
 
         elenco_tabelle = tipologia_dict
-        tabelle_values =elenco_tabelle
+        tabelle_values = elenco_tabelle
         num_tabelle = len(tabelle_values)
 
         #PRIMA COSA: CONTROLLO SE ESISTE UN FOGLIO CHIAMATO "FOGLIO"
@@ -567,7 +471,7 @@ def test_load_nuovi_dati(file_new_data):
             return
 
         #COMINCIO A LEGGERE I VALORI PRESENTI ALL'INTERNO DELLO SCARICO
-        df1 = pd.read_excel(file_new_data, sheetname='Dati')
+        df1 = pd.read_excel(file_new_data, sheet_name='Dati')
         #lista_fogli= dftest.keys()
         # leggo il contenuto del foglio Dati
         data_dict1 = df1.to_dict()
@@ -591,8 +495,9 @@ def test_load_nuovi_dati(file_new_data):
             num_valori = len (lista_valori)
         except:
             uscita1= True
+
         try:
-            lista_valori = data_values [u'ISIN'] #CHIAVE DEI BOND
+            lista_valori = data_values[u'ISIN'] #CHIAVE DEI BOND
             num_isin = len (lista_valori)
         except:
             uscita2= True
@@ -611,27 +516,31 @@ def test_load_nuovi_dati(file_new_data):
         #DOPPIO CHECK: CONTROLLO CHE IL BLOOMBERG TICKER SIA CENSITO ED IN CASO DOVE SIA CENSITO
         find_table = False # BOOLEANA CHE MI INDICA SE IL FILE E' CENSITO O MENO
         # ------- NOTA ==> DA PERSONALIZZARE PER CARICAMENTO MASSIMO
-        if not (num_isin==0):
+        if num_isin != 0 :
             table_name_anag = 'bond_master'
-            find_table=True
-
-
-
+            find_table = True
         else:
-            elenco_escluso_bond = elenco_tabelle
+            elenco_escluso_bond = elenco_tabelle.copy()
+
             del elenco_escluso_bond['bond_master']
+
             # QUESTO CICLO E' CREATO PER TESTARE LA PRESENZA DI TUTTI I TICKER ALL'INTERNO DEI DATABASE DI ANAGRAFICA
             # AL MOMENTO CICLA SU TUTTI I BLOOMBERG TICKER ANCHE SE IN REALTA' RESTITUISCE UNA SOLA STRINGA,
             # PERO' QUANDO CI SARA' UN CARICAMENTO MASSIMO IN CUI I TICKER POSSONO ARRIVARE DA TABELLE DIVERSE
             # IL TABLE_NAME_ANAG DIVENTERA' UN VETTORE
-            for table_name in (elenco_escluso_bond):
-                for j in range (0, num_valori):
+
+            for j in range(0, num_valori):
+                find_table = False
+                for table_name in (elenco_escluso_bond):
                         field_ref = 'BloombergTicker'
                         tickerTmp = data_values[u'Ticker'][j]
-                        result_ticker, table_name_test = retrive_table_from_ticker( db_credential, db_name, table_name, tickerTmp, field_ref, connection_status)
+                        result_ticker, table_name_test = retrive_table_from_ticker(cursor , table_name, tickerTmp, field_ref)
                         if result_ticker == True:
                             table_name_anag = table_name
                             find_table =True
+
+                if find_table == False:
+                    tickerMissing = tickerTmp
 
 
         # SE IL DATO NON E' CENSITO ALLORA CERCO DI CENSIRLO
@@ -664,8 +573,8 @@ def test_load_nuovi_dati(file_new_data):
             #SE NESSUNO COINCIDE, ALLORA IL DATO NON PUO' EFFETTIVAMENTE ESSERE INSERITO IN NESSUNA TABELLA
 
 
-            anagrafica_tabelle = table_dict
-            df2 = pd.read_excel(file_new_data, foglio)
+            anagrafica_tabelle = table_dict.copy()
+            df2 = pd.read_excel(file_new_data, sheet_name=nome_tabella)
             data_dict2 = df2.to_dict() # LA PRIMA RIGA DEL FOGLIO ANAGRAFICA VIENE LETTA COME UN INSIEME DI CHIAVI
             nome_campi = data_dict2.keys()
             for tabella_appoggio in anagrafica_tabelle:
@@ -686,10 +595,12 @@ def test_load_nuovi_dati(file_new_data):
 
             #ORA POSSIEDO TUTTE LE INFORMAZIONI PER CENSIRE L'ANAGRAFICA
             table_name_anag = nome_tabella
-            df2 = pd.read_excel(file_new_data, sheetname='Anagrafica')
+            df2 = pd.read_excel(file_new_data, sheet_name='Anagrafica')
             data_dict2 = df2.to_dict()
             data_anag = data_dict2
-            val_results, msg_anag = insert_anag_record(db_credential, db_name, table_name_anag, data_anag)
+            val_results, msg_anag = insert_anag_record(connection_status, table_name_anag, data_anag)
+            ################################if
+
             if val_results == False:
                 root = Tk()
                 tkMessageBox.showinfo("Errore", msg_anag)
@@ -707,7 +618,7 @@ def test_load_nuovi_dati(file_new_data):
             df2 = pd.read_excel(file_new_data, sheetname='Anagrafica')
             data_dict2 = df2.to_dict()
             data_anag = data_dict2
-            val_results, msg_insert = TEST_insert_cds_data_record(db_credential, db_name, table_name_data,table_name_anag, data_values)
+            val_results, msg_insert = TEST_insert_cds_data_record(connection_status, table_name_data,table_name_anag, data_values)
             if val_results == False:
                 root = Tk()
                 tkMessageBox.showwarning("Chk", msg_insert)
@@ -732,7 +643,7 @@ def test_load_nuovi_dati(file_new_data):
             table_name_data = 'bond_master'
 
             print 'try insert data'
-            val_results, msg_insert = TEST_insert_bond_data_record(db_credential, db_name, table_name_data, data_values)
+            val_results, msg_insert = TEST_insert_bond_data_record(connection_status, table_name_data, data_values)
             if val_results == False:
                 root = Tk()
                 tkMessageBox.showwarning("Chk", msg_insert)
@@ -747,7 +658,7 @@ def test_load_nuovi_dati(file_new_data):
         else:
             print 'try insert data'
             table_name_data = 'DProTS_master'
-            val_results, msg_insert = TEST_insert_data_record(db_credential, db_name, table_name_data, table_name_anag,
+            val_results, msg_insert = TEST_insert_data_record(connection_status, table_name_data, table_name_anag,
                                                              data_values)
             if val_results == False:
                 root=Tk()
