@@ -92,11 +92,14 @@ ENV/
 .pydevproject
 
 # File di test
+
 sc_elab/core/test_0.py
 sc_elab/core/test_1.py
 sc_elab/core/test_1_lugli.py
 sc_elab/excel_hook/test_0.py
 .idea/
 sc_elab/core/input_test/
+sc_elab/excel_hook/scenario_ribbon.xml
+sc_elab/excel_hook/scenario_ribbon_old.xml
 
 .gitignore

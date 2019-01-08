@@ -791,7 +791,7 @@ def bootstrap_cds_from_xls(control):
     
 
 # ==========================================
-# punto d'ingresso per calibrazione
+# punto d'ingresso per CALIBRAZIONE
 # ==========================================
 
 from sc_elab.excel_hook.W_calibration import W_calib_models
@@ -916,35 +916,57 @@ def caricamento_dati(control):
     test_load_nuovi_dati(wbName)
 
 
-from swaption_test_scrittura_2 import write_matrix
-#from swaption_scrittura_lista_1  import write_matrix
+# ==========================================
+# punto d'ingresso per scarico Swaptions
+# ==========================================
+
+import pandas as pd
+
+from W_download_Swaptions import W_SwaptionsDate, W_SwaptionsOptionsPrint
+from xls_download_Swaptions import write_Swaptions
 from DEF_intef import nameSheetScaricoSwaption
-### test per matrice swaption
+from sc_elab.excel_hook.connection import Connection
 
 @xl_func
-def test_matrix(control):
+def download_matrix(control):
 
     nameSheet = nameSheetScaricoSwaption
     xla = xl_app()
     book = xla.ActiveWorkbook
 
-
-    print 'AAAA'
     # -------------- controllo l'esistenza del foglio di input  ----------------
     try:
         s = book.Sheets(nameSheet)
         s.Activate()
     except:
-        root = Tk()
-        msg = "Missing input sheet(%s) \nNothing to do for me!" % nameSheetScaricoSwaption
-        tkMessageBox.showinfo("Warning!", msg)
-        root.destroy()
-        return
+        s = book.Sheets.Add()
+        s.Name = nameSheet
     # -------------- apro la finestra di input della scelta  ----------------------------
 
-    wbName = str(book.FullName)
-    book.Save()
-    write_matrix(wbName,xla)
+    con = Connection()
+    #necessario per inizializzare il db
+    cursor = con.db_data()
+
+    root = Tk()
+    app = W_SwaptionsDate(root)
+    root.mainloop()
+
+    ref_date = datetime.date(day=int(app.date[-2:]), month=int(app.date[5:7]), year=int(app.date[:4]))
+
+    qry_to_execute= '''
+                 SELECT DProCFS.Tenor, DProCFS.MaturityInt, DProTS_Master.ValoreMid
+                 FROM DProCFS, DProTS_Master
+                 WHERE DProTS_Master.BloombergTicker = DProCFS.BloombergTicker
+                 AND(DProCFS.TipoDato = 'VSwaption') 
+                 and DPROTS_Master.Data= '%s' ''' %(ref_date)
+
+    res = pd.read_sql(qry_to_execute, con.db)
+
+    root = Tk()
+    app = W_SwaptionsOptionsPrint(root)
+    root.mainloop()
+
+    write_Swaptions(xla, res, ref_date, option_print = app.print_type.get())
 
 @xl_func
 def test_matrix2(control):
