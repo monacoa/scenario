@@ -1,0 +1,18 @@
+BOND ID	Descrizione	Seniority	Tipo Tasso	Tipo Quotazione	Tipo di rimborso	Prezzo Emissione	Prezzo di Rimborso / Inflation Ratio	Data Godimento	Data End	Time to Maturityt	Giorni Fixing	Fixing Method	Basis	Adjustment	Periodicità cedola (mesi)	Tenor del tasso floater (anni)	Tasso cedolare annuo (Fisso/spread)	Cedola in corso	Prezzo - MID	Prezzo - BID	Prezzo - ASK	YTM / DM - MID	YTM / DM - BID	YTM / DM - ASK	Assumed Rate	Repos Rate	MKT PRICE DATE	CONTRIBUTOR	Weights	Indicizzazione
+IT0004365554	Bond Italia GOV EUR	Senior Unsecured	FIXED	SECCO	Bullet	99.527	116.878	15/03/2006	15/04/2013	1.292	0	 	ACT/ACT	modified following	6	6	4.250	4.250	100.98			-0.988					30/12/2011	CBBT	1	XXX
+IT0004612179	Bond Italia GOV EUR	Senior Unsecured	FIXED	SECCO	Bullet	99.5	101.666	31/01/2013	01/06/2013	1.421	0	 	ACT/ACT	modified following	6	6	2.000	2.000	99.045			-0.882					30/12/2011	CBBT	1	XXX
+IT0003472336	Bond Italia GOV EUR	Senior Unsecured	FIXED	SECCO	Bullet	100	100	31/01/2013	01/08/2013	1.588	0		ACT/ACT	modified following	6	6	4.25	4.25	101.05			-0.782					30/12/2011	CBBT	1	XXX
+IT0004653108	Bond Italia GOV EUR	Senior Unsecured	FIXED	SECCO	Bullet	100	100	31/01/2013	01/11/2013	1.840	0		ACT/ACT	modified following	6	6	2.25	2.25	98.756			-0.682					30/12/2011	CBBT	1	XXX
+IT0004448863	Bond Italia GOV EUR	Senior Unsecured	FLOATER	SECCO	Bullet	100	100	31/01/2013	15/12/2013	1.960	0		ACT/ACT	modified following	6	6	2.00	2.02	100.729			-0.582					30/12/2011	CBBT	1	XXX
+IT0004707995	Bond Italia GOV EUR	Senior Unsecured	FLOATER	SECCO	Bullet	100	100	31/01/2013	01/04/2014	2.253	0		ACT/ACT	modified following	6	6	3	3	99.29			-0.482					30/12/2011	CBBT	1	XXX
+IT0004505076	Bond Italia GOV EUR	Senior Unsecured	FLOATER	SECCO	Bullet	100	100	31/01/2013	01/06/2014	2.420	0		ACT/ACT	modified following	6	6	3.5	3.5	99.87			-0.382					30/12/2011	CBBT	1	XXX
+IT0004750409	Bond Italia GOV EUR	Senior Unsecured	FLOATER	SECCO	Bullet	100	100	31/01/2013	01/07/2014	2.502	0		ACT/ACT	modified following	6	6	4.25	4.25	101.12			-0.282					30/12/2011	CBBT	1	XXX
+IT0004164775	Bond Italia GOV EUR	Senior Unsecured	FLOATER	SECCO	Bullet	100	100	31/01/2013	01/02/2017	5.093	0		ACT/ACT	modified following	6	6	4	4	97.09			1.018					30/12/2011	CBBT	1	XXX
+IT0004793474	Bond Italia GOV EUR	Senior Unsecured	FLOATER	SECCO	Bullet	100	100	31/01/2013	01/05/2017	5.336	0		ACT/ACT	modified following	6	6	4.75	4.75	99.06			1.118					30/12/2011	CBBT	1	XXX
+IT0004820426	Bond Italia GOV EUR	Senior Unsecured	FLOATER	SECCO	Bullet	100	100	31/01/2013	01/06/2017	5.421	0		ACT/ACT	modified following	6	6	4.75	4.75	98.51			1.218					30/12/2011	CBBT	1	XXX
+IT0003242747	Bond Italia GOV EUR	Senior Unsecured	FLOATER	SECCO	Bullet	100	100	31/01/2013	01/08/2017	5.588	0		ACT/ACT	modified following	6	6	5.25	5.25	101.05			1.318					30/12/2011	CBBT	1	XXX
+IT0004273493	Bond Italia GOV EUR	Senior Unsecured	FLOATER	SECCO	Bullet	100	100	31/01/2013	01/02/2018	6.092	0		ACT/ACT	modified following	6	6	4.5	4.5	97.23			1.418					30/12/2011	CBBT	1	XXX
+IT0004634132	Bond Italia GOV EUR	Senior Unsecured	FLOATER	SECCO	Bullet	100	100	31/01/2013	01/03/2021	9.169	0		ACT/ACT	modified following	6	6	3.75	3.75	88.98			2.218					30/12/2011	CBBT	1	XXX
+IT0004356843	Bond Italia GOV EUR	Senior Unsecured	FLOATER	SECCO	Bullet	100	100	31/01/2013	01/08/2023	11.587	0		ACT/ACT	modified following	6	6	4.75	4.75	92.57			2.718					30/12/2011	CBBT	1	XXX
+IT0000366655	Bond Italia GOV EUR	Senior Unsecured	FLOATER	SECCO	Bullet	100	100	31/01/2013	01/11/2023	11.839	0		ACT/ACT	modified following	6	6	9	9	123.41			2.818					30/12/2011	CBBT	1	XXX
+IT0004513641	Bond Italia GOV EUR	Senior Unsecured	FLOATER	SECCO	Bullet	100	100	31/01/2013	01/03/2025	13.169	0		ACT/ACT	modified following	6	6	5	5	92			2.918					30/12/2011	CBBT	1	XXX

@@ -1,0 +1,9 @@
+BOND ID	Descrizione	Seniority	Tipo Tasso	Tipo Quotazione	Tipo di rimborso	Prezzo Emissione	Prezzo di Rimborso / Inflation Ratio	Data Godimento	Data End	Time to Maturityt	Giorni Fixing	Fixing Method	Basis	Adjustment	Periodicità cedola (mesi)	Tenor del tasso floater (anni)	Tasso cedolare annuo (Fisso/spread)	Cedola in corso	Prezzo - MID	Prezzo - BID	Prezzo - ASK	YTM / DM - MID	YTM / DM - BID	YTM / DM - ASK	Assumed Rate	Repos Rate	MKT PRICE DATE	CONTRIBUTOR	Weights	Indicizzazione
+EI705657	Bond UBS Senior EUR	Senior Unsecured	FLOATING	CLEAN	Bullet	100	100	17/06/2012	17/06/2013		0	NORMAL	ACT/360	modified following	3	3	45	2	100.409								31/12/2012	CBBT	1	EUR003M
+EH531512	Bond UBS Senior EUR	Senior Unsecured	FIXED	CLEAN	Bullet	100	100	03/09/2012	03/09/2013		0	 	ACT/ACT	Modified following	12	12	6.25	6.25	105.589								31/12/2012	CBBT	1	
+EJ192905	Bond UBS Senior EUR	Senior Unsecured	FLOATING	CLEAN	Bullet	100	100	16/05/2012	16/05/2014		0	NORMAL	ACT/ACT	modified following	3	3	50	3.5	100.573								31/12/2012	CBBT	1	EUR003M
+EH825145	Bond UBS Senior EUR	Senior Unsecured	FIXED	CLEAN	Bullet	100	100	19/05/2012	19/05/2014		0	 	ACT/ACT	Modified following	12	12	5.625	5.625	108.063								31/12/2012	CBBT	1	
+EI319302	Bond UBS Senior EUR	Senior Unsecured	FIXED	CLEAN	Bullet	100	100	15/07/2012	15/07/2015		0	 	ACT/ACT	Modified following	12	12	3.5	3.5	106.646								31/12/2012	CBBT	1	
+EI956537	Bond UBS Senior EUR	Senior Unsecured	FIXED	CLEAN	Bullet	100	100	18/01/2012	18/01/2016		0	 	ACT/ACT	Modified following	12	12	3.125	3.125	105.898								31/12/2012	CBBT	1	
+EG512682	Bond UBS Senior EUR	Senior Unsecured	FIXED	CLEAN	Bullet	100	100	07/06/2012	07/06/2017		0	 	ACT/ACT	Modified following	12	12	4.75	4.75	114.576								31/12/2012	CBBT	1	
+EH317522	Bond UBS Senior EUR	Senior Unsecured	FIXED	CLEAN	Bullet	100	100	18/04/2012	18/04/2018		0	 	ACT/ACT	Modified following	12	12	6	6	121.459								31/12/2012	CBBT	1	

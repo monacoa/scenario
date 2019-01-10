@@ -1,0 +1,14 @@
+BOND ID	Descrizione	Seniority	Tipo Tasso	Tipo Quotazione	Tipo di rimborso	Prezzo Emissione	Prezzo di Rimborso / Inflation Ratio	Data Godimento	Data End	Time to Maturityt	Giorni Fixing	Fixing Method	Basis	Adjustment	Periodicità cedola (mesi)	Tenor del tasso floater (anni)	Tasso cedolare annuo (Fisso/spread)	Cedola in corso	Prezzo - MID	Prezzo - BID	Prezzo - ASK	YTM / DM - MID	YTM / DM - BID	YTM / DM - ASK	Assumed Rate	Repos Rate	MKT PRICE DATE	CONTRIBUTOR	Weights	Indicizzazione
+ISIN0	Bond Italia GOV Inflation EUR	Senior Unsecured	ZERO COUPON	SECCO	Bullet	100.101	100	30/11/2016	31/05/2017	0.233	0	 	ACT/ACT	modified following	6				100.091	0	0		0	0			07/03/2017	CBBT	1	
+ISIN1	Bond Italia GOV Inflation EUR	Senior Unsecured	ZERO COUPON	SECCO	Bullet	100.15	100	28/02/2017	31/08/2017	0.485	0	 	ACT/ACT	modified following	6				100.153	0	0		0	0			07/03/2017	CBBT	1	
+ISIN3	Bond Italia GOV Inflation EUR	Senior Unsecured	FIXED	SECCO	Bullet	100	100	15/03/2008	15/10/2018	1.607	0	 	ACT/ACT	modified following	6		0.300	0.300	100.581	0	0		0	0			07/03/2017	CBBT	1	
+ISIN4	Bond Italia GOV Inflation EUR	Senior Unsecured	FIXED	SECCO	Bullet	100	100		15/10/2019	2.606	0		ACT/ACT	modified following	6		0.005	0.005	99.44	0	0		0	0			07/03/2017	CBBT	1	
+ISIN5	Bond Italia GOV Inflation EUR	Senior Unsecured	FIXED	SECCO	Bullet	100	100		01/11/2020	3.655	0		ACT/ACT	modified following	6		0.650	0.650	100.702	0	0		0	0			07/03/2017	CBBT	1	
+ISIN6	Bond Italia GOV Inflation EUR	Senior Unsecured	FIXED	SECCO	Bullet	100	100		01/11/2021	4.654	0		ACT/ACT	modified following	6		0.350	0.350	97.809	0	0		0	0			07/03/2017	CBBT	1	
+ISIN7	Bond Italia GOV Inflation EUR	Senior Unsecured	FIXED	SECCO	Bullet	100	100	15/03/2010	15/09/2022	5.525	0	 	ACT/ACT	modified following	6		1.450	1.450	101.354	0	0		0	0			07/03/2017	CBBT	1	
+ISIN8	Bond Italia GOV Inflation EUR	Senior Unsecured	FIXED	SECCO	Bullet	100	100	15/03/2007	15/10/2023	6.606	0	 	ACT/ACT	modified following	6		0.650	0.650	94.441	0	0		0	0			07/03/2017	CBBT	1	
+ISIN9	Bond Italia GOV Inflation EUR	Senior Unsecured	FIXED	SECCO	Bullet	100	100	15/03/2014	01/09/2024	7.488	0	 	ACT/ACT	modified following	6		3.775	3.750	113.269	0	0		0	0			07/03/2017	CBBT	1	
+ISIN10	Bond Italia GOV Inflation EUR	Senior Unsecured	FIXED	SECCO	Bullet	100	100	15/03/2011	01/06/2025	8.235	0	 	ACT/ACT	modified following	6		1.500	1.500	96.695	0	0		0	0			07/03/2017	CBBT	1	
+ISIN11	Bond Italia GOV Inflation EUR	Senior Unsecured	FIXED	SECCO	Bullet	100	100	15/09/2015	01/12/2026	9.736	0	 	ACT/ACT	modified following	6		1.250	1.250	91.935	0	0		0	0			07/03/2017	CBBT	1	
+ISIN12	Bond Italia GOV Inflation EUR	Senior Unsecured	FIXED	SECCO	Bullet	100	100	15/09/2004	01/03/2032	14.984	0	 	ACT/ACT	modified following	6		1.650	1.650	89.032	0	0		0	0			07/03/2017	CBBT	1	
+ISIN13	Bond Italia GOV Inflation EUR	Senior Unsecured	FIXED	SECCO	Bullet	100	100	15/09/2009	01/09/2036	19.488	0	 	ACT/ACT	modified following	6		2.250	2.250	91.432	0	0		0	0			07/03/2017	CBBT	1	

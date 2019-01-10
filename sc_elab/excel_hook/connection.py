@@ -24,7 +24,8 @@ class Connection:
     def db_data(self):
 
         if not self.db_dta:
-            self.db  = (pyodbc.connect(r'DSN=db_mercato;UID=root;PWD=lucap'))
+            #self.db  = (pyodbc.connect(r'DSN=db_mercato;UID=root;PWD=lucap'))
+            self.db  = (pyodbc.connect(r'DSN=db_mkt_data;UID=pricingunit;PWD=pr1cing4'))
 
             ### gestire l'errore nel caso in cui non riesca a connettersi
 

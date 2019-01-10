@@ -1,0 +1,13 @@
+model  = CIR
+r0     = 0.002237774	
+kappa = 1.695495338
+theta = 0.075160640	
+sigma = 1.409303311
+r0_min    = 0.0001	
+kappa_min = 0.0001
+theta_min = 0.0001	
+sigma_min = 0.0001
+r0_max    = 10.0	
+kappa_max = 10.0
+theta_max = 10.0	
+sigma_max = 10.0

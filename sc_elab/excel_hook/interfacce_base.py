@@ -968,27 +968,3 @@ def download_matrix(control):
 
     write_Swaptions(xla, res, ref_date, option_print = app.print_type.get())
 
-@xl_func
-def test_matrix2(control):
-
-    nameSheet = nameSheetScaricoSwaption
-    xla = xl_app()
-    book = xla.ActiveWorkbook
-
-
-    print 'BBB'
-    # -------------- controllo l'esistenza del foglio di input  ----------------
-    try:
-        s = book.Sheets(nameSheet)
-        s.Activate()
-    except:
-        root = Tk()
-        msg = "Missing input sheet(%s) \nNothing to do for me!" % nameSheetScaricoSwaption
-        tkMessageBox.showinfo("Warning!", msg)
-        root.destroy()
-        return
-    # -------------- apro la finestra di input della scelta  ----------------------------
-
-    wbName = str(book.FullName)
-    book.Save()
-    write_matrix(wbName,xla)

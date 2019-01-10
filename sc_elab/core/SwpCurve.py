@@ -279,7 +279,7 @@ class Curve(object):
         c_a = con.db_data()
         #qry = "SELECT BloombergTicker FROM test_db_mkt_data.dprocurve where Currency = 'EUR' and (TipoDato = 'CLibor' or  TipoDato = 'CSwap' or TipoDato = 'CDeopositi') and contributor = 'MTA'" 
         #qry = "SELECT distinct BloombergTicker FROM test_db_mkt_data.dprocurve where (TipoDato = 'CLibor' or  TipoDato = 'CSwap' or TipoDato = 'CDeopositi' or TipoDato = 'CFuture')" 
-        qry = "SELECT distinct BloombergTicker FROM dprocurve where (TipoDato = 'CLibor' or  TipoDato = 'CSwap' or TipoDato = 'CDeopositi')"
+        qry = "SELECT distinct BloombergTicker FROM DProCurve where (TipoDato = 'CLibor' or  TipoDato = 'CSwap' or TipoDato = 'CDepositi')"
 
         #SELECT BloombergTicker FROM test_db_mkt_data.dprocurve where Currency = 'EUR' and (TipoDato = 'CLibor' or  TipoDato = 'CSwap' or TipoDato = 'CDeopositi') and contributor = 'MTA';
 
@@ -356,8 +356,13 @@ class Curve(object):
         res = c_d.fetchall()
 
 
+
         self.curr = res[0][0]
 
+        print 'qry: ',  qry
+
+        print 'Currency: ',  res[0][0]
+        
         if self.curr == "EUR":
             self.floater_tenor = "6M"
             self.cal = "de.eurex"
