@@ -383,18 +383,17 @@ class BondPortfolio(object):
         c_a = con.db_data()
 
         c_date_qry = str(bond_date).replace("-", "")
+        tmp = self.description.split(' - ')
+        des = tmp[0]
+        sen = tmp[1]
 
-    
         qry = ''' 
-                SELECT * FROM Bond_master WHERE Data = '%s'  AND descrizione = '%s'  
+                SELECT * FROM Bond_master WHERE Data = '%s'  AND descrizione = '%s'  AND PUCollatType = '%s'
                 ORDER BY Scadenza ASC
-            ''' %(c_date_qry, self.description)
+            ''' %(c_date_qry, des, sen)
 
         c_a.execute(qry)
         res = c_a.fetchall()
-        
-        
-        
         
         num_fields = len(c_a.description)
         field_names = [i[0] for i in c_a.description]
@@ -411,7 +410,7 @@ class BondPortfolio(object):
         code_emittente = self.bond_portfolio[0]['Emittente']
         self.curr = self.bond_portfolio[0]['Divisa']
         
-        
+        '''
         cod_seniority = self.getCodeSeniority(self.seniority)
 
         
@@ -431,7 +430,7 @@ class BondPortfolio(object):
         self.emittente = des_emittente
         self.rating = des_cod_rating
         self.recoveryRate = float(value_rr)/100.0
-        
+        '''
         
         
         

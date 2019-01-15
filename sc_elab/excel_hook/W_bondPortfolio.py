@@ -40,6 +40,7 @@ class W_bondType (Frame):
 
     def close_window(self):
         self.destroy()
+        self.master.destroy()
 
 
 class W_bondDate(LabelFrame):
@@ -48,7 +49,7 @@ class W_bondDate(LabelFrame):
         if master: self.master = master
         elif parent:
             self.master = parent.master
-            parent.close_window()
+            parent.destroy()
         # create labelframe
         LabelFrame.__init__(self, master)
 
@@ -82,6 +83,7 @@ class W_bondDate(LabelFrame):
 
     def close_window(self):
         self.destroy()
+        self.master.destroy()
 
     def selected_date(self, type):
         #recupero la data selezionata
@@ -97,7 +99,7 @@ class W_bondSelection (LabelFrame):
         c_date = None
         if parent:
             self.master = parent.master
-            parent.close_window()
+            parent.destroy()
         LabelFrame.__init__(self, self.master)
         #self.geometry("800x600")
         #self.master.geometry("400x500")
@@ -780,7 +782,7 @@ class W_bondFitting(LabelFrame):
 
     def close_window(self):
         self.destroy()
-        #self.master.destroy()
+        self.master.destroy()
 
     def donothing(self):
         self.destroy()
@@ -834,7 +836,7 @@ class  W_boot_opt(LabelFrame):
     def __init__ (self,  parent = None, type = "SWP"):
         if parent:
             self.master = parent.master
-            parent.close_window()
+            parent.destroy()
 
         LabelFrame.__init__(self, self.master)
 
@@ -931,7 +933,7 @@ class  W_boot_opt(LabelFrame):
             
             T7 = Label(self, height=1, width=30, text="Bond evaluation model:").grid(row=2, sticky="e")
             self.variable7 = StringVar(self)
-            self.variable7.set("(0) Recovery market value")  # default value
+            self.variable7.set("(0) RMV")  # default value
             w7 = OptionMenu(self, self.variable7, "(0) RMV", "(1) RFV")
             w7.grid(row=2, column=1)
             w7.config(width=30)

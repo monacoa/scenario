@@ -279,7 +279,7 @@ class Curve(object):
         c_a = con.db_data()
         #qry = "SELECT BloombergTicker FROM test_db_mkt_data.dprocurve where Currency = 'EUR' and (TipoDato = 'CLibor' or  TipoDato = 'CSwap' or TipoDato = 'CDeopositi') and contributor = 'MTA'" 
         #qry = "SELECT distinct BloombergTicker FROM test_db_mkt_data.dprocurve where (TipoDato = 'CLibor' or  TipoDato = 'CSwap' or TipoDato = 'CDeopositi' or TipoDato = 'CFuture')" 
-        qry = "SELECT distinct BloombergTicker FROM dprocurve where (TipoDato = 'CLibor' or  TipoDato = 'CSwap' or TipoDato = 'CDeopositi')"
+        qry = "SELECT distinct BloombergTicker FROM dprocurve where (TipoDato = 'CLibor' or  TipoDato = 'CSwap' or TipoDato = 'CDepositi')" # or TipoDato = 'CFuture')"
 
         #SELECT BloombergTicker FROM test_db_mkt_data.dprocurve where Currency = 'EUR' and (TipoDato = 'CLibor' or  TipoDato = 'CSwap' or TipoDato = 'CDeopositi') and contributor = 'MTA';
 
@@ -693,7 +693,7 @@ class CdsCurve(Curve):
         dict_codeInv['1'] = 'AVD'
         dict_codeInv['2'] = 'SVE'
         dict_codeInv['3'] = 'CIR'
-        dict_codeInv['4']  = 'NS'
+        dict_codeInv['4'] = 'NS'
         
         try:        
             code_f = dict_codeInv[code_0]
@@ -1150,10 +1150,10 @@ class CdsCurve(Curve):
         con = Connection()
         c_a = con.db_anag()
 
-        ref_date   = opt_download['refDate']
+        ref_date     = opt_download['refDate']
         codeSeg      = opt_download['codeSeg']
         tipo_modello = opt_download['tipo_modello']
-        valuta = opt_download['valuta']
+        valuta       = opt_download['valuta']
 
         tipo_scarico = 0
         quotazioni = 'MID'
@@ -1186,7 +1186,7 @@ class CdsCurve(Curve):
 
         c_a.execute(qry0)
         res = c_a.fetchall()
-        
+
         
         if len(res) != 0:
             code_curve = res[0][0]
@@ -1196,11 +1196,11 @@ class CdsCurve(Curve):
         # RECUPERO CURVA BENCHMARK            
         qry1 = "SELECT TERM, VALORE FROM MKT_Curve_D WHERE CODICE_CURVA = '%s' ORDER BY TERM" %code_curve
 
+        #print "qry1" + qry1
+
         c_a.execute(qry1)
         res = c_a.fetchall()
-        
-        
-        
+
         #print 'res: ', res
         
         valueList = []
@@ -1217,7 +1217,6 @@ class CdsCurve(Curve):
         self.bench_dates = matDateList
         self.bench_df_val = valueList
         
-        
         #print 'self.bench_dates: ', self.bench_dates
         #print 'ln: ', len(self.bench_dates)
 
@@ -1225,7 +1224,7 @@ class CdsCurve(Curve):
         
         #------------------------------------------
         
-        
+
         qry2 = """
             SELECT CODICE_MODELLO, DESCRIZIONE FROM MKT_ParametriInterp
             WHERE CODICE_EMITTENTE = 999 
@@ -1246,13 +1245,12 @@ class CdsCurve(Curve):
         res = c_a.fetchall()
 
 
-
         if len(res) != 0:
             codice_modello = res[0][0]
             des_modello  = res[0][1]
         else:
             return 0
-        #print 'code_modello: ', code_modello
+        #print 'code_modello: ', codice_modello
         #print 'des_modello: ', des_modello
         
         qry3 = """
@@ -1274,10 +1272,12 @@ class CdsCurve(Curve):
             
             parTmp = res[i][0]
             mdl_prms_list.append(parTmp)
-        
-        
-        prms_dict = fb.packModelPrms(tipo_modello, self.bench_dates, mdl_prms_list)
-        
+
+        if tipo_modello != 'LIN':
+            prms_dict = fb.packModelPrms(tipo_modello, self.bench_dates, mdl_prms_list)
+        else:
+            prms_dict = []
+
         self.bench_prms = prms_dict       
         self.bench_model = tipo_modello
         
@@ -1356,7 +1356,7 @@ class CdsCurve(Curve):
         # RECUPERO SERIE STORICA TS            
 
         qry0 = """
-                SELECT DATA, VALORE FROM indice_master WHERE
+                SELECT DATA, VALORE FROM TS_master WHERE
                 AssetClass = 'CPTFEMU' 
                 AND CodicePaese = '%s'
             """  %(valuta)
