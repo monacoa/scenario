@@ -183,7 +183,7 @@ def getDatesListFromDb(type):
 
     elif type == "BOND":
         qry = '''
-                    select distinct Data from bond_master order by Data desc
+                    select distinct Data from Bond_master order by Data desc
                     '''
 
     cur.execute(qry)
