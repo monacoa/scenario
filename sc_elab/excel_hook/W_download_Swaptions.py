@@ -8,7 +8,7 @@ def getDatesListFromDbSwaptions():
 
     cursor = con.db_data()
 
-    qry_to_execute = '''SELECT distinct Data FROM dprots_master 
+    qry_to_execute = '''SELECT distinct Data FROM DProTS_master 
                         WHERE TipoDato='VSwaption'
                         ORDER by Data desc
                      '''

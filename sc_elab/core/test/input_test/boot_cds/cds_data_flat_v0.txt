@@ -1,0 +1,5 @@
+Node	Maturity (Y)	Value
+1Y	1	200.0
+3Y	3	200.0
+5Y	5	200.0
+10Y	10	200.0

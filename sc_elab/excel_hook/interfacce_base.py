@@ -27,8 +27,8 @@ def load_swap_curve_from_db(control):
     app  = W_curveType(root)
     root.mainloop()
 
-    curve_des = app.new_window.new_window.curve
-    curve_date= app.new_window.date
+    curve_des  = app.new_window.new_window.curve
+    curve_date = app.new_window.date
     curve_type = app.new_window.type
 
 
@@ -964,11 +964,11 @@ def download_matrix(control):
     ref_date = datetime.date(day=int(app.date[-2:]), month=int(app.date[5:7]), year=int(app.date[:4]))
 
     qry_to_execute= '''
-                 SELECT DProCFS.Tenor, DProCFS.MaturityInt, DProTS_Master.ValoreMid
-                 FROM DProCFS, DProTS_Master
-                 WHERE DProTS_Master.BloombergTicker = DProCFS.BloombergTicker
+                 SELECT DProCFS.Tenor, DProCFS.MaturityInt, DProTS_master.ValoreMid
+                 FROM DProCFS, DProTS_master
+                 WHERE DProTS_master.BloombergTicker = DProCFS.BloombergTicker
                  AND(DProCFS.TipoDato = 'VSwaption') 
-                 and DPROTS_Master.Data= '%s' ''' %(ref_date)
+                 and DProTS_master.Data= '%s' ''' %(ref_date)
 
     res = pd.read_sql(qry_to_execute, con.db)
 

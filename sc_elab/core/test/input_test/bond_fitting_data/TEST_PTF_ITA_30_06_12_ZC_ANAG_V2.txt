@@ -1,0 +1,18 @@
+BOND ID	Descrizione	Seniority	Tipo Tasso	Tipo Quotazione	Tipo di rimborso	Prezzo Emissione	Prezzo di Rimborso / Inflation Ratio	Data Godimento	Data End	Time to Maturityt	Giorni Fixing	Fixing Method	Basis	Adjustment	Periodicità cedola (mesi)	Tenor del tasso floater (anni)	Tasso cedolare annuo (Fisso/spread)	Cedola in corso	Prezzo - MID	Prezzo - BID	Prezzo - ASK	YTM / DM - MID	YTM / DM - BID	YTM / DM - ASK	Assumed Rate	Repos Rate	MKT PRICE DATE	CONTRIBUTOR	Weights	Indicizzazione
+IT0004365554	Bond Italia GOV EUR	Senior Unsecured	ZC	SECCO	Bullet	99.36	100	31/01/2010	15/04/2013	1.292	0	 	ACT/ACT	modified following	6	6	4.250	4.250	99.74154158			0.2					30/12/2011	CBBT	1	XXX
+IT0004612179	Bond Italia GOV EUR	Senior Unsecured	ZC	SECCO	Bullet	99.00	100	31/01/2010	01/06/2013	1.421	0	 	ACT/ACT	modified following	6	6	2.000	2.000	99.57370788			0.3					30/12/2011	CBBT	1	XXX
+IT0003472336	Bond Italia GOV EUR	Senior Unsecured	ZC	SECCO	Bullet	98.60	100	31/01/2010	01/08/2013	1.588	0		ACT/ACT	modified following	6	6	4.25	4.25	99.36480557			0.4					30/12/2011	CBBT	1	XXX
+IT0004653108	Bond Italia GOV EUR	Senior Unsecured	ZC	SECCO	Bullet	98.12	100	31/01/2010	01/11/2013	1.840	0		ACT/ACT	modified following	6	6	2.25	2.25	99.08006325			0.5					30/12/2011	CBBT	1	XXX
+IT0004448863	Bond Italia GOV EUR	Senior Unsecured	ZC	SECCO	Bullet	97.68	100	31/01/2010	15/12/2013	1.960	0		ACT/ACT	modified following	6	6	2.00	2.02	98.82379515			0.6					30/12/2011	CBBT	1	XXX
+IT0004707995	Bond Italia GOV EUR	Senior Unsecured	ZC	SECCO	Bullet	97.08	100	31/01/2010	01/04/2014	2.253	0		ACT/ACT	modified following	6	6	3	3	98.42269177			0.7					30/12/2011	CBBT	1	XXX
+IT0004505076	Bond Italia GOV EUR	Senior Unsecured	ZC	SECCO	Bullet	96.53	100	31/01/2010	01/06/2014	2.420	0		ACT/ACT	modified following	6	6	3.5	3.5	98.06375216			0.8					30/12/2011	CBBT	1	XXX
+IT0004750409	Bond Italia GOV EUR	Senior Unsecured	ZC	SECCO	Bullet	96.03	100	31/01/2010	01/07/2014	2.502	0		ACT/ACT	modified following	6	6	4.25	4.25	97.7477977			0.9					30/12/2011	CBBT	1	XXX
+IT0003618383	Bond Italia GOV EUR	Senior Unsecured	ZC	SECCO	Bullet	95.50	100	31/01/2010	01/08/2014	2.587	0		ACT/ACT	modified following	6	6	4.25	4.25	97.41267788			1					30/12/2011	CBBT	1	XXX
+IT0004780380	Bond Italia GOV EUR	Senior Unsecured	ZC	SECCO	Bullet	94.73	100	31/01/2010	15/11/2014	2.878	0		ACT/ACT	modified following	6	6	6	6	96.83470571			1.1					30/12/2011	CBBT	1	XXX
+IT0003719918	Bond Italia GOV EUR	Senior Unsecured	ZC	SECCO	Bullet	94.00	100	31/01/2010	01/02/2015	3.091	0		ACT/ACT	modified following	6	6	4.25	4.25	96.29068359			1.2					30/12/2011	CBBT	1	XXX
+IT0004805070	Bond Italia GOV EUR	Senior Unsecured	ZC	SECCO	Bullet	93.40	100	31/01/2010	01/03/2015	3.168	0		ACT/ACT	modified following	6	6	2.5	2.5	95.88191407			1.3					30/12/2011	CBBT	1	XXX
+IT0004568272	Bond Italia GOV EUR	Senior Unsecured	ZC	SECCO	Bullet	92.72	100	31/01/2010	15/04/2015	3.291	0		ACT/ACT	modified following	6	6	3	3	95.39265009			1.4					30/12/2011	CBBT	1	XXX
+IT0004615917	Bond Italia GOV EUR	Senior Unsecured	ZC	SECCO	Bullet	91.95	100	31/01/2010	15/06/2015	3.458	0		ACT/ACT	modified following	6	6	3	3	94.81303518			1.5					30/12/2011	CBBT	1	XXX
+IT0003844534	Bond Italia GOV EUR	Senior Unsecured	ZC	SECCO	Bullet	91.20	100	31/01/2010	01/08/2015	3.587	0		ACT/ACT	modified following	6	6	3.75	3.75	94.26134691			1.6					30/12/2011	CBBT	1	XXX
+IT0004656275	Bond Italia GOV EUR	Senior Unsecured	ZC	SECCO	Bullet	90.23	100	31/01/2010	01/11/2015	3.839	0		ACT/ACT	modified following	6	6	3	3	93.47447244			1.7					30/12/2011	CBBT	1	XXX
+IT0004712748	Bond Italia GOV EUR	Senior Unsecured	ZC	SECCO	Bullet	88.83	100	31/01/2010	15/04/2016	4.293	0		ACT/ACT	modified following	6	6	3.75	3.75	92.27253126			1.8					30/12/2011	CBBT	1	XXX
