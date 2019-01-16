@@ -43,13 +43,12 @@ def TEST_insert_bond_data_record(connection_status, table_data, data_values):
             f_dt = from_bond_table_to_datastream[f_tab]
             data_dict_to_insert_tmp[f_tab] = {}
 
-            print
-
             if (f_dt == 'NULL'):
                 data_dict_to_insert_tmp[f_tab][0] = 'nan'
                 pass
             else:
                 data_dict_to_insert_tmp[f_tab][0] = data_values[f_dt][i]
+#                print f_dt + 'value is: ' + str(data_values[f_dt][i])
 
         isinTmp = data_dict_to_insert_tmp['isin'][0]
 

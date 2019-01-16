@@ -21,17 +21,32 @@ class W_fittingType (Frame):
     def __init__(self, master = None):
         Frame.__init__(self, master)
         self.master = master
-        self.menubar = Menu(self)
-        filemenu = Menu(self.menubar, tearoff=0)
-        filemenu.add_command(label="Fit Bootstrapped Curve", command=self.fit_boot_curve)
-        filemenu.add_command(label="Fit par-yield Swap Curve", command=self.fit_py_curve)
-        filemenu.add_separator()
-        filemenu.add_command(label="Exit", command = self.donothing)
 
-        self.menubar.add_cascade(label="Click & Select Fitting Type", menu=filemenu)
-        self.master.config(menu=self.menubar)
-        self.canvas = Canvas(self, bg="grey", width=200, height=200, bd=0, highlightthickness=0)
-        self.canvas.pack()
+        curve_fit = StringVar()
+        curve_fit.set('BOOT')
+
+        Label(self,text="""Choose curve :""",justify=LEFT,padx=100).pack()
+
+        self.rb_fit1 = Radiobutton(self,text='Fit Bootstrapped Curve',justify='left',variable=curve_fit,value='BOOT').pack(anchor=W)
+        self.rb_fit2 = Radiobutton(self,text='Fit par-yield Swap Curve',justify='left',variable=curve_fit,value='PY').pack(anchor=W)
+
+        # create button
+        self.btn2 = Button(self, text="Cancel",  command=lambda:self.master.destroy())
+        self.btn2.pack(side=BOTTOM, fill = 'x')
+        # create button
+        self.btn1 = Button(self, text="Select", command= lambda:self.load_curve(curve_fit.get()))
+        self.btn1.pack(side=BOTTOM, fill='x')
+        self.pack()
+
+    def load_curve(self, c_type):
+        print c_type
+        if c_type == 'BOOT':
+            self.fit_boot_curve()
+        elif c_type == 'PY':
+            self.fit_py_curve()
+        else:
+            self.donothing()
+
 
     def fit_boot_curve(self):
         self.fit_type = "boot"
@@ -69,13 +84,8 @@ class W_fittingType (Frame):
         curveL = readCurvesNames(xla, s, "B2", "o", 5)
         self.new_window = W_fittingSelection(self, curveL)
 
-
-
-
-
-
     def close_window(self):
-        self.destroy()
+        self.master.destroy()
 
 
 class W_fittingSelection(LabelFrame):
@@ -85,11 +95,11 @@ class W_fittingSelection(LabelFrame):
         self.master.destroy()
         return
 
-    def __init__(self, master=None, curveL=[]):
+    def __init__(self, parent=None, curveL=[]):
         c_date = None
-        if master:
-            self.master = master.master
-            master.close_window()
+        if parent:
+            self.master = parent.master
+            parent.destroy()
 
         LabelFrame.__init__(self, self.master)
         #self.master = master

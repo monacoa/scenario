@@ -67,7 +67,7 @@ def writePortfolioAnag(xla, rangeS, crv):
     drawLine(xla, topLeftRow, topLeftCol, topLeftRow, topLeftCol + nCols - 1, "o", const.xlThin)
 
     field_list = ['Isin', 'Descrizione', 'Seniority', 'Tipo tasso', 'Tipo quotazione', 'Tipo rimborso', 'Prezzo emissione', 'Prezzo rimborso / Inflation Ratio', 'Data emissione',  'Data scadenza', 
-        'Tempo scadenza', 'Giorni di fixing',    'Tipo fixing',    'Basis',    'Adjustment',    'Periodicita cedola (mesi)',    'Tenor del tasso floater (anni)',    
+        'Tempo scadenza', 'Giorni di fixing',    'Tipo fixing',    'Basis',    'Adjustment',    'Periodicita cedola (mesi)',    'Tenor del tasso floater (mesi)',
         'Tasso cedolare annuo (Fisso/spread)',    'Cedola in corso',    'Prezzo-MID',    'Prezzo-BID',    'Prezzo-ASK',    'YTM/DM (MID)',    'YTM/DM (BID)',    'YTM/DM (ASK)',
         'Tasso di riferiemnto',    'Tasso repo',    'Data prezzo di mercato',    'Contributor',    'Peso',    'Indicizzazione']
 
@@ -90,7 +90,7 @@ def writePortfolioAnag(xla, rangeS, crv):
             fieldNameTmp = field_list[j]
             fieldNameDBTmp = field_map[fieldNameTmp][0]
             
-            print 'fieldNameDBTmp: ', fieldNameDBTmp
+            #print 'fieldNameDBTmp: ', fieldNameDBTmp
             
             
             if (fieldNameDBTmp != None):
@@ -876,7 +876,7 @@ def readPortfolioAnag(xla, r, cc):
     
     
     field_list = ['Isin', 'Descrizione', 'Seniority', 'Tipo tasso', 'Tipo quotazione', 'Tipo rimborso', 'Prezzo emissione', 'Prezzo rimborso / Inflation Ratio', 'Data emissione',  'Data scadenza', 
-        'Tempo scadenza', 'Giorni di fixing',    'Tipo fixing',    'Basis',    'Adjustment',    'Periodicita cedola (mesi)',    'Tenor del tasso floater (anni)',    
+        'Tempo scadenza', 'Giorni di fixing',    'Tipo fixing',    'Basis',    'Adjustment',    'Periodicita cedola (mesi)',    'Tenor del tasso floater (mesi)',
         'Tasso cedolare annuo (Fisso/spread)',    'Cedola in corso',    'Prezzo-MID',    'Prezzo-BID',    'Prezzo-ASK',    'YTM/DM (MID)',    'YTM/DM (BID)',    'YTM/DM (ASK)',
         'Tasso di riferiemnto',    'Tasso repo',    'Data prezzo di mercato',    'Contributor',    'Peso',    'Indicizzazione']
 
