@@ -105,7 +105,6 @@ def getCurvesListFromDb(curve_date, type):
     # -----------
 
 
-
 def getBondListFromDb(bond_date, type):
 
     c_date_qry = str(bond_date).replace("-", "")
