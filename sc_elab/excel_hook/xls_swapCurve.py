@@ -205,16 +205,16 @@ def writeCurveOnXls(crv, nameSheet, xla, curve_type):
                       , "Return Type": crv.rendimento
                       , "Node Type": crv.node_type
                       , "Quotation": crv.quotation
-                      , "Download Type": crv.download_type
-                      , "Issuer": crv.emittente
-                      , "Sector": crv.settore
-                      , "Rating": crv.rating
+                      #, "Download Type": crv.download_type
+                      #, "Issuer": crv.emittente
+                      #, "Sector": crv.settore
+                      #, "Rating": crv.rating
                       , "Seniority": crv.seniority
-                      , "Fixing Lag (D)": str(int(crv.lag))
-                      , "Capitalization": crv.capitalization
-                      , "Day Count": crv.dayCount
-                      , "Day Adj.": crv.dayAdj
-                      , "Frequency (M)": crv.frequency
+                      #, "Fixing Lag (D)": str(int(crv.lag))
+                      #, "Capitalization": crv.capitalization
+                      #, "Day Count": crv.dayCount
+                      #, "Day Adj.": crv.dayAdj
+                      #, "Frequency (M)": crv.frequency
                       , "Recovery Rate (%)": crv.recovery
                       , "Source": crv.source
                       }
@@ -272,8 +272,8 @@ def readIntestazioneCds(xla , r , cc):
     row             = r.Row
     col             = r.Column
 
-    cc.capitalization = xla.Range(xla.Cells(row+1, col+1), xla.Cells(row+1, col+1)).Value
-    cc.curr           = xla.Range(xla.Cells(row+2, col+1), xla.Cells(row+2, col+1)).Value
+    #cc.capitalization = xla.Range(xla.Cells(row+1, col+1), xla.Cells(row+1, col+1)).Value
+    cc.curr           = xla.Range(xla.Cells(row+1, col+1), xla.Cells(row+1, col+1)).Value
     # imposto il mercato
     if cc.curr == "EUR":
         cc.cal = "de.eurex"
@@ -287,28 +287,28 @@ def readIntestazioneCds(xla , r , cc):
         cc.cal = 'us'
 
     print ".................", r.Value
-    cc.type = xla.Range(xla.Cells(row + 3, col + 1), xla.Cells(row + 3, col + 1)).Value
-    dd = xla.Range(xla.Cells(row + 4, col + 1), xla.Cells(row + 4, col + 1)).Value
+    cc.type = xla.Range(xla.Cells(row + 2, col + 1), xla.Cells(row + 2, col + 1)).Value
+    dd = xla.Range(xla.Cells(row + 3, col + 1), xla.Cells(row + 3, col + 1)).Value
     cc.ref_date = datetime.date(year=dd.year, month=dd.month, day=dd.day)
 
-    cc.dayAdj   = xla.Range(xla.Cells(row + 5, col + 1), xla.Cells(row + 5, col + 1)).Value
-    cc.dayCount = xla.Range(xla.Cells(row + 6, col + 1), xla.Cells(row + 6, col + 1)).Value
+    #cc.dayAdj   = xla.Range(xla.Cells(row + 5, col + 1), xla.Cells(row + 5, col + 1)).Value
+    #cc.dayCount = xla.Range(xla.Cells(row + 6, col + 1), xla.Cells(row + 6, col + 1)).Value
 
-    cc.description   = xla.Range(xla.Cells(row + 7, col + 1), xla.Cells(row + 7, col + 1)).Value
-    cc.download_type = xla.Range(xla.Cells(row + 8, col + 1), xla.Cells(row + 8, col + 1)).Value
-    cc.lag           = xla.Range(xla.Cells(row + 9, col + 1), xla.Cells(row + 9, col + 1)).Value
-    cc.frequency     = xla.Range(xla.Cells(row + 10, col + 1), xla.Cells(row + 10, col + 1)).Value
-    cc.emittente     = xla.Range(xla.Cells(row + 11, col + 1), xla.Cells(row + 11, col + 1)).Value
-    cc.node_type     = xla.Range(xla.Cells(row + 12, col + 1), xla.Cells(row + 12, col + 1)).Value
-    cc.quotation     = xla.Range(xla.Cells(row + 13, col + 1), xla.Cells(row + 13, col + 1)).Value
-    cc.rating        = xla.Range(xla.Cells(row + 14, col + 1), xla.Cells(row + 14, col + 1)).Value
-    cc.recovery      = xla.Range(xla.Cells(row + 15, col + 1), xla.Cells(row + 15, col + 1)).Value
-    cc.rendimento    = xla.Range(xla.Cells(row + 16, col + 1), xla.Cells(row + 16, col + 1)).Value
-    cc.sector        = xla.Range(xla.Cells(row + 17, col + 1), xla.Cells(row + 17, col + 1)).Value
-    cc.seniority     = xla.Range(xla.Cells(row + 18, col + 1), xla.Cells(row + 18, col + 1)).Value
-    cc.source        = xla.Range(xla.Cells(row + 19, col + 1), xla.Cells(row + 19, col + 1)).Value
+    cc.description   = xla.Range(xla.Cells(row + 4, col + 1), xla.Cells(row + 4, col + 1)).Value
+    #cc.download_type = xla.Range(xla.Cells(row + 8, col + 1), xla.Cells(row + 8, col + 1)).Value
+    #cc.lag           = xla.Range(xla.Cells(row + 9, col + 1), xla.Cells(row + 9, col + 1)).Value
+    #cc.frequency     = xla.Range(xla.Cells(row + 10, col + 1), xla.Cells(row + 10, col + 1)).Value
+    #cc.emittente     = xla.Range(xla.Cells(row + 4, col + 1), xla.Cells(row + 11, col + 1)).Value
+    cc.node_type     = xla.Range(xla.Cells(row + 5, col + 1), xla.Cells(row + 5, col + 1)).Value
+    cc.quotation     = xla.Range(xla.Cells(row + 6, col + 1), xla.Cells(row + 6, col + 1)).Value
+    #cc.rating        = xla.Range(xla.Cells(row + 14, col + 1), xla.Cells(row + 14, col + 1)).Value
+    cc.recovery      = xla.Range(xla.Cells(row + 7, col + 1), xla.Cells(row + 7, col + 1)).Value
+    cc.rendimento    = xla.Range(xla.Cells(row + 8, col + 1), xla.Cells(row + 8, col + 1)).Value
+    #cc.sector        = xla.Range(xla.Cells(row + 9, col + 1), xla.Cells(row + 9, col + 1)).Value
+    cc.seniority     = xla.Range(xla.Cells(row + 9, col + 1), xla.Cells(row + 9, col + 1)).Value
+    cc.source        = xla.Range(xla.Cells(row + 10, col + 1), xla.Cells(row + 10, col + 1)).Value
 
-    r = xla.Range(xla.Cells(row + 21, col), xla.Cells(row + 21, col))
+    r = xla.Range(xla.Cells(row + 12, col), xla.Cells(row + 12, col))
     cc.show()
     return r
 

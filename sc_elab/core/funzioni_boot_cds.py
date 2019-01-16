@@ -18,6 +18,7 @@ import matplotlib.pyplot as plt
 
 import datetime
 import calendar
+from datetime import timedelta
 
 import funzioni_base as fb
 
@@ -134,7 +135,7 @@ def func_h2(hr,cds_rr,t,z,cds_spread,delta_t):
     return f
 
 
-def bootstrap_chr(maturities_cds, adjusted_cds, recovery_rate, times, discount_factors):
+def bootstrap_chr(maturities_cds, adjusted_cds, recovery_rate, times, discount_factors, dt):
                                             
     # numero di flussi di cassa
     n_cf = len(times) 
@@ -227,7 +228,7 @@ def bootstrap_chr(maturities_cds, adjusted_cds, recovery_rate, times, discount_f
     
     t_last = times[len(times)-1]
     t_end  = 30.0
-    dt     = 0.25
+    #dt     = 0.25
 
     n_to_end = int((t_end - t_last)/dt) 
 
@@ -418,7 +419,8 @@ def boot_cds(opt_dict, raw_data, bench_data, swap_data):
     
     #rr_tmp = -np.log(benchDf)/benchTimes
     
-    py_bench_rates = fb.computePYRates(benchTimes, benchDf, pyFreq, time_0, timeOut)
+    py_bench_rates = fb.computePYRates(benchTimes, benchDf, cds_pay_freq, time_0, timeOut)
+
     
     benchDf = np.asarray(benchDf)
     benchTimes = np.asarray(benchTimes)
@@ -442,12 +444,20 @@ def boot_cds(opt_dict, raw_data, bench_data, swap_data):
 
     py_risky = cds_val_n + py_bench_rates
     
+
     py_risky_times = timeOut
     py_risky_dates = dateOut
     
     
-    pySpread, zcSpread = fb.fromCurveToSpread(benchDf, zcBenchDates, prmsBench, model_rf, py_risky, py_risky_dates, model_risky, dateOut, timeOut)
+    py_risky = np.insert(py_risky, 0, py_risky[0])
+    py_risky_dates = np.insert(py_risky_dates, 0, py_risky_dates[0])
+    py_risky_dates[1] = py_risky_dates[0] +  timedelta(days=1)
     
+
+    
+    pySpread, zcSpread = fb.fromCurveToSpread(benchDf, zcBenchDates, prmsBench, model_rf, py_risky, py_risky_dates, model_risky, dateOut, timeOut, cds_pay_freq)
+    
+
       
     # calcolo numero di flussi di cassa
     
@@ -468,7 +478,6 @@ def boot_cds(opt_dict, raw_data, bench_data, swap_data):
     for i in range(0, n_cf):
 
         cds_pay_dateTmp = refDate + relativedelta(months=int(cds_pay_freq*12*i))      
-        #cds_pay_dateTmp = refDate + datetime.timedelta(weeks=int(cds_pay_freq*12*4*i))
         cds_pay_dateTmp = busdayrule.rolldate(cds_pay_dateTmp, mkt_ref, day_conv_cds)
 
         cds_pay_dates.append(cds_pay_dateTmp)
@@ -482,19 +491,19 @@ def boot_cds(opt_dict, raw_data, bench_data, swap_data):
     benchDf_n = np.exp(-benchZcRates_n*cds_pay_times)
     df_risk_free = benchDf_n
     
-    dt = 0.25
+    #dt = 0.25
     times_n = []
     t_last = np.around(cds_pay_times[len(cds_pay_times)-1], decimals = 0)
     #n_t = int(t_last/dt)
 
-    n_t = int(t_last/dt)    
+    n_t = int(t_last/cds_pay_freq)    
     for i in range(0, n_t+1):
         
-        tTmp = dt*i
+        tTmp = cds_pay_freq*i
         times_n.append(tTmp)
         
     
-    log_z = -np.log(df_risk_free[1:])/cds_pay_times[1:]
+    log_z        = -np.log(df_risk_free[1:])/cds_pay_times[1:]
     log_z_int    = np.interp(times_n, cds_pay_times[1:], log_z)
     df_risk_free = np.exp(-log_z_int*times_n)
     
@@ -526,7 +535,7 @@ def boot_cds(opt_dict, raw_data, bench_data, swap_data):
         #df_risk_free = np.exp(-cds_pay_times*0.01)
 
         ln = len(cds_pay_times)
-        surv_prob_all, hr_values_all, times_n = bootstrap_chr(cds_times, cds_values, RR, cds_pay_times, df_risk_free)
+        surv_prob_all, hr_values_all, times_n = bootstrap_chr(cds_times, cds_values, RR, cds_pay_times, df_risk_free, cds_pay_freq)
         
         hr_values   = np.interp(cds_times_n, times_n, hr_values_all)
         surv_prob   =  np.interp(cds_times_n, times_n, surv_prob_all)
@@ -573,7 +582,9 @@ def boot_cds(opt_dict, raw_data, bench_data, swap_data):
     
     plotCDS(cds_times, cds_values,timeOut, pySpread) 
 
-    #------ set up Output---------------------
+    #------------------------------------------
+    #------ set up Output----------------------
+    #------------------------------------------
 
     output_data['outputTimes']     = timeOut
     output_data['outputDates']     = dateOut

@@ -311,7 +311,9 @@ def fitting_from_xls(control):
     else:
         nameSheet   = nameSheetCurve
         Bcurve      = readCurveFromXls(xla, curveDes, curvePos, nameSheet)
+
         Bcurve.show()
+
         res         = Bcurve.fittingFromPY(opt_dict)
         writeFittingPyResOnXls(Bcurve, xla, opt_dict, res, curvePos)
 
@@ -769,6 +771,7 @@ def bootstrap_cds_from_xls(control):
     curve_xl.cds_boot_method    = data_opt['hr_bootMethod']
     curve_xl.rf_interp_type     = data_opt['bench_interp']  
     curve_xl.recovery           = data_opt['RecoveryRate']
+    curve_xl.hr_model           = data_opt['hr_interp']
     
     
 

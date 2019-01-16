@@ -222,8 +222,6 @@ class Curve(object):
             day_count = self.segms[s].anag['DAY COUNT CONV.']
             fix_days  = self.segms[s].anag['LAG']
 
-            print 's: ', s
-            print 'self.segms[s].mats: ', self.segms[s].mats
 
             #per i futures non faccio nulla
             if s[0] == 'F':
@@ -273,23 +271,20 @@ class Curve(object):
         self.computeDates()
 
 
+
+
     def loadDataFromDB(self):
         con = Connection()
 
         c_a = con.db_data()
-        #qry = "SELECT BloombergTicker FROM test_db_mkt_data.dprocurve where Currency = 'EUR' and (TipoDato = 'CLibor' or  TipoDato = 'CSwap' or TipoDato = 'CDeopositi') and contributor = 'MTA'" 
-        #qry = "SELECT distinct BloombergTicker FROM test_db_mkt_data.dprocurve where (TipoDato = 'CLibor' or  TipoDato = 'CSwap' or TipoDato = 'CDeopositi' or TipoDato = 'CFuture')" 
-        qry = "SELECT distinct BloombergTicker FROM DProCurve where (TipoDato = 'CLibor' or  TipoDato = 'CSwap' or TipoDato = 'CDepositi' or TipoDato = 'CDeopositi') and (Contributor = 'MTA') and  (Descrizione = '%s')"%self.description
 
-        #SELECT BloombergTicker FROM test_db_mkt_data.dprocurve where Currency = 'EUR' and (TipoDato = 'CLibor' or  TipoDato = 'CSwap' or TipoDato = 'CDeopositi') and contributor = 'MTA';
+        #----------------------------------------
+        # SELEZIONO IL GIUSTO TIPO E DESCRIZIONE
+        #----------------------------------------
 
-        #qry = '''
-        #             select BloombergTicker from DProTS_master where BloombergTicker in
-        #             ( select distinct BloombergTicker from DProCurve where TipoDato in
-        #                 ('CDepositi', 'CSwap', 'CLibor', 'CFuture')
-        #              )
-        #             order by Data desc
-        #            '''
+
+        qry = "SELECT distinct BloombergTicker FROM DProCurve where (TipoDato = 'CLibor' or  TipoDato = 'CSwap' or TipoDato = 'CDepositi' or TipoDato = 'CDeopositi') and  (Descrizione = '%s')"%self.description
+
 
 
 
@@ -303,46 +298,110 @@ class Curve(object):
             sep = ","
 
 
+        blm_tckrs_lst_str = blm_tckrs_lst_str_n 
+
+
+        #----------------------------------------
+        # SELEZIONO IL GIUSTO CONTRIBUTOR ALLA DATA PREFISSATA
+        #----------------------------------------
+
+        c_d = con.db_data()
+
+
+        qry = '''
+             SELECT TipoDato, Contributor, BloombergTicker FROM DProCurve where BloombergTicker IN
+             (
+                SELECT DISTINCT BLOOMBERGTICKER FROM DProTS_master WHERE
+                BLOOMBERGTICKER IN (%s) AND DATA = '%s'
+                )
+            ''' % (blm_tckrs_lst_str, str(self.ref_date).replace("-", ""))
+
+        print 'QRA: ', qry
+        c_d.execute(qry)
+        res_n = c_d.fetchall()
+
+        res_len = len(res_n)
+
+        c_list   = []
+        t_list   = []
+        blm_list = []
+
+        for i in range(0, res_len):
+            c_list.append(res_n[i][1])
+            t_list.append(res_n[i][0])
+            blm_list.append(res_n[i][2])
 
         
-        """
-        c_a = con.db_anag()
-        qry = "SELECT DISTINCT  ID_object, Tipo, rating FROM AnagMktObject WHERE description = '%s' " % (
-        self.description)
-
-        c_a.execute(qry)
-        res = c_a.fetchall()
-
-        if len(res) != 1:
-            print 'AAA'
-        self.rating = res[0][2]
-        self.type = res[0][1]
-        # ----
-        qry = '''
-                SELECT ticker FROM AnagMktObject_D where ID_object ='%s'
-                ''' % res[0][0]
-
-        c_a.execute(qry)
-        res = c_a.fetchall()
-        blm_tckrs_lst_str = ""
+        blm_tkr_list_str_o = ""
         sep = ""
-        for record in res:
-            blm_tckrs_lst_str += sep + "'" + record[0] + "'"
+        for record in res_n:
+            blm_tkr_list_str_o += sep + "'" + record[2] + "'"
             sep = ","
 
-        print 'blm_tckrs_lst_str: ', blm_tckrs_lst_str
-        """
-
-        #SELECT * FROM test_db_mkt_data.dprocurve where Currency = 'EUR' and (TipoDato = 'CLibor' or  TipoDato = 'CSwap' or TipoDato = 'CDeopositi') and contributor = 'MTA';
         
-        #blm_tckrs_lst_str = "'ER1 ','ER2 ','ER3 ','ER4 ','ER5 ','ER6 ','ER7 ','ER8 ','ERM0','ERU0','EUDR1','EUDR1T','EUDR1Z','EUDR2T','EUDR2Z','EUDRA','EUDRB','EUDRC','EUDRD','EUDRE','EUDRF','EUDRG','EUDRH','EUDRI','EUDRJ','EUDRK','EUR001M','EUR001W','EUR002M','EUR002W','EUR003M','EUR003W','EUR004M','EUR005M','EUR006M','EUR007M','EUR008M','EUR009M','EUR012M','EUSA1','EUSA10','EUSA12','EUSA15','EUSA2','EUSA20','EUSA25','EUSA3','EUSA30','EUSA4','EUSA40','EUSA5','EUSA50','EUSA6','EUSA7','EUSA8','EUSA9'"
-        blm_tckrs_lst_str = blm_tckrs_lst_str_n 
+        
+        type_ctb_dict  =  fb.set_type_ctb_dict(c_list, t_list)                   
+        
+        
+
+        list_type = type_ctb_dict.keys()
+        n_type    = len(list_type)
+        blm_tkr_list_str_n = "" 
+
+        for i in range(0, n_type):
+            
+            typeTmp = list_type[i]
+
+            ctb_list_tmp = type_ctb_dict[typeTmp]
+            
+            if (len(ctb_list_tmp) < 2):
+                
+                ctbTmp = ctb_list_tmp[0]
+                
+            else:
+                
+                if  ('THOMSON_REUTERS' in c_list):
+                    
+                    ctbTmp = 'THOMSON_REUTERS'
+                    
+                else: 
+                    
+                    ctbTmp = c_list[0]
+                    
+        
+
+            
+            qry = '''
+                 (
+                    SELECT DISTINCT BLOOMBERGTICKER FROM DProTS_master WHERE
+                    BLOOMBERGTICKER IN (%s) AND Contributor = '%s' AND  TipoDato = '%s'
+                    )
+                ''' % (blm_tkr_list_str_o, ctbTmp, typeTmp)
+            
+
+        
+            print 'qry xxx: ', qry
+            
+            c_d.execute(qry)
+            res_a = c_d.fetchall()
+
+            #blm_tkr_list_str_n = ""
+            sep = ""
+            for record in res_a:
+                blm_tkr_list_str_n += sep + "'" + record[0] + "'"
+                sep = ","
+
+            
+
+        #print 'blm_tkr_list_str_n: ', blm_tkr_list_str_n
+        blm_tckrs_lst_str = blm_tkr_list_str_n
 
         # ---------
         # RECUPERO CURRENCY E NUMERO/TIPOLOGIA DI SEGMENTI
         # ---------
 
         c_d = con.db_data()
+
         qry = '''
              SELECT DISTINCT currency, TipoDato FROM DProCurve where BloombergTicker IN
              (
@@ -350,19 +409,14 @@ class Curve(object):
                 BLOOMBERGTICKER IN (%s) AND
                  DATA = '%s'
                 )
-            ''' % (blm_tckrs_lst_str, str(self.ref_date).replace("-", ""))
+            ''' % (blm_tkr_list_str_n, str(self.ref_date).replace("-", ""))
 
         c_d.execute(qry)
         res = c_d.fetchall()
-
-
-
         self.curr = res[0][0]
 
-        print 'qry: ',  qry
-        print 'self.description: ',  self.description
 
-        print 'Currency: ',  res[0][0]
+
         
         if self.curr == "EUR":
             self.floater_tenor = "6M"
@@ -540,7 +594,7 @@ class Curve(object):
             s = self.segms[name]
             for u,t,v,d in zip(s.usage, s.tags, s.values, s.dates):
 
-                if (u == 'y'):
+                if (u == 'Y'):
                     raw_data['ValoreNodo'].append(v)
                     raw_data['MatDate'].append(d)
                 else:
@@ -550,6 +604,10 @@ class Curve(object):
         c_rates = raw_data['ValoreNodo']
         
         c_rates = np.array(c_rates)/100.0
+        
+        print 'c_dates: ', c_dates
+        print 'c_rates: ', c_rates
+        print 'optDict: ', optDict
         
         return fb.fitting(c_dates, c_rates, optDict)
 
@@ -654,6 +712,7 @@ class CdsCurve(Curve):
         self.node_type = ""
         self.emittente = ""
         self.cds_boot_method =  ""
+        self.hr_model =  ""
         self.rf_interp_type = ""  
    
 
@@ -670,6 +729,7 @@ class CdsCurve(Curve):
         print "Capitalization:", self.capitalization
         print "Curve Code:", self.code
         print "Recovery rate:", self.recovery
+        print "HR model:", self.hr_model
         print "Return type:", self.rendimento
         print "Node type:", self.node_type
         # ---
@@ -770,6 +830,20 @@ class CdsCurve(Curve):
         self.curr      = res[0][0]
         code_sen    = res[0][2]
         code_issuer = res[0][1]
+        
+        
+        dict_seniority = {}
+        dict_seniority[0] = 'pippo'
+        dict_seniority[1] = 'pippo'
+        dict_seniority[2] = 'Senior Secured'
+        dict_seniority[3] = 'Senior Subordinated'
+        dict_seniority[4] = 'Senior Unsecured'
+        dict_seniority[5] = 'Covered'
+        dict_seniority[6] = 'Junior Subordinated'
+        dict_seniority[999] = 'nd'
+        
+        code_sen_n = dict_seniority[code_sen]
+        
         # ---
         # traduzione dei codici per seniority e emittente
         # ---
@@ -826,15 +900,6 @@ class CdsCurve(Curve):
 
         #self.code       = res[0][0]
         #self.code       = res[0][0]
-        self.type       = 'CDS'
-        self.rendimento = 'Par Yield'
-        self.node_type  = 'CDS'
-        self.lag       = 2
-        self.recovery  =  40
-        cod_segm       = 'SCDS' #codice_segmentazione
-        self.settore   = 999
-        self.rating    = 999
-        self.frequency = 6
 
         """
         qry = '''
@@ -891,6 +956,18 @@ class CdsCurve(Curve):
         res = c_a.fetchall()
         self.rating = res[0][0]
         """
+
+        # --------------IMPOSTAZIONI DEFAULT 
+        self.type       = 'CDS'
+        self.rendimento = 'Par Yield'
+        self.node_type  = 'CDS'
+        self.lag       = 2
+        self.recovery  =  40
+        cod_segm       = 'SCDS' #codice_segmentazione
+        self.settore   = 999
+        self.rating    = 999
+        self.frequency = 4
+        self.seniority = code_sen_n
         
         #----
         if self.curr == "EUR":
@@ -1399,65 +1476,48 @@ class CdsCurve(Curve):
 
     def bootstrap(self, data_opt):
         
-        # SETUP DATA OPT
-        # SETUP DATA BENCH
-        # SETUP DATA SWAP
-        
         data_opt['Basis'  ]    = {}
         data_opt['BusConv']    = {}
         data_opt['RegimeRate'] = {}
 
-        #name = 'sn'
-        #code = 'XXX'
-
-        #s = self.segms[name]
-        #==========
-        """
-        raw_data = {}
-        raw_data ['UsaNodo']     = []
-        raw_data['Nodo']         = []
-        raw_data['ValoreNodo']   = []
-        raw_data['TipoSegmento'] = []
-        raw_data['MatDate']      = []
-        """
-
+        #================================
 
         data_opt['MKT']     = self.cal
         data_opt['RefDate'] = self.ref_date
+        
+        self.hr_model
+        
+        print 'AAAAAAAAAAAAAAAAA'
+        print 'self.recovery: ', self.recovery
+        print 'self.capitalization: ', self.capitalization
+        print 'self.hr_model: ', self.hr_model
+        print self.cds_boot_method
+        
 
+        print 'AAAAAAAAAAAAAAAAA'
 
-        data_opt['tenor']          = 3 # 
-        data_opt['Basis']          = 'ACT/365' #ACT/365
-        data_opt['interp']         = '0' # 
+        if (self.curr == 'EUR'):
+            tenor = 3 # 3 pagamenti ogni 3Mesi
+        else:
+            tenor = 3
+
+        data_opt['currency']       = self.curr # 
+        data_opt['tenor']          = tenor # 
+        data_opt['Basis']          = 'ACT/365'
+        data_opt['interp']         = self.hr_model # 
         data_opt['BusConv']        = 'modfollow'
         data_opt['fixingDays']     = 2
-        data_opt['compounding']    = 0   #0 = semplice, 1 = composto, 2 = continuo
-        data_opt['ReocveryRate']   = 0.4
-        data_opt['hr_bootMethod']  = 1 #0 = LCS, 1 = CHR
-        data_opt['Basis']          = 'ACT/360' 
-        data_opt['BusConv']        = 'follow'
+        data_opt['compounding']    = 0  #0 = semplice, 1 = composto, 2 = continuo
+        data_opt['ReocveryRate']   = self.recovery
+        data_opt['hr_bootMethod']  = self.hr_model #0 = LCS, 1 = CHR
         
         
-        #data_raw_swp.keys():  ['ValoreNodo', 'MatDate', 'Basis']
-        #data_raw_bench.keys():  ['Basis', 'ValoreNodo', 'MatDate', 'prms', 'Model', 'Type']
-        #-->data_raw_cds.keys():  ['MatTimes', 'Nodo', 'ValoreNodo'], ok        
          
          
         data_raw_cds = {}
         data_raw_cds['ValoreNodo']  = self.values 
         data_raw_cds['MatTimes']    = self.mats
         data_raw_cds['Nodo']        = self.tags
-        
-
-        """
-        data_raw_bench = {}
-        data_raw_bench['XXX'] = self.values 
-        data_raw_bench['YYY'] = self.dates 
-
-        data_raw_swp = {}
-        data_raw_swp['XXX'] = self.values 
-        data_raw_swp['YYY'] = self.dates
-        """
 
         data_raw_bench = {}
         data_raw_swp = {}
@@ -1483,7 +1543,6 @@ class CdsCurve(Curve):
             
             import funzioni_boot_cds as f_cds
             
-            print 'data_opt: ', data_opt
             
             res = f_cds.boot_cds(data_opt, data_raw_cds, data_raw_bench, data_raw_swp)
             #res = fb.boot3s_elab_v2(data_opt, raw_data)

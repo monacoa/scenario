@@ -332,8 +332,13 @@ def estimate_linear_params(t_times, zc_rates):
     zc_rates = np.asarray(zc_rates)
     t_times = np.asarray(t_times)
 
-    discount_factors = np.exp(-t_times*zc_rates)
+    """
+    zc_rates = np.insert(zc_rates, 0, zc_rates[0])
+    t_times = np.insert(t_times, 0, t_times[0])
+    t_times[1] = 0.001
+    """
 
+    discount_factors = np.exp(-t_times*zc_rates)
     t = t_times 
     # Calcolo numero nodi
     n_knot = len(t_times) 
@@ -386,6 +391,13 @@ def estimate_linear_params(t_times, zc_rates):
     for i in range(0, n_knot-1):
         lin_parameters['a'][i] = solution[(i)*n_parameters]
         lin_parameters['b'][i] = solution[(i)*n_parameters + 1]
+
+
+    print 'lin_parameters[a]: ', lin_parameters['a']
+    print 'lin_parameters[b]: ', lin_parameters['b']
+
+    print 'solution[XX]: ', solution
+
 
     return lin_parameters 
 
@@ -637,7 +649,7 @@ def makeRatesFromModel(mkt_times, mkt_values, dict_model_par, target_times, mode
         mdl_values = zc_rate_by_CIR(dict_model_par, target_times)
 
 
-
+    print 'mdl_values: ', mdl_values
     return mdl_values 
 
 
@@ -775,6 +787,7 @@ def  fitting(c_dates, c_values, opt_dict):
 
     
     if (model_type == '0'): # caso lineare
+
 
         prms_lin = estimate_linear_params(t_mkt, zc_mkt)
         
@@ -2471,6 +2484,15 @@ def boot3s_elab_v2(data_opt, data_raw):
         tenor_swap       = data_opt['TenorSwap']
         tenor_swap       = convertNodeToMnth(tenor_swap)
 
+
+    if (flag_s == False) and (flag_f == False):
+
+
+        day_conv_s = data_opt['BusConv']['D']
+        basis_s = data_opt['Basis']['D']
+        basis_s = convert_basis(basis_s)
+
+
     #%--------------------------------------------------------------------------
     #%-------------- RETRIEVE OPTIONS SETUP ------------------------------------
     #%--------------------------------------------------------------------------
@@ -3185,6 +3207,29 @@ def convert_basis(basis_to_convert):
 
 
 
+def set_type_ctb_dict(c_list, t_list):
+        
+    t_list_s = set(t_list)
+    res_len = len(c_list)
+    
+    type_ctb_dict = {}
+    
+    for tsTmp in t_list_s:
+        cListTmp = []
+        for i in range(0, res_len):
+            
+            cTmp = c_list[i]
+            tTmp = t_list[i]
+            
+            if (tsTmp == tTmp):
+                cListTmp.append(cTmp)
+
+        cListTmp_s = set(cListTmp)
+        
+        type_ctb_dict[tsTmp] = list(cListTmp_s)
+
+    return type_ctb_dict
+
 def set_data_default():
     
     data_default = {}
@@ -3348,7 +3393,7 @@ def computeTimesFromDates(dateList):
     return matTimes
 
 
-def fromCurveToSpread(df_bench_values, zc_bench_dates, prms_bench, bench_model, py_risky_val, py_risky_dates, risky_model, targetDates, targetTimes):
+def fromCurveToSpread(df_bench_values, zc_bench_dates, prms_bench, bench_model, py_risky_val, py_risky_dates, risky_model, targetDates, targetTimes, pyFreq):
     
     
     dataRef = zc_bench_dates[0]
@@ -3362,17 +3407,20 @@ def fromCurveToSpread(df_bench_values, zc_bench_dates, prms_bench, bench_model, 
 
     refDates = zc_bench_dates[0]
     
+
+
     prms_risky_for_py      = fitting(py_risky_dates, py_risky_val, fitting_opt_dict)
+
 
     py_risky_val_fitted    = makeRatesFromModel(py_risky_times, py_risky_val, prms_risky_for_py, targetTimes, risky_model)
     zc_risk_free           = makeRatesFromModel(zc_bench_times, df_bench_values, prms_bench, targetTimes, bench_model)
+
     
-    
-    pyFreq = 0.25
     py_risk_free = computePYRates(zc_bench_times, df_bench_values, pyFreq, 0.0, targetTimes)
+
+
     
     py_spread = py_risky_val_fitted - py_risk_free
-    
     
     ln_spread = len(py_spread)
     
@@ -3398,7 +3446,6 @@ def fromCurveToSpread(df_bench_values, zc_bench_dates, prms_bench, bench_model, 
     data_opt_for_boot['RefDate'] = dataRef
     data_opt_for_boot['SwapGapMethod'] = 1
     
-    #n_rates = len(py_risky_val_n)
     
     target_dates = fromTimes2Dates(refDates, targetTimes)
 
@@ -3410,13 +3457,9 @@ def fromCurveToSpread(df_bench_values, zc_bench_dates, prms_bench, bench_model, 
     freq_pay = 0.5
     
     time_ref, zc_risky_val_n = formPytoZC(targetTimes, py_risky_val_n, freq_pay)
-    
-
-    #zc_risky_val_n = py_risky_val_n
         
     zc_spread_n    = zc_risky_val_n - zc_risk_free
     
-        
         
     return py_spread_n, zc_spread_n
 
