@@ -350,7 +350,7 @@ def bond_fitting_from_xls(control):
     curveL = readCurvesNames(xla,s,rangeStart,"v", distance, 0)
     root = Tk()
     #W = W_bootstrapSelection(root, curveL = curveL, type = "BOND") # da modificare 
-    W = W_bondFitting(root, curveL = curveL, type = "BOND") # da modificare 
+    W = W_bondFitting(root, curveL = curveL, type = "BOND") # da modificare
     
     #W2 = W_setParameters(root)
 
@@ -382,9 +382,8 @@ def bond_fitting_from_xls(control):
 
     str_elab_opt = hr_model + "," + rf_interp_tmp + "," + bond_model
 
-
-    bf_options_elab = {}   
-    bf_options_elab['BondModel']   = bond_model 
+    bf_options_elab = {}
+    bf_options_elab['BondModel']   = bond_model
     bf_options_elab['HRateModel']  = hr_model
     bf_options_elab['MKTRef']      = 'de'
     bf_options_elab['MakeGraph']      = True
@@ -397,6 +396,15 @@ def bond_fitting_from_xls(control):
     
     bf_options_elab['RR'] = portfolio_xl.recoveryRate
     bf_options_elab['DataRef'] =  datetime.datetime.fromordinal(portfolio_xl.ref_date.toordinal())
+
+    if bf_options_elab['RR'] == None:
+        bf_options_elab['RR'] = 0.4
+
+        root = Tk()
+        root.withdraw()
+        msg0 = "Valorizzare correttamente il Recovery Rate.\n Assegnato il valore pari al 40% "
+        tkMessageBox.showinfo("Attenzione!!", msg0)
+        root.destroy()
 
     if (bf_options_elab['RR'] >0.99):
         # significa che ho intercettato un errore!
@@ -458,7 +466,6 @@ def bond_fitting_from_xls(control):
     data_zc_rf['prms'] = curve_cds.bench_prms
     data_zc_rf['DiscountFactors'] = curve_cds.bench_df_val
     
-
     """
     data_zc_rf = {}    
     data_zc_rf['Model'] =   2
@@ -537,7 +544,10 @@ def bond_fitting_from_xls(control):
     print '--------------------------------------'
     """
     
-    dictPortfolio = bf.fromXLSToBondFittingPortfolio(portfolio_xl.portfolio_anag)
+    dictPortfolio,resDict = bf.fromXLSToBondFittingPortfolio(portfolio_xl.portfolio_anag)
+
+    if resDict == True:
+        return
 
     # ------------ elaborazione ---------------------------
  
@@ -970,4 +980,3 @@ def download_matrix(control):
     root.mainloop()
 
     write_Swaptions(xla, res, ref_date, option_print = app.print_type.get())
-

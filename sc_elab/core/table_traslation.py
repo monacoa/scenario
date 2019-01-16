@@ -34,7 +34,7 @@ from_bond_table_to_datastream['FixingMethod']  ='NULL'
 
 from_bond_table_to_datastream['data']  ='Data'
 from_bond_table_to_datastream['Settore']  ='NULL'
-from_bond_table_to_datastream['CleanDirty']  ='COMPOSITE PR MID'
+from_bond_table_to_datastream['CleanDirty']  ='TIPO QUOTAZIONE'
 from_bond_table_to_datastream['volume']  ='NULL'
 
 from_bond_table_to_datastream['yieldToMaturityMid']  ='NULL'

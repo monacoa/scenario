@@ -115,11 +115,17 @@ def getBondListFromDb(bond_date, type):
     
 
     
+    #qry = '''
+    #      SELECT DISTINCT Descrizione FROM Bond_master  WHERE Data = '%s'
+    #      ''' %(c_date_qry)
+
     qry = '''
-          SELECT DISTINCT Descrizione FROM Bond_master  WHERE Data = '%s' 
+          SELECT DISTINCT Descrizione, PUCollatType 
+          FROM Bond_master  
+          WHERE Data = '%s'
+          GROUP by Descrizione, PUCollatType
           ''' %(c_date_qry)
-          
-          
+
     #print "qry:", qry
     c_anag.execute(qry)
     res = c_anag.fetchall()
@@ -129,8 +135,10 @@ def getBondListFromDb(bond_date, type):
     for c in res:
         #print "c", c
         bond_des = str(c[0])
+        senior_des = str(c[1])
+
         id    = k + 1
-        a =[bond_des,id]
+        a =[bond_des + ' - ' + senior_des,id]
         
         ll.append(a)
         #print "ll", ll
@@ -174,8 +182,7 @@ def getDatesListFromDb(type):
 
     elif type == "BOND":
         qry = '''
-                    select distinct Data from bond_master where EMITTENTE 
-                    is not Null order by Data desc
+                    select distinct Data from Bond_master order by Data desc
                     '''
 
     cur.execute(qry)

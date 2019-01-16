@@ -4,8 +4,6 @@ import pyodbc
 
 import pymysql
 
-
-
 class Connection:
     def __init__(self):
         self.db = None

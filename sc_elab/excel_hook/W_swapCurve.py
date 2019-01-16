@@ -23,9 +23,8 @@ class W_curveType (Frame):
         Label(self,text="""Choose curve :""",justify=LEFT,padx=100).pack()
 
         self.rb_calib1 = Radiobutton(self,text='swap - RF curve',justify='left',variable=curve_type,value='SWP').pack(anchor=W)
-        self.rb_calib2 = Radiobutton(self,text='govt curve'     ,justify='left',variable=curve_type,value='GVT').pack(anchor=W)
-        self.rb_calib3 = Radiobutton(self,text='sector curve'   ,justify='left',variable=curve_type,value='SCT').pack(anchor=W)
-        #                padx=20,
+        self.rb_calib2 = Radiobutton(self,text='govt curve'     ,justify='left',variable=curve_type,value='GVT',state="disabled").pack(anchor=W)
+        self.rb_calib3 = Radiobutton(self,text='sector curve'   ,justify='left',variable=curve_type,value='SCT',state="disabled").pack(anchor=W)
 
         # create button
         self.btn2 = Button(self, text="Cancel",  command=lambda:self.close_window())

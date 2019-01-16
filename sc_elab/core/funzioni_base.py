@@ -1007,9 +1007,7 @@ def  fitting(c_dates, c_values, opt_dict):
 
 
 def packModelPrms(tipo_modello, bench_dates, mdl_prms_list):
-    
-        
-        
+
         prms_dict = {}
         par1List  = []
         par2List  = []
