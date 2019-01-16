@@ -547,7 +547,7 @@ def test_load_nuovi_dati(file_new_data):
         # ------- NOTA ==> DA PERSONALIZZARE PER CARICAMENTO MASSIMO
         if num_isin == 0 :
             elenco_escluso_bond = elenco_tabelle.copy()
-            del elenco_escluso_bond['bond_master']
+            del elenco_escluso_bond['Bond_master']
 
             anag_assenti = {}
             anag_presenti = {}
