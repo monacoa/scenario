@@ -29,7 +29,7 @@ def TEST_insert_bond_data_record(connection_status, table_data, data_values):
     result_val = True
     verboseFlag = False
 
-    list_f_table = table_dict['bond_master'].keys()
+    list_f_table = table_dict['Bond_master'].keys()
 
     print 'data_values: ', data_values.keys()
 
@@ -516,12 +516,12 @@ def test_load_nuovi_dati(file_new_data):
         find_table = False # BOOLEANA CHE MI INDICA SE IL FILE E' CENSITO O MENO
         # ------- NOTA ==> DA PERSONALIZZARE PER CARICAMENTO MASSIMO
         if num_isin != 0 :
-            table_name_anag = 'bond_master'
+            table_name_anag = 'Bond_master'
             find_table = True
         else:
             elenco_escluso_bond = elenco_tabelle.copy()
 
-            del elenco_escluso_bond['bond_master']
+            del elenco_escluso_bond['Bond_master']
 
             # QUESTO CICLO E' CREATO PER TESTARE LA PRESENZA DI TUTTI I TICKER ALL'INTERNO DEI DATABASE DI ANAGRAFICA
             # AL MOMENTO CICLA SU TUTTI I BLOOMBERG TICKER ANCHE SE IN REALTA' RESTITUISCE UNA SOLA STRINGA,
@@ -631,7 +631,7 @@ def test_load_nuovi_dati(file_new_data):
 
 
 
-        elif (table_name_anag == 'bond_master'):
+        elif (table_name_anag == 'Bond_master'):
             """
             print 'chk field'
             field_ref_list     = ['Data', 'Valore', 'Ticker']
@@ -639,7 +639,7 @@ def test_load_nuovi_dati(file_new_data):
             tkMessageBox.showinfo("Chk", msg_field)    
             """
 
-            table_name_data = 'bond_master'
+            table_name_data = 'Bond_master'
 
             print 'try insert data'
             val_results, msg_insert = TEST_insert_bond_data_record(connection_status, table_name_data, data_values)
