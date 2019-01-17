@@ -1,3 +1,7 @@
+<<<<<<< HEAD
+=======
+
+>>>>>>> a0435fcc5828e6a51e30f9c6993dc6decedf0737
 import sys
 import os
 from sc_elab.excel_hook.connection import *
@@ -1361,7 +1365,139 @@ class CdsCurve(Curve):
         
         return 1
 
-        
+    def loadBenchDataFromDB_Bond(self, opt_download):
+
+        self.description.strip()
+        con = Connection()
+        c_a = con.db_anag()
+
+        ref_date = opt_download['refDate']
+        codeSeg = opt_download['codeSeg']
+        tipo_modello = opt_download['tipo_modello']
+        valuta = opt_download['valuta']
+
+        tipo_scarico = 0
+        quotazioni = 'MID'
+        fonte_dato = 'Bloomberg'
+
+        dummy_curva = " (CODICE_CURVA NOT LIKE 'PDELTA%' AND CODICE_CURVA NOT LIKE 'MDELTA%')"
+        dummy_model = " (CODICE_MODELLO NOT LIKE 'PDELTA%' AND CODICE_MODELLO NOT LIKE 'MDELTA%')"
+
+        SS1 = 'PDELTA%'
+        SS2 = 'MDELTA%'
+
+        # RECUPERO CODICE CURVA BENCHMARK
+
+        qry0 = """
+                SELECT CODICE_CURVA FROM MKT_Curve WHERE
+                CODICE_EMITTENTE = 999 
+                AND FONTE_DATO = '%s'
+                AND QUOTAZIONE = '%s'
+                AND TIPO_CURVA = 'SWAP' 
+                AND TIPO_SCARICO = '%s' 
+                AND DATA_RIF = '%s' 
+                AND VALUTA = '%s' 
+                AND TIPO_NODO = 'Discount Factor'
+                AND CODICE_CURVA like '%s'      
+                AND CODICE_CURVA not like '%s'
+                AND CODICE_CURVA not like '%s'
+
+            """ % (fonte_dato, quotazioni, tipo_scarico, ref_date, valuta, codeSeg, SS1, SS2)
+
+        c_a.execute(qry0)
+        res = c_a.fetchall()
+
+        if len(res) != 0:
+            code_curve = res[0][0]
+        else:
+            return 0
+
+        # RECUPERO CURVA BENCHMARK
+        qry1 = "SELECT TERM, VALORE FROM MKT_Curve_D WHERE CODICE_CURVA = '%s' ORDER BY TERM" % code_curve
+
+        c_a.execute(qry1)
+        res = c_a.fetchall()
+
+        # print 'res: ', res
+
+        valueList = []
+        matDateList = []
+
+        for i in range(0, len(res)):
+            resDateTmp = res[i][0]
+            resValueTmp = res[i][1]
+
+            matDateList.append(resDateTmp)
+            valueList.append(resValueTmp)
+
+        self.bench_dates = matDateList
+        self.bench_df_val = valueList
+
+        # ------------------------------------------
+        # NON RECUPERO I PARAMETRI DEL MODELLO  PER I BOND
+        # IL BOND FITTING UTILIZZA SEMPRE UN MODELLO DI TIPO LINEARE
+        # CHE VIENE RICALCOLATO DALLA ROUTINE
+        # ------------------------------------------
+
+        if tipo_modello == 'LIN':
+            pass
+        else:
+            return 2
+
+        '''
+        qry2 = """
+            SELECT CODICE_MODELLO, DESCRIZIONE FROM MKT_ParametriInterp
+            WHERE CODICE_EMITTENTE = 999 
+            AND FONTE_DATO = '%s'
+            AND QUOTAZIONE = '%s'
+            AND TIPO_CURVA = 'SWAP' 
+            AND TIPO_SCARICO = '%s'
+            AND DATA_RIF = '%s'
+            AND VALUTA = '%s'
+            AND TIPO_MODELLO = '%s'
+            AND CODICE_MODELLO like '%s'
+            AND CODICE_MODELLO not like '%s'
+            AND CODICE_MODELLO not like '%s'
+
+
+        """ % (fonte_dato, quotazioni, tipo_scarico, ref_date, valuta, tipo_modello, codeSeg, SS1, SS2)
+        c_a.execute(qry2)
+        res = c_a.fetchall()
+
+        if len(res) != 0:
+            codice_modello = res[0][0]
+            des_modello = res[0][1]
+        else:
+            return 0
+        # print 'code_modello: ', code_modello
+        # print 'des_modello: ', des_modello
+
+        qry3 = """
+                SELECT VALORE FROM MKT_ParametriInterp_D WHERE 
+                CODICE_MODELLO = '%s'
+                ORDER BY CODICE_PARAMETRO
+            """ % (codice_modello)
+
+        c_a.execute(qry3)
+        res = c_a.fetchall()
+
+        if len(res) != 0:
+            pass
+        else:
+            return 0
+
+        mdl_prms_list = []
+        for i in range(0, len(res)):
+            parTmp = res[i][0]
+            mdl_prms_list.append(parTmp)
+        prms_dict = fb.packModelPrms(tipo_modello, self.bench_dates, mdl_prms_list)
+        '''
+
+        self.bench_prms = {} #prms_dict
+        self.bench_model = tipo_modello
+
+        return 1
+
     def loadInflCurveFromDB(self, opt_download):
         
         self.description.strip()
@@ -1434,7 +1570,7 @@ class CdsCurve(Curve):
         # RECUPERO SERIE STORICA TS            
 
         qry0 = """
-                SELECT DATA, VALORE FROM indice_master WHERE
+                SELECT DATA, VALORE FROM TS_master WHERE
                 AssetClass = 'CPTFEMU' 
                 AND CodicePaese = '%s'
             """  %(valuta)

@@ -1529,7 +1529,7 @@ def computeBondPriceFromCF(model_params, data_portfolio, opt_elab, zc_times, zc_
 		"""
 		print 't_i: ', t_i
 		print 'z_i_rf: ', z_i_rf
-		#print 'z_infl: ', z_infl
+		print 'z_infl: ', z_infl
 		print 'z_i_risky: ', z_i_risky
 		print 'c_i: ', c_i
 		print 'price_tmp: ', price_tmp		
@@ -1755,7 +1755,7 @@ def computeBondCF(data_portfolio, zc_times, zc_rf, rf_prms, rf_model, mkt_ref, d
 	dayCount   = dayCount_val
 	busDay     = bDay_val
 
-	print busDay
+	#print busDay
 	coupon_values = []
 
 

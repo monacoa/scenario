@@ -33,7 +33,7 @@ def TEST_insert_bond_data_record(connection_status, table_data, data_values):
     result_val = True
     verboseFlag = False
 
-    list_f_table = table_dict['bond_master'].keys()
+    list_f_table = table_dict['Bond_master'].keys()
 
     print 'data_values: ', data_values.keys()
 
