@@ -16,7 +16,7 @@ from sc_elab.core.Tipologia_curva_dizionario import corrisp_tabella
 #    sys.exit()
 
 
-def TEST_insert_bond_data_record(connection_status, table_data, data_values):
+def insert_bond_data_record(connection_status, table_data, data_values):
 
     cursor = connection_status['cursor']
     db = connection_status['db_connection']
@@ -68,73 +68,6 @@ def TEST_insert_bond_data_record(connection_status, table_data, data_values):
 
     return result_val, msg
 
-
-def TEST_insert_cds_data_record(connection_status, table_data, table_anag, data_values):
-
-    cursor = connection_status['cursor']
-    db = connection_status['db_connection']
-    db.autocommit = False
-
-    field_ref = 'BloombergTicker'  # pk della tabella
-    ticker_list = data_values['Ticker']
-    n_records = len(ticker_list)
-
-    msg = 'Inserimento andato a buon fine'
-    result_val = True
-    verboseFlag = False
-
-    for i in xrange(0, n_records):
-
-        data_dict_to_insert_tmp = {}
-
-        for f_tab in min_field_set:
-
-            data_dict_to_insert_tmp[f_tab] = {}
-
-        tickerTmp = data_values['Ticker'][i]
-
-        value_ref = tickerTmp
-
-        print 'record n. %s' % i
-        result_anag, anag_dict_res = retrive_record_from_table(cursor, table_anag, field_ref, value_ref)
-
-        if (result_anag == False):
-            msg = 'Ticker %s non censito in %s!!' % (tickerTmp, table_anag)
-            result_val = False
-
-            return result_val, msg
-
-        # print 'anag_dict_res[TipoTicker]: ', anag_dict_res['TipoTicker']
-        # print 'data_values[Ticker][i]', data_values['Ticker'][i]
-
-        data_dict_to_insert_tmp['Contributor'][0] = anag_dict_res['Contributor']
-        data_dict_to_insert_tmp['Datatype'][0] = 'Livello'
-        data_dict_to_insert_tmp['ValoreBid'][0] = 0.0
-        data_dict_to_insert_tmp['ValoreAsk'][0] = 0.0
-        data_dict_to_insert_tmp['TipoDato'][0] = 'CDS'
-        data_dict_to_insert_tmp['id'][0] = data_values['Ticker'][i] + anag_dict_res['TipoTicker']
-
-        data_dict_to_insert_tmp['ValoreMid'][0] = data_values['Valore'][i]
-        data_dict_to_insert_tmp['LastUpdate'][0] = data_values['Data'][i]
-        data_dict_to_insert_tmp['DataScarico'][0] = data_values['Data'][i]
-        data_dict_to_insert_tmp['Data'][0] = data_values['Data'][i]
-        data_dict_to_insert_tmp['BloombergTicker'][0] = data_values['Ticker'][i]
-
-        try:
-            result_data = insert_data_on_table(cursor, table_data, data_dict_to_insert_tmp, verboseFlag)
-
-        except Exception as e:
-
-            msg = 'Inserimento ticker %s in %s non riuscito: %s!!' % (tickerTmp, table_data, e)
-            result_val = False
-            db.close()
-
-            return result_val, msg
-
-    db.commit()
-    #db.close()
-
-    return result_val, msg
 
 
 def insert_anag_record(connection_status, table_anag, data_anag):
@@ -349,24 +282,6 @@ def retrive_record_from_table_check_anag(cursor, table_name, field_ref, ticker_t
     return result_flag, dict_results
 
 
-
-def retrive_table_from_ticker(cursor, table_name, tickerTmp, field_ref):
-
-    #QUESTA QUERY CERCA PER OGNI TABELLA
-
-    table_name_anag =""
-    result_flag = False
-
-    qry_to_execute = "SELECT * FROM %s WHERE %s = '%s' " % (table_name, field_ref, tickerTmp)
-
-    cursor.execute(qry_to_execute)
-    result = cursor.fetchall()
-    if len(result) > 0:
-        result_flag = True
-    else:
-        result_flag = False
-
-    return result_flag, result
 
 
 def Insert_data_record(connection_status, table_data, anag_dict_res, data_values):
@@ -636,7 +551,7 @@ def test_load_nuovi_dati(file_new_data):
             table_name_data = 'Bond_master'
 
             print 'try insert data'
-            val_results, msg_insert = TEST_insert_bond_data_record(connection_status, table_name_data, data_values)
+            val_results, msg_insert = insert_bond_data_record(connection_status, table_name_data, data_values)
             if val_results == False:
                 close_loading(con.db, msg_insert, "Chk")
                 return

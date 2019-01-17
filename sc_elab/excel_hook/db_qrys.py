@@ -206,7 +206,7 @@ def getProvidersFromDb (table):
             '''%table
     c.execute(qry)
     res=c.fetchall()
-    #print res
+    res = [(u'THOMSON REUTERS',)]
     sects = []
     for record in res:
         sects.append(record[0])

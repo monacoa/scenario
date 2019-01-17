@@ -216,7 +216,7 @@ def writeCurveOnXls(crv, nameSheet, xla, curve_type):
                       #, "Day Adj.": crv.dayAdj
                       #, "Frequency (M)": crv.frequency
                       , "Recovery Rate (%)": crv.recovery
-                      , "Source": crv.source
+                      #, "Source": crv.source
                       }
 
     else: mmmmmmmmmmmmmm
