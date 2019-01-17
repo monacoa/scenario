@@ -1,4 +1,3 @@
-
 import sys
 import os
 from sc_elab.excel_hook.connection import *
@@ -229,7 +228,6 @@ class Curve(object):
                 i = 0
                 for do in self.segms[s].mats:
                     i = i+1
-                    print 'do: ', do
                     ds = self.addWorkingDays(do, fix_days, adj)
                     self.segms[s].dates.append(ds)
                     self.segms[s].tags.append(str(i))
@@ -263,7 +261,6 @@ class Curve(object):
 
 
     def init_finalize(self):
-        print "SONO IN INIT FINALIZE!!!"
         #compute output strings
         self.computeTags()
         #compute anag segms
@@ -284,7 +281,7 @@ class Curve(object):
         #----------------------------------------
 
 
-        qry = "SELECT distinct BloombergTicker FROM DProCurve where (TipoDato = 'CLibor' or  TipoDato = 'CSwap' or TipoDato = 'CDepositi' or TipoDato = 'CDeopositi') and  (Descrizione = '%s')"%self.description
+        qry = "SELECT distinct BloombergTicker FROM DProCurve where (TipoDato = 'CLibor' or  TipoDato = 'CSwap' or TipoDato = 'CDepositi' or TipoDato = 'CDeopositi' or TipoDato = 'CFuture') and  (Descrizione = '%s')"%self.description
 
 
 
@@ -317,7 +314,6 @@ class Curve(object):
                 )
             ''' % (blm_tckrs_lst_str, str(self.ref_date).replace("-", ""))
 
-        print 'QRA: ', qry
         c_d.execute(qry)
         res_n = c_d.fetchall()
 
@@ -381,7 +377,6 @@ class Curve(object):
             
 
         
-            print 'qry xxx: ', qry
             
             c_d.execute(qry)
             res_a = c_d.fetchall()
@@ -459,6 +454,8 @@ class Curve(object):
                         ORDER BY    DProCurve.maturityInt
                         ''' % (quotazione, str(self.ref_date).replace("-", ""), segm, blm_tckrs_lst_str)
             elif segm == "CFuture":
+                
+                print 'AAA'
                 qry = '''
                         SELECT      DProTS_master.ScadenzaFuture, DProTS_master.%s
                         FROM        DProCurve
@@ -498,12 +495,14 @@ class Curve(object):
                 s = Segm()
                 s.name = dict_segm[segm]
                 
+                """
                 if (segm == 'CFuture'):
                     
-                    print 'res: ', res
+                    print 'res FUTURES: ', res
                 else:
  
                     print 'res: ', res
+                """
                 
                 for record in res:
                     mat = record[0]
@@ -529,7 +528,6 @@ class Curve(object):
                     self.segms[s1.name] = s1
                     self.segms[s2.name] = s2
 
-        print self.segms
         con.close()
 
     def bootstrap(self, data_opt):
@@ -605,10 +603,6 @@ class Curve(object):
         c_rates = raw_data['ValoreNodo']
         
         c_rates = np.array(c_rates)/100.0
-        
-        print 'c_dates: ', c_dates
-        print 'c_rates: ', c_rates
-        print 'optDict: ', optDict
         
         return fb.fitting(c_dates, c_rates, optDict)
 
@@ -1039,8 +1033,8 @@ class CdsCurve(Curve):
             self.description)
         c_a.execute(qry)
         res = c_a.fetchall()
-        if len(res) != 1:
-            print 'AAA'
+        #if len(res) != 1:
+        #    print 'AAA'
 
         self.type = res[0][1]
         # ----
@@ -1488,14 +1482,8 @@ class CdsCurve(Curve):
         
         self.hr_model
         
-        print 'AAAAAAAAAAAAAAAAA'
-        print 'self.recovery: ', self.recovery
-        print 'self.capitalization: ', self.capitalization
-        print 'self.hr_model: ', self.hr_model
-        print self.cds_boot_method
         
 
-        print 'AAAAAAAAAAAAAAAAA'
 
         if (self.curr == 'EUR'):
             tenor = 3 # 3 pagamenti ogni 3Mesi

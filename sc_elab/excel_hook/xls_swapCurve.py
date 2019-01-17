@@ -112,7 +112,6 @@ def segmentoSwapCurve(xla, rangeS, code, segm):
                 f += 1
             else :
                 a.Value = ll[j]
-                print a.Value
                 #print 'a: ', a
                 #print 'a.NumberFormat: ', a.NumberFormat
                 if (type(ll[j]) == datetime.date) or (type(ll[j]) == datetime.datetime): a.NumberFormat = FORMATT
@@ -222,7 +221,6 @@ def writeCurveOnXls(crv, nameSheet, xla, curve_type):
     else: mmmmmmmmmmmmmm
 
     rangeStartNew = intestazioneSwapCurveSegmenti ( xla, sheet , rOut, Attributi)
-    print 'rangeStartNew :',rangeStartNew
     if curve_type == "SWP":
         # Genero il blocco per i parametri di Hull e White
         rangeStartNew = displayHWParamSwCurve(xla, rangeStartNew, Attributi)
@@ -286,7 +284,6 @@ def readIntestazioneCds(xla , r , cc):
     else:
         cc.cal = 'us'
 
-    print ".................", r.Value
     cc.type = xla.Range(xla.Cells(row + 2, col + 1), xla.Cells(row + 2, col + 1)).Value
     dd = xla.Range(xla.Cells(row + 3, col + 1), xla.Cells(row + 3, col + 1)).Value
     cc.ref_date = datetime.date(year=dd.year, month=dd.month, day=dd.day)
@@ -338,7 +335,6 @@ def readSegms(xla, r, cc):
 
         if code == 'G':
             add = cc.floater_tenor[0]
-            print add
             code += add
 
         cc.segms [dict_segm2[code]] = Segm()
@@ -373,13 +369,11 @@ def readSegm(xla, r, cc):
     row  = r.Row
     col  = r.Column
     name = r.Value
-    print "SONO QUIIIIIIIIIII", name
     i = 2
 
     while r.Value != None:
         r = xla.Range(xla.Cells(row + 2, col), xla.Cells(row + 2, col))
         tag   = r.Value
-        print "tag", tag
         time  = xla.Range(xla.Cells(row + i, col + 1), xla.Cells(row + i, col + 1)).Value
         value = xla.Range(xla.Cells(row + i, col + 2), xla.Cells(row + i, col + 2)).Value
 
@@ -424,7 +418,6 @@ def readCurveFromXls(xla, des, pos, nameSheet, type = "SWP"):
 def findCurveFromPos(xla, pos, nameSheet):
     rangeStart = "B2"
     distCurve = 5
-    print "pos;", pos, type(pos)
     sheet = xla.ActiveWorkbook.Sheets(nameSheet)
     r     = sheet.Range(rangeStart)
     nCols = r.Columns.Count

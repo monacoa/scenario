@@ -2460,6 +2460,11 @@ def boot3s_elab_v2(data_opt, data_raw):
         basis_f = data_opt['Basis']['F']
         basis_f = convert_basis(basis_f)
         day_conv_f = data_opt['BusConv']['F']
+
+        par_a = data_opt['ParConvexity']['A']
+        par_b = data_opt['ParConvexity']['B']
+    
+        par_convexity    = [par_a, par_b]
     
     
     if (flag_s == True):
@@ -2483,8 +2488,8 @@ def boot3s_elab_v2(data_opt, data_raw):
         tenor_swap       = convertNodeToMnth(tenor_swap)
 
 
-    if (flag_s == False) and (flag_f == False):
-
+    #if (flag_s == False) and (flag_f == False):
+    if (flag_s == False):
 
         day_conv_s = data_opt['BusConv']['D']
         basis_s = data_opt['Basis']['D']
