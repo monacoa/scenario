@@ -11,12 +11,15 @@ from sc_elab.core.db_data_structure_v0 import table_dict
 from sc_elab.core.table_traslation import min_field_set
 from sc_elab.core.Tipologia_curva_dizionario import corrisp_tabella
 
+from datetime import date
+from dateutil.relativedelta import relativedelta, FR
+
 #def FQ(label):
 #    print ('------------- FIN QUI TUTTO OK  %s ----------' %(label))
 #    sys.exit()
 
 
-def insert_bond_data_record(connection_status, table_data, data_values):
+def TEST_insert_bond_data_record(connection_status, table_data, data_values):
 
     cursor = connection_status['cursor']
     db = connection_status['db_connection']
@@ -68,6 +71,76 @@ def insert_bond_data_record(connection_status, table_data, data_values):
 
     return result_val, msg
 
+
+def TEST_insert_cds_data_record(connection_status, table_data, table_anag, data_values):
+
+    cursor = connection_status['cursor']
+    db = connection_status['db_connection']
+    db.autocommit = False
+
+    field_ref = 'BloombergTicker'  # pk della tabella
+    ticker_list = data_values['Ticker']
+    n_records = len(ticker_list)
+
+    msg = 'Inserimento andato a buon fine'
+    result_val = True
+    verboseFlag = False
+
+    for i in xrange(0, n_records):
+
+        data_dict_to_insert_tmp = {}
+
+        for f_tab in min_field_set:
+
+            data_dict_to_insert_tmp[f_tab] = {}
+
+        tickerTmp = data_values['Ticker'][i]
+
+        value_ref = tickerTmp
+
+        print 'record n. %s' % i
+        result_anag, anag_dict_res = retrive_record_from_table(cursor, table_anag, field_ref, value_ref)
+
+        if (result_anag == False):
+            msg = 'Ticker %s non censito in %s!!' % (tickerTmp, table_anag)
+            result_val = False
+
+            return result_val, msg
+
+        # print 'anag_dict_res[TipoTicker]: ', anag_dict_res['TipoTicker']
+        # print 'data_values[Ticker][i]', data_values['Ticker'][i]
+
+        data_dict_to_insert_tmp['Contributor'][0] = anag_dict_res['Contributor']
+        data_dict_to_insert_tmp['Datatype'][0] = 'Livello'
+        data_dict_to_insert_tmp['ValoreBid'][0] = 0.0
+        data_dict_to_insert_tmp['ValoreAsk'][0] = 0.0
+        data_dict_to_insert_tmp['TipoDato'][0] = 'CDS'
+        data_dict_to_insert_tmp['id'][0] = data_values['Ticker'][i] + anag_dict_res['TipoTicker']
+
+        data_dict_to_insert_tmp['ValoreMid'][0] = data_values['Valore'][i]
+        data_dict_to_insert_tmp['LastUpdate'][0] = data_values['Data'][i]
+        data_dict_to_insert_tmp['DataScarico'][0] = data_values['Data'][i]
+        data_dict_to_insert_tmp['Data'][0] = data_values['Data'][i]
+        data_dict_to_insert_tmp['BloombergTicker'][0] = data_values['Ticker'][i]
+
+        data_dict_to_insert_tmp['BloombergTicker'][0] = data_values['Ticker'][i]
+
+
+        try:
+            result_data = insert_data_on_table(cursor, table_data, data_dict_to_insert_tmp, verboseFlag)
+
+        except Exception as e:
+
+            msg = 'Inserimento ticker %s in %s non riuscito: %s!!' % (tickerTmp, table_data, e)
+            result_val = False
+            db.close()
+
+            return result_val, msg
+
+    db.commit()
+    #db.close()
+
+    return result_val, msg
 
 
 def insert_anag_record(connection_status, table_anag, data_anag):
@@ -283,6 +356,127 @@ def retrive_record_from_table_check_anag(cursor, table_name, field_ref, ticker_t
 
 
 
+def retrive_table_from_ticker(cursor, table_name, tickerTmp, field_ref):
+
+    #QUESTA QUERY CERCA PER OGNI TABELLA
+
+    table_name_anag =""
+    result_flag = False
+
+    qry_to_execute = "SELECT * FROM %s WHERE %s = '%s' " % (table_name, field_ref, tickerTmp)
+
+    cursor.execute(qry_to_execute)
+    result = cursor.fetchall()
+    if len(result) > 0:
+        result_flag = True
+    else:
+        result_flag = False
+
+    return result_flag, result
+
+
+
+def set_scadenza_ref_future(data_ref):
+    
+    
+    #print 'XXXXXXXXXXXXXXXXXX'
+    #print 'ticker: ', ticker
+    
+    data_ref = data_ref.date()
+    """
+    dd = data_ref.days
+    mm = data_ref.month
+    yy = data_ref.yeras
+    """
+
+    #data_ref_n = datetime(yy, mm, dd)
+    dataScadenzaStart = data_ref + relativedelta(months=+6)
+    year_ref = dataScadenzaStart.year
+
+    ref_mar_1st = date(year_ref, 3, 01)    
+    ref_jun_1st = date(year_ref, 6, 01)    
+    ref_set_1st = date(year_ref, 9, 01)    
+    ref_dec_1st = date(year_ref, 12, 01)    
+    
+    
+    ref_march = ref_mar_1st + relativedelta(weeks=2, weekday=FR)        
+    ref_jun   = ref_jun_1st + relativedelta(weeks=2, weekday=FR)        
+    ref_sep   = ref_set_1st + relativedelta(weeks=2, weekday=FR)        
+    ref_dec   = ref_dec_1st + relativedelta(weeks=2, weekday=FR)        
+
+    ref_date_list = [ref_march, ref_jun, ref_sep, ref_dec]
+    
+    for i in range(0, len(ref_date_list)):
+        
+        dataScadenzaTmp = ref_date_list[i]
+
+        dt = float((dataScadenzaTmp - data_ref).days)
+        
+        if (i == 0) and (dt > 0):
+            
+            dataScadenza = data_ref
+            
+        else:
+            
+            if (dt >= 0):
+                dataScadenza = dataScadenzaTmp
+            else:
+                continue
+    
+    return  dataScadenza
+    
+
+def set_scadenza_ref_by_date(mnth_ref, year_ref):
+    
+    #from datetime import date
+    #from dateutil.relativedelta import relativedelta, FR
+    
+    if (mnth_ref == 3):
+        ref_1st = date(year_ref, 03, 01)    
+    if (mnth_ref == 6):
+        ref_1st = date(year_ref, 06, 01)    
+    if (mnth_ref == 9):
+        ref_1st = date(year_ref, 9, 01)    
+    if (mnth_ref == 12):
+        ref_1st = date(year_ref, 12, 01)    
+    
+    ref_date   = ref_1st + relativedelta(weeks=2, weekday=FR)        
+
+    return ref_date
+
+
+def set_scadenza_future(ticker, data_ref):
+    
+    n_future = ticker.split('.')[1]
+
+    n_mnth = int(n_future)
+    
+    if (n_mnth < 7):
+
+        dataScadenza = data_ref + relativedelta(months=+n_mnth)    
+    
+    elif(n_mnth == 7):
+
+        dataScadenza = set_scadenza_ref_future(data_ref)        
+
+    else:
+
+        dataScadenza_base = set_scadenza_ref_future(data_ref)        
+        mnth_base         = dataScadenza_base.month        
+        year_base         = dataScadenza_base.year        
+        dataScadenza_base = date(year_base, mnth_base, 01)
+
+        mnth_to_add = 3*(n_mnth - 7)
+
+        dataScadenza_new = dataScadenza_base + relativedelta(months=+mnth_to_add)    
+
+        
+        mnth_ref = dataScadenza_new.month
+        year_ref = dataScadenza_new.year
+        
+        dataScadenza = set_scadenza_ref_by_date(mnth_ref, year_ref)
+        
+    return dataScadenza
 
 def Insert_data_record(connection_status, table_data, anag_dict_res, data_values):
 
@@ -308,6 +502,8 @@ def Insert_data_record(connection_status, table_data, anag_dict_res, data_values
     data_dict_to_insert_tmp['ValoreMid'] = {}
     data_dict_to_insert_tmp['LastUpdate'] = {}
     data_dict_to_insert_tmp['DataScarico'] = {}
+    data_dict_to_insert_tmp['ScadenzaFuture'] = {}
+
     data_dict_to_insert_tmp['TipoDato'] = {}
     data_dict_to_insert_tmp['id'] = {}
 
@@ -323,6 +519,7 @@ def Insert_data_record(connection_status, table_data, anag_dict_res, data_values
     else:
         data_dict_to_insert_tmp['TipoDato'][0] = anag_dict_res['TipoDato'][0]
 
+    
     data_dict_to_insert_tmp['id'][0] = data_values['Ticker'][0] + anag_dict_res['TipoTicker'][0]
 
     data_dict_to_insert_tmp['ValoreMid'][0] = data_values['Valore'][0]
@@ -330,6 +527,11 @@ def Insert_data_record(connection_status, table_data, anag_dict_res, data_values
     data_dict_to_insert_tmp['DataScarico'][0] = data_values['Data'][0]
     data_dict_to_insert_tmp['Data'][0] = data_values['Data'][0]
     data_dict_to_insert_tmp['BloombergTicker'][0] = data_values['Ticker'][0]
+
+    if (data_dict_to_insert_tmp['TipoDato'][0]=='CFuture'):
+        scadenzaFuture = set_scadenza_future(data_values['Ticker'][0], data_values['Data'][0])
+        data_dict_to_insert_tmp['ScadenzaFuture'][0] = scadenzaFuture
+
 
     try:
         result_data = insert_data_on_table(cursor, table_data, data_dict_to_insert_tmp, verboseFlag)
@@ -551,7 +753,7 @@ def test_load_nuovi_dati(file_new_data):
             table_name_data = 'Bond_master'
 
             print 'try insert data'
-            val_results, msg_insert = insert_bond_data_record(connection_status, table_name_data, data_values)
+            val_results, msg_insert = TEST_insert_bond_data_record(connection_status, table_name_data, data_values)
             if val_results == False:
                 close_loading(con.db, msg_insert, "Chk")
                 return
@@ -565,6 +767,30 @@ def test_load_nuovi_dati(file_new_data):
                 return
 
 
-#if __name__ == "__main__":
-#    file_new_data = 'C:/Users/scalambrinm/workspace/scenario/sc_elab/core/input/files_caricamento_datastream/test_gennaio.xlsx'
-#    test_load_nuovi_dati(file_new_data)
+if __name__ == "__main__":
+    #file_new_data =r'C:\Users\monacoa\Desktop\2019Q1\test_cfutures_v1.xlsx'
+    #test_load_nuovi_dati(file_new_data)
+
+    A_LIST = ['D', 'A', 'B', 'C']
+
+
+    A_LIST.sort()
+    print 'A_LIST: ', A_LIST
+
+    """
+    import datetime    
+    data_ref = datetime.date(2018, 03, 23)
+
+
+    ticker_list = ['GQEC.01', 'GQEC.02','GQEC.03', 'GQEC.04', 'GQEC.05', 'GQEC.06', 'GQEC.07', 'GQEC.08', 'GQEC.09', 'GQEC.10', 'GQEC.11', 'GQEC.12']
+    
+    
+    print 'data_ref: ', data_ref
+    i = 1
+    for ticker_tmp in ticker_list:
+    
+        nuova_scadenza = set_scadenza_future(ticker_tmp, data_ref)
+    
+        print 'nuova_scadenza: %s %s'%(i, nuova_scadenza)
+        i = i + 1
+    """

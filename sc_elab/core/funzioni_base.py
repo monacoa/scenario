@@ -393,10 +393,7 @@ def estimate_linear_params(t_times, zc_rates):
         lin_parameters['b'][i] = solution[(i)*n_parameters + 1]
 
 
-    print 'lin_parameters[a]: ', lin_parameters['a']
-    print 'lin_parameters[b]: ', lin_parameters['b']
 
-    print 'solution[XX]: ', solution
 
 
     return lin_parameters 
@@ -649,7 +646,6 @@ def makeRatesFromModel(mkt_times, mkt_values, dict_model_par, target_times, mode
         mdl_values = zc_rate_by_CIR(dict_model_par, target_times)
 
 
-    print 'mdl_values: ', mdl_values
     return mdl_values 
 
 
@@ -2460,6 +2456,11 @@ def boot3s_elab_v2(data_opt, data_raw):
         basis_f = data_opt['Basis']['F']
         basis_f = convert_basis(basis_f)
         day_conv_f = data_opt['BusConv']['F']
+
+        par_a = data_opt['ParConvexity']['A']
+        par_b = data_opt['ParConvexity']['B']
+    
+        par_convexity    = [par_a, par_b]
     
     
     if (flag_s == True):
@@ -2483,8 +2484,8 @@ def boot3s_elab_v2(data_opt, data_raw):
         tenor_swap       = convertNodeToMnth(tenor_swap)
 
 
-    if (flag_s == False) and (flag_f == False):
-
+    #if (flag_s == False) and (flag_f == False):
+    if (flag_s == False):
 
         day_conv_s = data_opt['BusConv']['D']
         basis_s = data_opt['Basis']['D']
