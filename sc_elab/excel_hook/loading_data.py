@@ -771,6 +771,12 @@ if __name__ == "__main__":
     #file_new_data =r'C:\Users\monacoa\Desktop\2019Q1\test_cfutures_v1.xlsx'
     #test_load_nuovi_dati(file_new_data)
 
+    A_LIST = ['D', 'A', 'B', 'C']
+
+
+    A_LIST.sort()
+    print 'A_LIST: ', A_LIST
+
     """
     import datetime    
     data_ref = datetime.date(2018, 03, 23)

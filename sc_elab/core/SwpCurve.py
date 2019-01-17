@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-=======
-
->>>>>>> a0435fcc5828e6a51e30f9c6993dc6decedf0737
 import sys
 import os
 from sc_elab.excel_hook.connection import *
@@ -591,22 +587,32 @@ class Curve(object):
         raw_data = {}
         raw_data['ValoreNodo']   = []
         raw_data['MatDate']      = []
+        list_segms = self.segms.keys()
 
-        for name in self.segms.keys():
-            code = revDict(dict_segm2) [name]
-            s = self.segms[name]
-            for u,t,v,d in zip(s.usage, s.tags, s.values, s.dates):
+        list_segms.sort()
 
-                if (u == 'Y'):
-                    raw_data['ValoreNodo'].append(v)
-                    raw_data['MatDate'].append(d)
-                else:
-                    pass
+        d_last = 'XXX'
+
+        for name in list_segms:
+            
+            if name != 'Fut':
+                code = revDict(dict_segm2) [name]
+                s = self.segms[name]
+                for u,t,v,d in zip(s.usage, s.tags, s.values, s.dates):
+    
+                    if (u == 'Y') and  d != d_last:
+                        
+                        raw_data['ValoreNodo'].append(v)
+                        raw_data['MatDate'].append(d)
+                        d_last = d
+                    else:
+                        pass
         
         c_dates = raw_data['MatDate']
         c_rates = raw_data['ValoreNodo']
         
         c_rates = np.array(c_rates)/100.0
+        
         
         return fb.fitting(c_dates, c_rates, optDict)
 

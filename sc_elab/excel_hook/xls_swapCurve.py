@@ -263,7 +263,7 @@ def readIntestazione(xla , r , cc):
     else:
         cc.cal = 'us'
     r =  xla.Range(xla.Cells(row + 9, col), xla.Cells(row + 9, col))
-    cc.show()
+    #cc.show()
     return r
 
 def readIntestazioneCds(xla , r , cc):
@@ -306,7 +306,7 @@ def readIntestazioneCds(xla , r , cc):
     cc.source        = xla.Range(xla.Cells(row + 10, col + 1), xla.Cells(row + 10, col + 1)).Value
 
     r = xla.Range(xla.Cells(row + 12, col), xla.Cells(row + 12, col))
-    cc.show()
+    #cc.show()
     return r
 
 
@@ -317,7 +317,7 @@ def readParametriHW(xla,r,cc):
     cc.HWparms ['meanRS']= xla.Range(xla.Cells(row+1, col+1), xla.Cells(row+1, col+1)).Value
     cc.HWparms ['sigma'] = xla.Range(xla.Cells(row + 1, col + 3), xla.Cells(row + 1, col + 3)).Value
     r = xla.Range(xla.Cells(row + 3, col ), xla.Cells(row + 3, col))
-    cc.show()
+    #cc.show()
     return r
 
 def readSegms(xla, r, cc):
@@ -361,7 +361,7 @@ def readSegms(xla, r, cc):
 
 
     cc.fillAnagSegm()
-    cc.show()
+    #cc.show()
     return r
 
 
@@ -383,7 +383,7 @@ def readSegm(xla, r, cc):
         i += 1
         r = xla.Range(xla.Cells(row + i, col), xla.Cells(row + i, col))
 
-    cc.show()
+    #cc.show()
     return r
 
 
