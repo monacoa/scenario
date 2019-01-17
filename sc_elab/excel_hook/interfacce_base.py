@@ -441,7 +441,7 @@ def bond_fitting_from_xls(control):
     for codeTmp in codeBenchList:
 
         opt_curve_rf_download['codeSeg'] = codeTmp
-        flag_loaded_rf = curve_cds.loadBenchDataFromDB(opt_curve_rf_download)
+        flag_loaded_rf = curve_cds.loadBenchDataFromDB_Bond(opt_curve_rf_download)
         if (flag_loaded_rf == 1):
             break
     
@@ -450,15 +450,25 @@ def bond_fitting_from_xls(control):
         root = Tk()
         root.withdraw()
         
-        #print 'curve_rf.ref_date: ', curve_rf.ref_date
-        msg0 = "Curva benchmark associata al modello %s non presente alla data del %s, cambia modello o data!!" %(interp_rf_model, curve_rf.ref_date)
-        tkMessageBox.showinfo("Attenzione!!", msg0)
+        #print 'curve_rf.ref_date: ', portfolio_xl.ref_date
+        msg0 = "Curva benchmark associata al modello {} non presente alla data del {}, cambia modello o data!".format(interp_rf_model, portfolio_xl.ref_date)
+        tkMessageBox.showinfo("Attenzione!", msg0)
 
         root.destroy()
         return
 
-    
-    
+    if flag_loaded_rf == 2:
+        # significa che ho intercettato un errore!
+        root = Tk()
+        root.withdraw()
+
+        # print 'curve_rf.ref_date: ', curve_rf.ref_date
+        msg0 = "Il modello %s non gestito." % (interp_rf_model)
+        tkMessageBox.showinfo("Attenzione!", msg0)
+
+        root.destroy()
+        return
+
     data_zc_rf = {}
     data_zc_rf['Model'] = curve_cds.bench_model
     data_zc_rf['ValoreNodo'] = curve_cds.bench_values

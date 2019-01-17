@@ -1755,7 +1755,7 @@ def computeBondCF(data_portfolio, zc_times, zc_rf, rf_prms, rf_model, mkt_ref, d
 	dayCount   = dayCount_val
 	busDay     = bDay_val
 
-	print busDay
+	#print busDay
 	coupon_values = []
 
 
