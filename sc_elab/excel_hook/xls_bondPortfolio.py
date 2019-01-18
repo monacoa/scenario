@@ -702,7 +702,7 @@ def writePortfoliOnXls(crv, nameSheet, xla, curve_type):
                       , "Sector": crv.settore
                       , "Recovery Rate (%)": crv.recoveryRate
                       , "Rating": crv.rating
-                      , "Source": crv.source
+                      , "Source": 'Thomson Reuters'
                       }
 
 

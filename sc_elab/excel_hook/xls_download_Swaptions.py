@@ -46,7 +46,7 @@ def writeSwaptionsResOnXls(data, xla, ref_date, option_print):
                 , "3. Valore"      : 'MID'
                 , "4. Contributor" : ''
                 , "5. Currency"    : ''
-                , "6. Rows"        : 'Tenor'
+                , "6. Rows"        : 'Expiry'
                 , "7. Columns"     : 'Maturity'
                   }
     else:

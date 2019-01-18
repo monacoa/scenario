@@ -193,7 +193,7 @@ def writeCurveOnXls(crv, nameSheet, xla, curve_type):
                      , "Currency"     :crv.curr
                      , "Download Type": crv.download_type
                      , "Quotation"    : crv.quotation
-                     , "Source"       : crv.source
+                     , "Source"       : 'Thomson Reuters'
                      , "Tenor Floater Rate":crv.floater_tenor}
 
     elif curve_type == "CDS":
