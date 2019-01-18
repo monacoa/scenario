@@ -264,8 +264,6 @@ def insert_data_on_table(cursor, table_name, data_dict, verboseFlag):
         for j in range(0, n_fields):
 
             fTmp = field_list[j]
-            if j==10:
-                app3='here'
             fTmp_str = str(fTmp)
 
             valTmp = data_dict[fTmp][i]
@@ -393,11 +391,9 @@ def set_scadenza_ref_future(data_ref):
     yy = data_ref.yeras
     """
 
-    #data_ref_n = datetime(yy, mm, dd)
     dataScadenzaStart_tmp = data_ref + relativedelta(months=+7)
 
     
-    dd = dataScadenzaStart_tmp.day
     mm = dataScadenzaStart_tmp.month
     yy = dataScadenzaStart_tmp.year
     
@@ -786,14 +782,14 @@ def test_load_nuovi_dati(file_new_data):
 
 
 if __name__ == "__main__":
-    #file_new_data =r'C:\Users\monacoa\Desktop\2019Q1\test_cfutures_v1.xlsx'
-    #test_load_nuovi_dati(file_new_data)
+    file_new_data =r'C:\Users\scalambrinm\Desktop\test cds.xlsx'
+    test_load_nuovi_dati(file_new_data)
 
-    A_LIST = ['D', 'A', 'B', 'C']
+    #A_LIST = ['D', 'A', 'B', 'C']
 
 
-    A_LIST.sort()
-    print 'A_LIST: ', A_LIST
+    #A_LIST.sort()
+    #print 'A_LIST: ', A_LIST
 
     """
     import datetime    

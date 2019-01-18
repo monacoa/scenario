@@ -406,11 +406,11 @@ def bond_fitting_from_xls(control):
         tkMessageBox.showinfo("Attenzione!!", msg0)
         root.destroy()
 
-    if (bf_options_elab['RR'] >0.99):
+    if (bf_options_elab['RR'] >0.99 or bf_options_elab['RR'] < 0):
         # significa che ho intercettato un errore!
         root = Tk()
         root.withdraw()
-        msg0 = "Elaborazione non avviata: livello recovery rate (RR = %s) maggiore di 0.99 !!" %(bf_options_elab['RR'])
+        msg0 = "Elaborazione non avviata: livello recovery rate (RR = %s) non compreso in [0,1]!" %(bf_options_elab['RR'])
         tkMessageBox.showinfo("Attenzione!!", msg0)
         
         root.destroy()
@@ -990,3 +990,61 @@ def download_matrix(control):
     root.mainloop()
 
     write_Swaptions(xla, res, ref_date, option_print = app.print_type.get())
+
+
+# ==========================================
+# punto d'ingresso per TEMPLATE
+# ==========================================
+
+from sc_elab.excel_hook.createTemplate import writeTemplate, W_template, allSheet
+from sc_elab.core.Tipologia_curva_dizionario import *
+from sc_elab.core.db_data_structure_v0 import table_dict, table_dict_Dati
+from Tkinter import *
+import tkMessageBox
+
+
+
+@xl_func
+def create_Template(control):
+
+    xla = xl_app()
+    book = xla.ActiveWorkbook
+
+    root = Tk()
+    app = W_template(root)
+    root.mainloop()
+
+    if app.template == False:
+        return
+
+    tmp_array = app.template
+    allSheetInBook = allSheet(book)
+
+    for tmp in tmp_array:
+        if tmp == 'Dati':
+            nameSheet = 'Dati'
+            table = table_dict_Dati
+
+            if not(nameSheet in allSheetInBook):
+                writeTemplate(xla, book, nameSheet, table)
+            #else:
+            #    root = Tk()
+            #    answer = tkMessageBox.askquestion('Exit Application', 'Vuoi eliminare il foglio %s ?' %nameSheet,icon='warning')
+            #    root.mainloop()
+#
+            #    if answer == 'yes':
+            #        book.Sheets(nameSheet).Delete
+
+        elif tmp == 'Bond_master':
+            nameSheet = 'Dati'
+            table = table_dict[tmp]
+
+            if not(nameSheet in allSheetInBook):
+                writeTemplate(xla, book, nameSheet, table)
+
+        else:
+            nameSheet = 'Anagrafica_' + tmp
+            table = table_dict[corrisp_tabella[tmp]]
+
+            if not(nameSheet in allSheetInBook):
+                writeTemplate(xla, book, nameSheet, table)

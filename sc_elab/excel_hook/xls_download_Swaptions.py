@@ -63,6 +63,7 @@ def writeSwaptionsResOnXls(data, xla, ref_date, option_print):
 
 
 def write_Swaptions(xla, res, ref_date, option_print = 'matrix'):
+    # casto l'output della pandas come float
     res = res.astype('float')
     if option_print == 'matrix':
 
