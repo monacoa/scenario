@@ -995,7 +995,7 @@ def download_matrix(control):
 # ==========================================
 # punto d'ingresso per scarico Swaptions
 # ==========================================
-'''
+
 from sc_elab.excel_hook.createTemplate import writeTemplate, W_template, allSheet
 from sc_elab.core.Tipologia_curva_dizionario import *
 from sc_elab.core.db_data_structure_v0 import table_dict, table_dict_Dati
@@ -1048,4 +1048,3 @@ def create_Template(control):
 
             if not(nameSheet in allSheetInBook):
                 writeTemplate(xla, book, nameSheet, table)
-'''
