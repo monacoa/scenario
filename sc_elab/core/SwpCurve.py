@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-=======
-
->>>>>>> a0435fcc5828e6a51e30f9c6993dc6decedf0737
 import sys
 import os
 from sc_elab.excel_hook.connection import *
@@ -14,6 +10,7 @@ import sc_elab.core.funzioni_base as fb
 from DEF_core import dict_segm2,dict_segm
 import numpy as np
 
+from sc_elab.core.anagrafica_dati import MaturityFromIntToString
 
 def revDict(do):
     dn = {}
@@ -22,14 +19,19 @@ def revDict(do):
     return dn
 
 def computeMaturityString(self, cn, c, type, code):
+
     if type == "Fut":
         return code
-    qry = '''
-        SELECT DESCRIZIONE FROM ZTerm WHERE CODICE_TERM = '%s'
-    ''' % (code)
 
-    cn.execute(qry)
-    res = (cn.fetchall())[0][0]
+    res = MaturityFromIntToString[code]
+
+#    qry = '''
+#        SELECT DESCRIZIONE FROM ZTerm WHERE CODICE_TERM = '%s'
+#    ''' % (code)
+#
+#    cn.execute(qry)
+#    res = (cn.fetchall())[0][0]
+
     return res
 
 

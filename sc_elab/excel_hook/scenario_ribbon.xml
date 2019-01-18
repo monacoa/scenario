@@ -43,6 +43,7 @@
                 </group>
                 <group id="Inserting" label="New data on DB">
                     <button id="Inserting_data" label="Insert new data" image=".\fig\NewData.png" onAction="sc_elab.excel_hook.interfacce_base.caricamento_dati" />
+                    <button id="Download_template" label="Template" image=".\fig\NewData.png" onAction="sc_elab.excel_hook.interfacce_base.create_Template" />
                 </group>
                 <group id="Downloading" label="Data from DB">
                     <button id="Downloading_data" label="Swaptions" image=".\fig\Matrix.png" onAction="sc_elab.excel_hook.interfacce_base.download_matrix" />

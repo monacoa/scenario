@@ -144,3 +144,10 @@ table_dict['Bond_master']      = table_dict_4
 table_dict['DProOptions']      = table_dict_5
 table_dict['DProCFS']          = table_dict_6
 
+
+# ------------ DProCFS --------------------------------------------------------------
+table_dict_Dati = {}
+table_dict_Dati['Data']           = ['DATE',   'False', 'False', 'False']
+table_dict_Dati['Ticker']         = ['VARCHAR(50)',        'False', 'False', 'False']
+table_dict_Dati['Valore']         = ['double',        'False', 'False', 'False']
+
