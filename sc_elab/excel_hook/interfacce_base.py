@@ -993,7 +993,7 @@ def download_matrix(control):
 
 
 # ==========================================
-# punto d'ingresso per scarico Swaptions
+# punto d'ingresso per TEMPLATE
 # ==========================================
 
 from sc_elab.excel_hook.createTemplate import writeTemplate, W_template, allSheet

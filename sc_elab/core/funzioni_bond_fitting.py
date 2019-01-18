@@ -675,7 +675,7 @@ def check_data_info(dict,ISIN):
 	fix_rate    = dict['Tasso cedolare annuo (Fisso/spread)']
 	clean_price = dict['Prezzo-MID']
 	coupon      = dict['Cedola in corso']
-	BDay        = dict_Value_Adjustment[(dict['Adjustment']).lower()]
+	BDay        = dict['Adjustment']
 	ytm         = dict['YTM/DM (MID)']
 	type_rimb   = dict['Tipo rimborso']
 
@@ -695,9 +695,14 @@ def check_data_info(dict,ISIN):
 		msg = msg + '\n\n' + 'Valore del campo Basis errato.'
 		res = True
 
-	if not np.any(BDay == np.array(['follow','previous','modfollow','modprevious'])):
+	print 'BDay :'
+	print BDay
+	if BDay == None:
 		msg = msg + '\n\n' + 'Valore del campo Adjustment errato.\n Valori possibili: follow, previous, modfollow, modprevious'
-		res = True
+	else:
+		if not BDay.lower() in dict_Value_Adjustment.keys():
+			msg = msg + '\n\n' + 'Valore del campo Adjustment errato.\n Valori possibili: follow, previous, modfollow, modprevious'
+			res = True
 
 	if clean_price == None and ytm == None:
 		msg = msg + '\n\n' + 'Valore del campo Prezzo-MID o YTM/DM (MID) non presente.'
