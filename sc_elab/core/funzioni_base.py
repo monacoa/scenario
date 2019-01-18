@@ -393,10 +393,7 @@ def estimate_linear_params(t_times, zc_rates):
         lin_parameters['b'][i] = solution[(i)*n_parameters + 1]
 
 
-    print 'lin_parameters[a]: ', lin_parameters['a']
-    print 'lin_parameters[b]: ', lin_parameters['b']
 
-    print 'solution[XX]: ', solution
 
 
     return lin_parameters 
@@ -649,7 +646,6 @@ def makeRatesFromModel(mkt_times, mkt_values, dict_model_par, target_times, mode
         mdl_values = zc_rate_by_CIR(dict_model_par, target_times)
 
 
-    print 'mdl_values: ', mdl_values
     return mdl_values 
 
 

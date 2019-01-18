@@ -264,8 +264,6 @@ def insert_data_on_table(cursor, table_name, data_dict, verboseFlag):
         for j in range(0, n_fields):
 
             fTmp = field_list[j]
-            if j==10:
-                app3='here'
             fTmp_str = str(fTmp)
 
             valTmp = data_dict[fTmp][i]
@@ -502,7 +500,7 @@ def Insert_data_record(connection_status, table_data, anag_dict_res, data_values
     data_dict_to_insert_tmp['ValoreMid'] = {}
     data_dict_to_insert_tmp['LastUpdate'] = {}
     data_dict_to_insert_tmp['DataScarico'] = {}
-    data_dict_to_insert_tmp['ScadenzaFuture'] = {}
+
 
     data_dict_to_insert_tmp['TipoDato'] = {}
     data_dict_to_insert_tmp['id'] = {}
@@ -529,6 +527,7 @@ def Insert_data_record(connection_status, table_data, anag_dict_res, data_values
     data_dict_to_insert_tmp['BloombergTicker'][0] = data_values['Ticker'][0]
 
     if (data_dict_to_insert_tmp['TipoDato'][0]=='CFuture'):
+        data_dict_to_insert_tmp['ScadenzaFuture'] = {}
         scadenzaFuture = set_scadenza_future(data_values['Ticker'][0], data_values['Data'][0])
         data_dict_to_insert_tmp['ScadenzaFuture'][0] = scadenzaFuture
 
@@ -768,8 +767,14 @@ def test_load_nuovi_dati(file_new_data):
 
 
 if __name__ == "__main__":
-    #file_new_data =r'C:\Users\monacoa\Desktop\2019Q1\test_cfutures_v1.xlsx'
-    #test_load_nuovi_dati(file_new_data)
+    file_new_data =r'C:\Users\scalambrinm\Desktop\test cds.xlsx'
+    test_load_nuovi_dati(file_new_data)
+
+    #A_LIST = ['D', 'A', 'B', 'C']
+
+
+    #A_LIST.sort()
+    #print 'A_LIST: ', A_LIST
 
     """
     import datetime    

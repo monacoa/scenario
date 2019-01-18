@@ -159,6 +159,7 @@ class W_settoreRatingSelection(LabelFrame):
         sectors = getProvidersFromDb("MKT_EmittenteSettore")
         ratings  = getProvidersFromDb("MKT_EmittenteRating")
 
+
         T1 = Label(self, height=1, width=30, text="Sector Provider:").grid(row=0, sticky="e")
         self.sector = StringVar(self)
         self.sector.set(sectors[0])  # default value
