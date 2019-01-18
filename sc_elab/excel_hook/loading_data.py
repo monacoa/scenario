@@ -12,7 +12,7 @@ from sc_elab.core.table_traslation import min_field_set
 from sc_elab.core.Tipologia_curva_dizionario import corrisp_tabella
 
 from datetime import date
-from dateutil.relativedelta import relativedelta, FR
+from dateutil.relativedelta import relativedelta, FR, WE
 
 #def FQ(label):
 #    print ('------------- FIN QUI TUTTO OK  %s ----------' %(label))
@@ -381,8 +381,12 @@ def set_scadenza_ref_future(data_ref):
     
     #print 'XXXXXXXXXXXXXXXXXX'
     #print 'ticker: ', ticker
+    try:
+        data_ref = data_ref.date()
     
-    data_ref = data_ref.date()
+    except:
+        data_ref = data_ref
+    
     """
     dd = data_ref.days
     mm = data_ref.month
@@ -390,8 +394,17 @@ def set_scadenza_ref_future(data_ref):
     """
 
     #data_ref_n = datetime(yy, mm, dd)
-    dataScadenzaStart = data_ref + relativedelta(months=+6)
-    year_ref = dataScadenzaStart.year
+    dataScadenzaStart_tmp = data_ref + relativedelta(months=+7)
+
+    
+    dd = dataScadenzaStart_tmp.day
+    mm = dataScadenzaStart_tmp.month
+    yy = dataScadenzaStart_tmp.year
+    
+    
+    dataScadenzaStart = date(yy, mm, 01)
+    
+    year_ref = dataScadenzaStart_tmp.year
 
     ref_mar_1st = date(year_ref, 3, 01)    
     ref_jun_1st = date(year_ref, 6, 01)    
@@ -399,10 +412,10 @@ def set_scadenza_ref_future(data_ref):
     ref_dec_1st = date(year_ref, 12, 01)    
     
     
-    ref_march = ref_mar_1st + relativedelta(weeks=2, weekday=FR)        
-    ref_jun   = ref_jun_1st + relativedelta(weeks=2, weekday=FR)        
-    ref_sep   = ref_set_1st + relativedelta(weeks=2, weekday=FR)        
-    ref_dec   = ref_dec_1st + relativedelta(weeks=2, weekday=FR)        
+    ref_march = ref_mar_1st + relativedelta(weeks=2, weekday=WE)        
+    ref_jun   = ref_jun_1st + relativedelta(weeks=2, weekday=WE)        
+    ref_sep   = ref_set_1st + relativedelta(weeks=2, weekday=WE)        
+    ref_dec   = ref_dec_1st + relativedelta(weeks=2, weekday=WE)        
 
     ref_date_list = [ref_march, ref_jun, ref_sep, ref_dec]
     
@@ -410,16 +423,19 @@ def set_scadenza_ref_future(data_ref):
         
         dataScadenzaTmp = ref_date_list[i]
 
-        dt = float((dataScadenzaTmp - data_ref).days)
+        dt = float((dataScadenzaTmp - dataScadenzaStart).days)
         
         if (i == 0) and (dt > 0):
             
-            dataScadenza = data_ref
+            dataScadenza = dataScadenzaTmp
+            break
             
         else:
             
             if (dt >= 0):
                 dataScadenza = dataScadenzaTmp
+                break
+
             else:
                 continue
     
@@ -457,6 +473,8 @@ def set_scadenza_future(ticker, data_ref):
     
     elif(n_mnth == 7):
 
+        #dataScadenzaTmp = data_ref + relativedelta(months=+n_mnth)    
+
         dataScadenza = set_scadenza_ref_future(data_ref)        
 
     else:
@@ -475,7 +493,7 @@ def set_scadenza_future(ticker, data_ref):
         year_ref = dataScadenza_new.year
         
         dataScadenza = set_scadenza_ref_by_date(mnth_ref, year_ref)
-        
+    
     return dataScadenza
 
 def Insert_data_record(connection_status, table_data, anag_dict_res, data_values):
@@ -502,7 +520,6 @@ def Insert_data_record(connection_status, table_data, anag_dict_res, data_values
     data_dict_to_insert_tmp['ValoreMid'] = {}
     data_dict_to_insert_tmp['LastUpdate'] = {}
     data_dict_to_insert_tmp['DataScarico'] = {}
-    data_dict_to_insert_tmp['ScadenzaFuture'] = {}
 
     data_dict_to_insert_tmp['TipoDato'] = {}
     data_dict_to_insert_tmp['id'] = {}
@@ -529,6 +546,7 @@ def Insert_data_record(connection_status, table_data, anag_dict_res, data_values
     data_dict_to_insert_tmp['BloombergTicker'][0] = data_values['Ticker'][0]
 
     if (data_dict_to_insert_tmp['TipoDato'][0]=='CFuture'):
+        data_dict_to_insert_tmp['ScadenzaFuture'] = {}
         scadenzaFuture = set_scadenza_future(data_values['Ticker'][0], data_values['Data'][0])
         data_dict_to_insert_tmp['ScadenzaFuture'][0] = scadenzaFuture
 
