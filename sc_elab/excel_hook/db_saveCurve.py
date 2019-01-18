@@ -6,6 +6,8 @@ from xls_bootCurve import readBootstrappedCurveFromXls
 
 def qrySaveAnag (curve,code,label_r, label_tn, cursor):
     curve.show()
+
+    tmp = 'Bloomberg' #curve.source
     qry =  '''
 	        INSERT INTO MKT_Curve
 		    (codice_rating, codice_emittente, valuta, data_rif, fonte_dato, descrizione, rendimento, tipo_curva,
@@ -17,7 +19,7 @@ def qrySaveAnag (curve,code,label_r, label_tn, cursor):
                 , curve.emittente
                 , curve.curr
                 , curve.ref_date
-                , curve.source
+                , tmp
                 , curve.description
                 , label_r
                 , curve.type

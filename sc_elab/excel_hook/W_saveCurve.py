@@ -15,18 +15,29 @@ class W_saveType (Frame):
     def __init__(self, master = None):
         Frame.__init__(self, master)
         self.master = master
-        self.menubar = Menu(self)
-        filemenu = Menu(self.menubar, tearoff=0)
-        filemenu.add_command(label="Bootstrapped Data (ZC &| DF)", command=self.saveBoot)
-        filemenu.add_command(label="Fitting Parms (bootstrapped curves)", command=self.saveFittFromBoot)
-        filemenu.add_command(label="Fitting Parms (par-yield curves)", command=self.saveFittFromPy)
-        filemenu.add_separator()
-        filemenu.add_command(label="Exit", command = self.donothing)
 
-        self.menubar.add_cascade(label="Click & Select DataType to be saved on DB", menu=filemenu)
-        self.master.config(menu=self.menubar)
-        self.canvas = Canvas(self, bg="grey", width=200, height=200, bd=0, highlightthickness=0)
-        self.canvas.pack()
+        self.dataToSave = StringVar()
+        self.dataToSave.set('DAT_BOOT')
+
+        Label(self,text="""Click & Select DataType to be saved on DB :""",justify=LEFT,padx=100).pack()
+
+        self.rb1 = Radiobutton(self,text="Bootstrapped Data (ZC &| DF)"       ,justify='left',variable=self.dataToSave,value='DAT_BOOT').pack(anchor=W)
+        self.rb2 = Radiobutton(self,text="Fitting Parms (bootstrapped curves)",justify='left',variable=self.dataToSave,value='FIT_BOOT').pack(anchor=W)
+        self.rb3 = Radiobutton(self,text="Fitting Parms (par-yield curves)"   ,justify='left',variable=self.dataToSave,value='FIT_PAR').pack(anchor=W)
+
+        # create button
+        self.btn2 = Button(self, text="Cancel",  command=lambda:self.close_window())
+        self.btn2.pack(side=BOTTOM, fill = 'x')
+        # create button
+        self.btn1 = Button(self, text="Select", command= lambda:self.saveMain())
+        self.btn1.pack(side=BOTTOM, fill='x')
+        self.pack()
+
+    def saveMain(self):
+        if    self.dataToSave.get() == 'DAT_BOOT': self.saveBoot()
+        elif  self.dataToSave.get() == 'FIT_BOOT': self.saveFittFromBoot()
+        elif  self.dataToSave.get() == 'FIT_PAR' : self.saveFittFromPy()
+        else: self.donothing()
 
     def saveBoot(self):
         self.saveType = "Boot"
@@ -43,7 +54,7 @@ class W_saveType (Frame):
             self.master.destroy()
             return None
         curveL = readCurvesNames(xla, s, "B2", "v", 2,  5)
-        self.new_window = W_saveBootSelection(self, curveL)
+        self.new_window = W_saveBootSelection(parent = self, curveL = curveL)
 
     def saveFittFromBoot(self):
 
@@ -60,17 +71,16 @@ class W_saveType (Frame):
             self.master.destroy()
             return None
 
-        print "SONO QUI!!!"
         curveParmsDict = readCurvesParmsNames (xla, s, "B2")
 
         self.new_window = W_saveFitSelection(self, curveParmsDict)
 
     def saveFittFromPy(self):
         self.saveType = "FitFromPy"
-        zzzzzzzzzzz
+        self.close_window()
 
     def close_window(self):
-        self.destroy()
+        self.master.destroy()
 
 
 
@@ -82,11 +92,11 @@ class W_saveBootSelection(LabelFrame):
         self.master.destroy()
         return
 
-    def __init__(self, master=None, curveL=[]):
+    def __init__(self, parent=None, curveL=[]):
         c_date = None
-        if master:
-            self.master = master.master
-            master.close_window()
+        if parent:
+            self.master = parent.master
+            parent.destroy()
 
         LabelFrame.__init__(self, self.master)
         #self.master = master
@@ -181,12 +191,12 @@ class W_saveFitSelection(LabelFrame):
         self.master.destroy()
         return
 
-    def __init__(self, master=None, curveDict={}):
+    def __init__(self, parent=None, curveDict={}):
         self.curveDict = curveDict
         c_date = None
-        if master:
-            self.master = master.master
-            master.close_window()
+        if parent:
+            self.master = parent.master
+            parent.destroy()
 
         LabelFrame.__init__(self, self.master)
         #self.master = master
@@ -236,7 +246,7 @@ class W_saveFitSelection(LabelFrame):
         tmp = curve.split(") ")
         self.curve = tmp[1]
         self.pos_curve = int(tmp[0])
-        self.new_window = W_saveFitParms(master=self, curve = self.curve, pos = self.pos_curve, cd = self.curveDict)
+        self.new_window = W_saveFitParms(parent=self, curve = self.curve, pos = self.pos_curve, cd = self.curveDict)
 
 
 class W_saveFitParms(LabelFrame):
@@ -250,10 +260,10 @@ class W_saveFitParms(LabelFrame):
         self.master.destroy()
         return
 
-    def __init__(self, master=None, curve = "", pos = "", cd ={}):
-        if master:
-            self.master = master.master
-            master.close_window()
+    def __init__(self, parent=None, curve = "", pos = "", cd ={}):
+        if parent:
+            self.master = parent.master
+            parent.destroy()
         LabelFrame.__init__(self, self.master)
         self.config(text="Available parms to save:")
         self.pack(fill="both", expand="yes")
