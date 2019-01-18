@@ -1,0 +1,57 @@
+<customUI xmlns="http://schemas.microsoft.com/office/2006/01/customui"
+            loadImage="pyxll.load_image">
+    <ribbon>
+        <tabs>
+            <tab id="CustomTab" label="Pytho Simviewer" >
+                <group id="ContentGroup" label="Session">
+                    <button id="textButton" label="Connect to Pytho"
+                        image="C:\Users\monacoa\SimViewer\Miniconda\login.png" onAction="gsf.simviewer.core.connect_form"/>
+                    <button id="openReport" label="Open Report on Browser"
+                        image="C:\Users\monacoa\SimViewer\Miniconda\link.png" onAction="gsf.simviewer.core.go_to_report"/>
+                </group>                
+                <group id="Report" label="Report">                    
+                    <button id="openreport" label="Sync with Pytho"
+                        image="C:\Users\monacoa\SimViewer\Miniconda\update.png" onAction="gsf.simviewer.core.load_report"/>
+                    <button id="savereport" label="Save Report"
+                        image="C:\Users\monacoa\SimViewer\Miniconda\save.png" onAction="gsf.simviewer.core.save_report"/>
+                    <button id="savereportas" label="Save Report As"
+                        image="C:\Users\monacoa\SimViewer\Miniconda\saveas.png" onAction="gsf.simviewer.core.create_report"/>
+                </group>                
+                <group id="Tools" label="Tools">                    
+                    <button id="logs" label="Open Logs"
+                        image="C:\Users\monacoa\SimViewer\Miniconda\logs.png" onAction="gsf.simviewer.core.on_open_logfile"/>
+                    <button id="update" label="Check for updates"
+                        image="C:\Users\monacoa\SimViewer\Miniconda\download.png" onAction="gsf.simviewer.core.check_updates"/>
+                    <button id="reload" label="Reset Simviewer session"
+                        image="C:\Users\monacoa\SimViewer\Miniconda\reload.png" onAction="gsf.simviewer.core.on_empty_cache"/>
+                </group>
+            </tab>
+            <tab id="CustomTabScenarioManager" label="Scenario Manager" >
+                <group id="Swap_Curves" label="Swap Curves">
+                    <button id="load_swp_curve" label="Download" image=".\fig\load.png" onAction="sc_elab.excel_hook.interfacce_base.load_swap_curve_from_db" />
+                    <button id="bootstrap" label="Bootstrap" image=".\fig\Bootstrap.png" onAction="sc_elab.excel_hook.interfacce_base.bootstrap_from_xls" />
+                    <button id="fitting" label="Fitting" image=".\fig\Fitting.png" onAction="sc_elab.excel_hook.interfacce_base.fitting_from_xls" />
+                    <button id="save" label="Save" image=".\fig\save.png" onAction="sc_elab.excel_hook.interfacce_base.save_from_xls" />
+                </group>
+                <group id="CDS_Curves" label="CDS Curves">
+                    <button id="load_cds_curve" label="Download" image=".\fig\load.png" onAction="sc_elab.excel_hook.interfacce_base.load_cds_curve_from_db" />
+                    <button id="bootstrap_cds" label="Bootstrap" image=".\fig\Bootstrap.png" onAction="sc_elab.excel_hook.interfacce_base.bootstrap_cds_from_xls" />
+                </group>
+                <group id="Bond_Curves" label="Bond Data">
+                    <button id="load_bond_data" label="Download" image=".\fig\load.png" onAction="sc_elab.excel_hook.interfacce_base.load_bond_data_from_db" />
+                    <button id="bond_fitting" label="Bond fitting" image=".\fig\Fitting.png" onAction="sc_elab.excel_hook.interfacce_base.bond_fitting_from_xls" />
+                </group>
+                <group id="Inserting" label="MKT Data">
+                    <button id="Inserting_data" label="Save on DB" image=".\fig\save.png" onAction="sc_elab.excel_hook.interfacce_base.caricamento_dati" />
+                    <button id="Download_template" label="Templates" image=".\fig\template.png" onAction="sc_elab.excel_hook.interfacce_base.create_Template" />
+                </group>
+                <group id="Downloading" label="Option Surface">
+                    <button id="Downloading_data" label="Swaptions" image=".\fig\Swaptions.png" onAction="sc_elab.excel_hook.interfacce_base.download_matrix" />
+                </group>
+                <group id="Calibrate_" label="Elaborate">
+                    <button id="menu_calibration" label="Calibrate" image=".\fig\Calibrate.png" onAction="sc_elab.excel_hook.interfacce_base.calibration_from_xls" />
+                </group>
+            </tab>
+        </tabs>
+    </ribbon>
+</customUI>
