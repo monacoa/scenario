@@ -682,9 +682,11 @@ def save_from_xls(control):
         saveInterpolationParmsOnDb(int_curve)
         # ---
     else:
+        root = Tk()
         msg = "Unable to save your selection...!! \n;)"
         tkMessageBox.showinfo("OOOOPS!", msg)
-
+        root.destroy()
+        
 # ==========================================
 # punto d'ingresso per bootstrap CDS
 # ==========================================
