@@ -87,7 +87,7 @@ class Curve(object):
         self.description    = ""
         self.curr           = ""
         self.ref_date       = ""
-        self.source         = "Bloomberg"
+        self.source         = "Thomson Reuters"
         self.quotation      = "MID"
         self.download_type  = "0"
         self.emittente      = '999'
