@@ -2638,12 +2638,11 @@ def	plotResults(model_bond, time_ref, sw_rf, sw_spread, sw_ry, list_bond_times, 
 		a.plot(list_bond_times, list_ytm_mkt, 'go', label='YTM mkt')
 		#a.plot(list_bond_times, list_ytm_model, 'kx', label='YTM model')
 
-		a.plot(time_ref[1:indx_to_plot], sw_rf[1:indx_to_plot], '-.b', label='SW rf')
-		a.plot(time_ref[1:indx_to_plot], sw_spread[1:indx_to_plot], '-.r', label = 'SW spread')
-		a.plot(time_ref[1:indx_to_plot], sw_ry[1:indx_to_plot], '-k', label = 'SW risky')
+		a.plot(time_ref[1:indx_to_plot], sw_rf[1:indx_to_plot], '-.b', label='PY rf')
+		a.plot(time_ref[1:indx_to_plot], sw_spread[1:indx_to_plot], '-.r', label = 'PY spread')
+		a.plot(time_ref[1:indx_to_plot], sw_ry[1:indx_to_plot], '-k', label = 'PY risky')
 		a.set_title('Fitting clean bond prices using %s model'  %(model_bond))
 
-		#a.legend(['YTM mkt', 'SW rf', 'SW spread', 'SW risky'], loc = 0)
 		a.set_xlabel('Maturities [years]')
 		a.set_ylabel('YTM')
 
