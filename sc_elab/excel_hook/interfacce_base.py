@@ -990,7 +990,7 @@ def download_matrix(control):
 
     #query che permette di trovare per una certa data il contributor e la currency. Attualmente
     #lo scarico permette di ottenere una sola superficie di swaption per contributor e per currency
-    #pertanto attualmente non è prevista la possibilità di avere due superfici diverse alla stessa data
+    #pertanto attualmente non e prevista la possibilita di avere due superfici diverse alla stessa data
     qry_to_execute= '''
                     SELECT distinct DProCFS.Contributor,DProCFS.Currency from DProCFS,DProTS_master 
                     WHERE DProTS_master.BloombergTicker = DProCFS.BloombergTicker
