@@ -781,9 +781,9 @@ def test_load_nuovi_dati(file_new_data):
                 return
 
 
-if __name__ == "__main__":
-    file_new_data =r'C:\Users\scalambrinm\Desktop\test cds.xlsx'
-    test_load_nuovi_dati(file_new_data)
+#if __name__ == "__main__":
+#    file_new_data =r'C:\Users\scalambrinm\Desktop\test.xlsx'
+#    test_load_nuovi_dati(file_new_data)
 
     #A_LIST = ['D', 'A', 'B', 'C']
 

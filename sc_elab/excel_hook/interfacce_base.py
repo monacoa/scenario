@@ -398,7 +398,7 @@ def bond_fitting_from_xls(control):
     bf_options_elab['DataRef'] =  datetime.datetime.fromordinal(portfolio_xl.ref_date.toordinal())
 
     if bf_options_elab['RR'] == None:
-        bf_options_elab['RR'] = 0.4
+        bf_options_elab['RR'] = 0.35
 
         root = Tk()
         root.withdraw()
@@ -987,11 +987,31 @@ def download_matrix(control):
 
     res = pd.read_sql(qry_to_execute, con.db)
 
+
+    #query che permette di trovare per una certa data il contributor e la currency. Attualmente
+    #lo scarico permette di ottenere una sola superficie di swaption per contributor e per currency
+    #pertanto attualmente non è prevista la possibilità di avere due superfici diverse alla stessa data
+    qry_to_execute= '''
+                    SELECT distinct DProCFS.Contributor,DProCFS.Currency from DProCFS,DProTS_master 
+                    WHERE DProTS_master.BloombergTicker = DProCFS.BloombergTicker
+                    AND (DProCFS.TipoDato = 'VSwaption') 
+                    and DProTS_master.Data= '%s' ''' %(ref_date)
+
+    res2 =pd.read_sql(qry_to_execute, con.db)
+    if res2.shape[0] > 1:
+        root = Tk()
+        tkMessageBox.showinfo("Warning!", 'I dati selezionati hanno molteplici Contributor o Currency.')
+        root.mainloop()
+        return
+
+    currency = res2['Currency'][0]
+    contributor = res2['Contributor'][0]
+
     root = Tk()
     app = W_SwaptionsOptionsPrint(root)
     root.mainloop()
 
-    write_Swaptions(xla, res, ref_date, option_print = app.print_type.get())
+    write_Swaptions(xla, res, ref_date, currency, contributor, option_print = app.print_type.get() )
 
 
 # ==========================================
