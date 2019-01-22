@@ -32,7 +32,7 @@ def intestazioneSwaptions( xla, rng,  attributi, nCols = 2, title= "Matrix Swapt
     return rangeStart
 
 
-def writeSwaptionsResOnXls(data, xla, ref_date, option_print,currency, contributor):
+def writeSwaptionsResOnXls(data, xla, ref_date, option_print,currency, contributor, tipo_modello):
 
     r = findCalibrationPos(xla, nameSheetScaricoSwaption)
 
@@ -47,23 +47,27 @@ def writeSwaptionsResOnXls(data, xla, ref_date, option_print,currency, contribut
                 , "3. Valore"      : 'MID'
                 , "4. Contributor" : contributor
                 , "5. Currency"    : currency
-                , "6. Rows"        : 'Expiry'
-                , "7. Columns"     : 'Maturity'
+                , "6. Tipo modello": tipo_modello
+                , "7. Tenor swap " : '6M' #per il momento scritto a mano, se verra cambiato sara da modificare
+                , "8. Rows"        : 'Expiry'
+                , "9. Columns"     : 'Maturity'
                   }
     else:
         Attributi = \
             {     "1. Date ref"    : ref_date
                 , "2. Tipo Dato"   : 'VSwaption'
                 , "3. Valore"      : 'MID'
-                , "4. Contributor" : ''
-                , "5. Currency"    : ''
+                , "4. Contributor" : contributor
+                , "5. Currency"    : currency
+                , "6. Tipo Modello": tipo_modello
+                , "7. Tenor swap ": '6M'
                   }
 
     r = intestazioneSwaptions(xla = xla, rng = r, attributi = Attributi)
     r = writeResultPandas(xla = xla , rng = r, df = data)
 
 
-def write_Swaptions(xla, res, ref_date, currency , contributor, option_print = 'matrix'):
+def write_Swaptions(xla, res, ref_date, currency , contributor, tipo_modello, option_print = 'matrix'):
     # casto l'output della pandas come float
     res = res.astype('float')
     if option_print == 'matrix':
@@ -80,10 +84,10 @@ def write_Swaptions(xla, res, ref_date, currency , contributor, option_print = '
         res3['Tenor'] = res3['Tenor'].map(MaturityFromIntToString)
         res3.columns = res3.columns.map(MaturityFromIntToString)
         res3.columns.values[0] = ''
-        writeSwaptionsResOnXls(res3, xla, ref_date, option_print,currency, contributor)
+        writeSwaptionsResOnXls(res3, xla, ref_date, option_print,currency,  contributor, tipo_modello)
 
     else:
         res['Tenor']=res['Tenor'].map(MaturityFromIntToString)
         res['MaturityInt'] = res['MaturityInt'].map(MaturityFromIntToString)
         res['Usage'] = 'Y'
-        writeSwaptionsResOnXls(res,  xla, ref_date, option_print,currency, contributor)
+        writeSwaptionsResOnXls(res,  xla, ref_date, option_print,currency, contributor, tipo_modello)

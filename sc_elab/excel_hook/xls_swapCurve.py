@@ -140,7 +140,7 @@ def SegmentoCdsCurve(xla, rangeS, crv):
     #box intestazione
     drawBox(xla, const.xlMedium, topLeftRow, topLeftCol, topLeftRow + nRows+1, topLeftCol + nCols - 1)
 
-    formatTestataCurva(xla, topLeftRow, topLeftCol, nCols, "CDS Spread")
+    formatTestataCurva(xla, topLeftRow, topLeftCol, nCols, "CDS Curve")
 
 
     #Linea orizzontale di separazione

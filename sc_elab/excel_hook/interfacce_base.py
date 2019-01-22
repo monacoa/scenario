@@ -402,7 +402,7 @@ def bond_fitting_from_xls(control):
 
         root = Tk()
         root.withdraw()
-        msg0 = "Valorizzare correttamente il Recovery Rate.\n Assegnato il valore pari al 40% "
+        msg0 = "Valorizzare correttamente il Recovery Rate.\n Assegnato il valore pari a %s   "%(bf_options_elab['RR'])
         tkMessageBox.showinfo("Attenzione!!", msg0)
         root.destroy()
 
@@ -921,7 +921,7 @@ def calibration_from_xls(control):
 
 
 # ==========================================
-# punto d'ingresso per calibrazione
+# punto d'ingresso per Caricamento Dati
 # ==========================================
 
 
@@ -1007,11 +1007,29 @@ def download_matrix(control):
     currency = res2['Currency'][0]
     contributor = res2['Contributor'][0]
 
+    # Interrogo il campo deltaBp per capire se le Swaption sono shiftate. Qualora il campo deltaBp
+    # per tutte le componenti della superficie di Swaption ad una certa data sia identico e pari
+    # a None, allora restituisce No Shifted
+
+    qry_to_execute = '''
+                        SELECT distinct DProCFS.deltaBp from DProCFS,DProTS_master 
+                        WHERE DProTS_master.BloombergTicker = DProCFS.BloombergTicker
+                        AND (DProCFS.TipoDato = 'VSwaption') 
+                        and DProTS_master.Data= '%s' ''' % (ref_date)
+
+    res3 = pd.read_sql(qry_to_execute, con.db)
+
+
+    if not res3['deltaBp'][0] and res3.shape[0] == 1 :
+        tipo_modello = "No Shifted"
+    else:
+        tipo_modello = '''Shifted'''
+
     root = Tk()
     app = W_SwaptionsOptionsPrint(root)
     root.mainloop()
 
-    write_Swaptions(xla, res, ref_date, currency, contributor, option_print = app.print_type.get() )
+    write_Swaptions(xla, res, ref_date, currency, contributor, tipo_modello, option_print = app.print_type.get() )
 
 
 # ==========================================
