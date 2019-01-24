@@ -87,7 +87,7 @@ class Curve(object):
         self.description    = ""
         self.curr           = ""
         self.ref_date       = ""
-        self.source         = "Bloomberg"
+        self.source         = "Thomson Reuters"
         self.quotation      = "MID"
         self.download_type  = "0"
         self.emittente      = '999'
@@ -354,12 +354,12 @@ class Curve(object):
         for i in range(0, n_type):
             
             typeTmp = list_type[i]
-
             ctb_list_tmp = type_ctb_dict[typeTmp]
             
             if (len(ctb_list_tmp) < 2):
                 
                 ctbTmp = ctb_list_tmp[0]
+
                 
             else:
                 
@@ -370,8 +370,6 @@ class Curve(object):
                 else: 
                     
                     ctbTmp = c_list[0]
-                    
-        
 
             
             qry = '''
@@ -388,7 +386,11 @@ class Curve(object):
             res_a = c_d.fetchall()
 
             #blm_tkr_list_str_n = ""
-            sep = ""
+            #sep = ""
+            if i==0:
+                sep = ""
+            else:
+                sep = ","
             for record in res_a:
                 blm_tkr_list_str_n += sep + "'" + record[0] + "'"
                 sep = ","
@@ -973,7 +975,7 @@ class CdsCurve(Curve):
         self.rendimento = 'Par Yield'
         self.node_type  = 'CDS'
         self.lag       = 2
-        self.recovery  =  40
+        self.recovery  =  35
         cod_segm       = 'SCDS' #codice_segmentazione
         self.settore   = 999
         self.rating    = 999

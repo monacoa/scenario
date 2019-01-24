@@ -83,10 +83,13 @@ def writeResultPandas( xla, rng , df):
 
     for j in xrange(0,nCols):
         xla.Cells(topLeftRow, topLeftCol + j).Font.Bold = True
+        xla.Cells(topLeftRow, topLeftCol + j).HorizontalAlignment = const.xlCenter
         xla.Cells(topLeftRow , topLeftCol + j).Value = df.columns.values[j]
+
 
     for i in xrange(0,nRows):
         for j in xrange(0,nCols):
+            xla.Cells(topLeftRow + 1+ i, topLeftCol+j).HorizontalAlignment = const.xlCenter
             xla.Cells(topLeftRow + 1+ i, topLeftCol+j).Value   = df.iloc[i,j]
 
     rangeStart = xla.Range(xla.Cells(topLeftRow + nRows + 1, topLeftCol),xla.Cells(topLeftRow + nRows + 1, topLeftCol))

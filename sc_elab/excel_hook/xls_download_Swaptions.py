@@ -4,11 +4,12 @@ from win32com.client import constants as const
 
 from sc_elab.excel_hook.xls_Calibration import findCalibrationPos,writeResultPandas
 from sc_elab.excel_hook.xls_utils import drawBox, formatTestataCurva
+from sc_elab.core.anagrafica_dati import MaturityFromIntToString
 
 from DEF_intef import nameSheetScaricoSwaption
 
 
-def intestazioneSwaptions( xla, rng,  attributi, nCols = 2, title= 'Matrix Swaption'):
+def intestazioneSwaptions( xla, rng,  attributi, nCols = 2, title= "Matrix Swaption"):
 
     nRows           = len(attributi.keys())
     topLeftRow      = rng.Row
@@ -31,7 +32,7 @@ def intestazioneSwaptions( xla, rng,  attributi, nCols = 2, title= 'Matrix Swapt
     return rangeStart
 
 
-def writeSwaptionsResOnXls(data, xla, ref_date, option_print):
+def writeSwaptionsResOnXls(data, xla, ref_date, option_print,currency, contributor, tipo_modello):
 
     r = findCalibrationPos(xla, nameSheetScaricoSwaption)
 
@@ -44,25 +45,29 @@ def writeSwaptionsResOnXls(data, xla, ref_date, option_print):
             {     "1. Date ref"    : ref_date
                 , "2. Tipo Dato"   : 'VSwaption'
                 , "3. Valore"      : 'MID'
-                , "4. Contributor" : ''
-                , "5. Currency"    : ''
-                , "6. Rows"        : 'Expiry'
-                , "7. Columns"     : 'Maturity'
+                , "4. Contributor" : contributor
+                , "5. Currency"    : currency
+                , "6. Tipo modello": tipo_modello
+                , "7. Tenor swap " : '6M' #per il momento scritto a mano, se verra cambiato sara da modificare
+                , "8. Rows"        : 'Expiry'
+                , "9. Columns"     : 'Maturity'
                   }
     else:
         Attributi = \
             {     "1. Date ref"    : ref_date
                 , "2. Tipo Dato"   : 'VSwaption'
                 , "3. Valore"      : 'MID'
-                , "4. Contributor" : ''
-                , "5. Currency"    : ''
+                , "4. Contributor" : contributor
+                , "5. Currency"    : currency
+                , "6. Tipo Modello": tipo_modello
+                , "7. Tenor swap ": '6M'
                   }
 
     r = intestazioneSwaptions(xla = xla, rng = r, attributi = Attributi)
     r = writeResultPandas(xla = xla , rng = r, df = data)
 
 
-def write_Swaptions(xla, res, ref_date, option_print = 'matrix'):
+def write_Swaptions(xla, res, ref_date, currency , contributor, tipo_modello, option_print = 'matrix'):
     # casto l'output della pandas come float
     res = res.astype('float')
     if option_print == 'matrix':
@@ -74,8 +79,15 @@ def write_Swaptions(xla, res, ref_date, option_print = 'matrix'):
         res3.index = res3.index.astype(np.float)
         res3.reset_index(level='Tenor', inplace=True)
 
-        writeSwaptionsResOnXls(res3, xla, ref_date, option_print)
+        #trasformo ogni numero, che rappresenta la chiave del dizionario MaturityFromIntToString
+        # con la corrispondente stringa prevista dal dizionario
+        res3['Tenor'] = res3['Tenor'].map(MaturityFromIntToString)
+        res3.columns = res3.columns.map(MaturityFromIntToString)
+        res3.columns.values[0] = ''
+        writeSwaptionsResOnXls(res3, xla, ref_date, option_print,currency,  contributor, tipo_modello)
 
     else:
+        res['Tenor']=res['Tenor'].map(MaturityFromIntToString)
+        res['MaturityInt'] = res['MaturityInt'].map(MaturityFromIntToString)
         res['Usage'] = 'Y'
-        writeSwaptionsResOnXls(res,  xla, ref_date, option_print)
+        writeSwaptionsResOnXls(res,  xla, ref_date, option_print,currency, contributor, tipo_modello)

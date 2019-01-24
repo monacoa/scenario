@@ -5,6 +5,7 @@ import numpy as np
 import datetime
 
 
+
 # NOT USED!
 def readCurveFromDataFrame(df):
     cc          = BootstrappedCurve()
