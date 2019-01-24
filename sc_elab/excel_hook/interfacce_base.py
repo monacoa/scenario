@@ -813,8 +813,11 @@ def bootstrap_cds_from_xls(control):
         return
     
     writeCDSBootstrapRes1OnXls(curve_xl, xla, str_boot_opt, boot_out, codice_curva)
+    s = xla.Cells.Columns.AutoFit()
+
     writeCDSBootstrapRes2OnXls(curve_xl, xla, str_boot_opt, boot_out, codice_curva)
-    
+    s = xla.Cells.Columns.AutoFit()
+
 
 # ==========================================
 # punto d'ingresso per CALIBRAZIONE
@@ -1031,6 +1034,7 @@ def download_matrix(control):
     root.mainloop()
 
     write_Swaptions(xla, res, ref_date, currency, contributor, tipo_modello, option_print = app.print_type.get() )
+    s = xla.Cells.Columns.AutoFit()
 
 
 # ==========================================
@@ -1042,7 +1046,7 @@ from sc_elab.core.Tipologia_curva_dizionario import *
 from sc_elab.core.db_data_structure_v0 import table_dict, table_dict_Dati
 from Tkinter import *
 import tkMessageBox
-
+import imp
 
 @xl_func
 def create_Template(control):
@@ -1051,7 +1055,8 @@ def create_Template(control):
     book = xla.ActiveWorkbook
 
     root = Tk()
-    #root.iconbitmap(default= r".\fig\icona.ico")
+    root.title('Menu Template')
+    root.iconbitmap(default= imp.find_module('sc_elab')[1] + r'\\excel_hook\\fig\\icona.ico')
     app = W_template(root)
     root.mainloop()
 
@@ -1071,7 +1076,8 @@ def create_Template(control):
             else:
                 answer = ask_question('Delete sheet', 'Vuoi eliminare il foglio %s ?' % nameSheet)
                 if answer == 'yes':
-                    t = book.Worksheets(nameSheet).Delete
+
+                    t = book.Worksheets(nameSheet).Delete()
                     writeTemplate(xla, book, nameSheet, table)
 
 
@@ -1085,10 +1091,9 @@ def create_Template(control):
             else:
                 answer = ask_question('Delete sheet', 'Vuoi eliminare il foglio %s ?' % nameSheet)
                 if answer == 'yes':
-                    #rpdb2.start_embedded_debugger('pw')
-                    t = xla.ActiveWorkbook.Sheets(nameSheet).Delete
+
+                    t = book.Worksheets(nameSheet).Delete()
                     # il foglio non e' stato eliminato
-                    print allSheet(book)
                     writeTemplate(xla, book, nameSheet, table)
 
         else:
@@ -1100,5 +1105,6 @@ def create_Template(control):
             else:
                 answer = ask_question('Delete sheet', 'Vuoi eliminare il foglio %s ?' % nameSheet)
                 if answer == 'yes':
-                    t = book.Worksheets(nameSheet).Delete
+
+                    t = book.Worksheets(nameSheet).Delete()
                     writeTemplate(xla, book, nameSheet, table)

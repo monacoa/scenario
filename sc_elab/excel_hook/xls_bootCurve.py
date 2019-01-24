@@ -105,6 +105,9 @@ def writeBootstrapResOnXls(crv, xla, str_boot_opt, res, codeL, codeR):
         xla.Cells(topLeftRow + i, topLeftCol + 5).Value = "Y"
         xla.Cells(topLeftRow + i, topLeftCol + 5).HorizontalAlignment = const.xlCenter
 
+    s = xla.Cells.Columns.AutoFit()
+
+
 def writeCDSBootstrapRes1OnXls(crv, xla, str_boot_opt, res, codice_curva):
 
     

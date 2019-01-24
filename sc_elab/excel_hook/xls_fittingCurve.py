@@ -306,6 +306,8 @@ def writeFittingBootResOnXls(crv, xla, opt_dict, res, pos):
     elif    opt_dict['interp'] == '3':  writeFittingResCIR(xla, s, r, Attributi, res)
     elif    opt_dict['interp'] == '4':   writeFittingResNS(xla, s, r, Attributi, res)
 
+    s = xla.Cells.Columns.AutoFit()
+
 def writeFittingPyResOnXls(crv, xla, opt_dict, res, pos):
 
     nameSheet = nameSheetCurve
@@ -362,6 +364,8 @@ def writeFittingPyResOnXls(crv, xla, opt_dict, res, pos):
     elif    opt_dict['interp'] == '4':  writeFittingResNS(xla, s, r, Attributi, res)
 
     else:                               writeFittingResSVE(xla, s, r, Attributi, res)
+
+    s = xla.Cells.Columns.AutoFit()
 
 
 

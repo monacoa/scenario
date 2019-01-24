@@ -212,7 +212,9 @@ def writeBondFittingRes4OnXls(crv, xla, str_boot_opt, res, codice_curva):
         xla.Cells(topLeftRow + i, topLeftCol + 1).Value = value_prms_tmp
         xla.Cells(topLeftRow + i, topLeftCol + 1).NumberFormat = "0.00"
         xla.Cells(topLeftRow + i, topLeftCol + 1).HorizontalAlignment = const.xlCenter
-        
+
+    s = xla.Cells.Columns.AutoFit()
+
 
 #=======================================================================================================================
 
@@ -298,6 +300,8 @@ def writeBondFittingRes3OnXls(crv, xla, str_boot_opt, res, codice_curva):
         xla.Cells(topLeftRow + i, topLeftCol + 2).Value = opt_clean_prices
         xla.Cells(topLeftRow + i, topLeftCol + 2).NumberFormat = "0.00"
         xla.Cells(topLeftRow + i, topLeftCol + 2).HorizontalAlignment = const.xlCenter
+
+    s = xla.Cells.Columns.AutoFit()
 
 
         
@@ -443,7 +447,9 @@ def writeBondFittingRes2OnXls(crv, xla, str_boot_opt, res, codice_curva):
         xla.Cells(topLeftRow + i, topLeftCol + 7).Value = pyRiskFree
         xla.Cells(topLeftRow + i, topLeftCol + 7).NumberFormat = "0.00000"
         xla.Cells(topLeftRow + i, topLeftCol + 7).HorizontalAlignment = const.xlCenter
-        
+
+    s = xla.Cells.Columns.AutoFit()
+
 
 
 
@@ -561,6 +567,7 @@ def writeBondFittingRes1OnXls(crv, xla, str_boot_opt, res, codice_curva):
         xla.Cells(topLeftRow + i, topLeftCol + 7).NumberFormat = "0.00000"
         xla.Cells(topLeftRow + i, topLeftCol + 7).HorizontalAlignment = const.xlCenter
         """
+    s = xla.Cells.Columns.AutoFit()
 
 """
 def writeBondFittingRes2OnXls(crv, xla, str_boot_opt, res, codice_curva):
@@ -708,6 +715,8 @@ def writePortfoliOnXls(crv, nameSheet, xla, curve_type):
 
     rangeStartNew = writeIntestazionePortfolio(xla, sheet , rOut, Attributi)
     rangeStartNew = writePortfolioAnag(xla, rangeStartNew, crv)
+
+    s = xla.Cells.Columns.AutoFit()
 
 
 def readIntestazione(xla , r , cc):

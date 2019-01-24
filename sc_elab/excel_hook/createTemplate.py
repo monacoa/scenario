@@ -71,7 +71,7 @@ def writeTemplate(xla,wb,nameSheet,ttt):
 def formatTemplate(xla,nRow,nCol):
 
     #xla.Cells.Columns.ColumnWidth = 20
-    #s = xla.Cells.Columns.AutoFit
+    s = xla.Cells.Columns.AutoFit()
 
     xla.Range(xla.Cells(1,1),xla.Cells(1,nCol)).Select()
     xla.Selection.HorizontalAlignment   = const.xlCenter

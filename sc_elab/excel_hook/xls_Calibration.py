@@ -132,3 +132,4 @@ def writeCalibrationResOnXls(model, W_class, xla, chi2, opt_dict, res):
     r = intestazioneCalibration(xla = xla, rng = r, attributi = Attributi , title = model)
     r = writeParameterCalibration(xla = xla, rng = r, v_name = W_class.params_names, v_value = opt_dict,  dict = W_class.param_dict)
     r = writeResultPandas(xla = xla , rng = r, df = res)
+    s = xla.Cells.Columns.AutoFit()

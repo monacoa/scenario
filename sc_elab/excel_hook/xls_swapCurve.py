@@ -238,6 +238,8 @@ def writeCurveOnXls(crv, nameSheet, xla, curve_type):
     else:
         xxxxxxxxx
 
+    s = xla.Cells.Columns.AutoFit()
+
 
 def readIntestazione(xla , r , cc):
     row              = r.Row
