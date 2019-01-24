@@ -1012,6 +1012,7 @@ def create_Template(control):
     book = xla.ActiveWorkbook
 
     root = Tk()
+    #root.iconbitmap(default= r".\fig\icona.ico")
     app = W_template(root)
     root.mainloop()
 
