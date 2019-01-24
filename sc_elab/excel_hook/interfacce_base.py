@@ -998,12 +998,11 @@ def download_matrix(control):
 # punto d'ingresso per TEMPLATE
 # ==========================================
 
-from sc_elab.excel_hook.createTemplate import writeTemplate, W_template, allSheet
+from sc_elab.excel_hook.createTemplate import writeTemplate, W_template, allSheet, ask_question
 from sc_elab.core.Tipologia_curva_dizionario import *
 from sc_elab.core.db_data_structure_v0 import table_dict, table_dict_Dati
 from Tkinter import *
 import tkMessageBox
-
 
 
 @xl_func
@@ -1029,20 +1028,28 @@ def create_Template(control):
 
             if not(nameSheet in allSheetInBook):
                 writeTemplate(xla, book, nameSheet, table)
-            #else:
-            #    root = Tk()
-            #    answer = tkMessageBox.askquestion('Exit Application', 'Vuoi eliminare il foglio %s ?' %nameSheet,icon='warning')
-            #    root.mainloop()
-#
-            #    if answer == 'yes':
-            #        book.Sheets(nameSheet).Delete
+            else:
+                answer = ask_question('Delete sheet', 'Vuoi eliminare il foglio %s ?' % nameSheet)
+                if answer == 'yes':
+                    t = book.Worksheets(nameSheet).Delete
+                    writeTemplate(xla, book, nameSheet, table)
+
 
         elif tmp == 'Bond_master':
+
             nameSheet = 'Dati'
             table = table_dict[tmp]
 
             if not(nameSheet in allSheetInBook):
                 writeTemplate(xla, book, nameSheet, table)
+            else:
+                answer = ask_question('Delete sheet', 'Vuoi eliminare il foglio %s ?' % nameSheet)
+                if answer == 'yes':
+                    #rpdb2.start_embedded_debugger('pw')
+                    t = xla.ActiveWorkbook.Sheets(nameSheet).Delete
+                    # il foglio non e' stato eliminato
+                    print allSheet(book)
+                    writeTemplate(xla, book, nameSheet, table)
 
         else:
             nameSheet = 'Anagrafica_' + tmp
@@ -1050,3 +1057,8 @@ def create_Template(control):
 
             if not(nameSheet in allSheetInBook):
                 writeTemplate(xla, book, nameSheet, table)
+            else:
+                answer = ask_question('Delete sheet', 'Vuoi eliminare il foglio %s ?' % nameSheet)
+                if answer == 'yes':
+                    t = book.Worksheets(nameSheet).Delete
+                    writeTemplate(xla, book, nameSheet, table)

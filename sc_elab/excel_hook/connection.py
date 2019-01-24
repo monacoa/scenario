@@ -22,8 +22,14 @@ class Connection:
     def db_data(self):
 
         if not self.db_dta:
+            self.db =  pymysql.connect(host='cor-dbserver-mysql.prometeia',
+                                         port = 3306,
+                                         user='pricingunit',
+                                         password='pr1cing4',
+                                         db='db_mkt_data')
+
             #self.db  = (pyodbc.connect(r'DSN=db_mercato;UID=root;PWD=lucap'))
-            self.db  = (pyodbc.connect(r'DSN=db_mkt_data;UID=pricingunit;PWD=pr1cing4'))
+            #self.db  = (pyodbc.connect(r'DSN=db_mkt_data;UID=pricingunit;PWD=pr1cing4'))
 
             ### gestire l'errore nel caso in cui non riesca a connettersi
 
@@ -34,7 +40,13 @@ class Connection:
     def db_anag(self):
 
         if not self.db_ang:
-            self.db  = (pyodbc.connect(r'DSN=penelope;UID=pricingunit;PWD=pr1cing4'))
+            self.db =  pymysql.connect(host='cor-dbserver-mysql.prometeia',
+                                         port = 3306,
+                                         user='pricingunit',
+                                         password='pr1cing4',
+                                         db='penelope')
+
+            #self.db  = (pyodbc.connect(r'DSN=penelope;UID=pricingunit;PWD=pr1cing4'))
             self.db_ang = self.db.cursor()
 
         return self.db_ang

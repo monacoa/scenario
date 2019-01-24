@@ -65,12 +65,13 @@ def writeTemplate(xla,wb,nameSheet,ttt):
         xla.Cells(1,i).Value = k
         i = i + 1
 
-    formatTemplate(xla,10,i-1)
+    formatTemplate(xla = xla, nRow = 15, nCol = i-1)
 
 
 def formatTemplate(xla,nRow,nCol):
 
-    #xla.Cells.EntireColumn.AutoFit
+    #xla.Cells.Columns.ColumnWidth = 20
+    #s = xla.Cells.Columns.AutoFit
 
     xla.Range(xla.Cells(1,1),xla.Cells(1,nCol)).Select()
     xla.Selection.HorizontalAlignment   = const.xlCenter
@@ -105,3 +106,11 @@ def allSheet(wb):
         names.append(s.Name)
 
     return names
+
+def ask_question(header,msg):
+    root = Tk()
+    root.withdraw()
+    answer = tkMessageBox.askquestion(header, msg, icon='warning')
+    root.destroy()
+
+    return answer

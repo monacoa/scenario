@@ -600,7 +600,6 @@ def close_loading(db,msg,header):
     root.destroy()
 
 
-#def test_load_nuovi_dati(file_new_data='C:/Users/scalambrinm/workspace/scenario/sc_elab/core/input/files_caricamento_datastream/test_gennaio.xlsx'):
 def test_load_nuovi_dati(file_new_data):
 
 
@@ -779,32 +778,3 @@ def test_load_nuovi_dati(file_new_data):
             else:
                 close_loading(con.db, "Inserimento andato a buon fine", "Work done")
                 return
-
-
-if __name__ == "__main__":
-    file_new_data =r'C:\Users\scalambrinm\Desktop\test cds.xlsx'
-    test_load_nuovi_dati(file_new_data)
-
-    #A_LIST = ['D', 'A', 'B', 'C']
-
-
-    #A_LIST.sort()
-    #print 'A_LIST: ', A_LIST
-
-    """
-    import datetime    
-    data_ref = datetime.date(2018, 03, 23)
-
-
-    ticker_list = ['GQEC.01', 'GQEC.02','GQEC.03', 'GQEC.04', 'GQEC.05', 'GQEC.06', 'GQEC.07', 'GQEC.08', 'GQEC.09', 'GQEC.10', 'GQEC.11', 'GQEC.12']
-    
-    
-    print 'data_ref: ', data_ref
-    i = 1
-    for ticker_tmp in ticker_list:
-    
-        nuova_scadenza = set_scadenza_future(ticker_tmp, data_ref)
-    
-        print 'nuova_scadenza: %s %s'%(i, nuova_scadenza)
-        i = i + 1
-    """
