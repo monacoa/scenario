@@ -399,6 +399,7 @@ def bond_fitting_from_xls(control):
 
     if bf_options_elab['RR'] == None:
         bf_options_elab['RR'] = 0.35
+        portfolio_xl.recoveryRate = 0.35
 
         root = Tk()
         root.withdraw()
