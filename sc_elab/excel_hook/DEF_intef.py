@@ -28,3 +28,7 @@ nameSheetLoadDati = 'Dati'
 
 #INSERITA PER LO SCARICO DELLA MATRICE SWAPTION
 nameSheetScaricoSwaption='Matrix_Swaption'
+
+#INSERITA PER L'ELABORAZIONE DELLE MATRICI
+nameSheetElabMatrix = 'Matrix_Elab'
+nameSheetElabMatrixResult = 'Matrix_Elab_Result'

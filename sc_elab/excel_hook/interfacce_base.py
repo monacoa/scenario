@@ -957,7 +957,7 @@ from DEF_intef import nameSheetScaricoSwaption
 from sc_elab.excel_hook.connection import Connection
 
 @xl_func
-def download_matrix(control):
+def writeSwaptions(control):
 
     nameSheet = nameSheetScaricoSwaption
     xla = xl_app()
@@ -1041,7 +1041,8 @@ def download_matrix(control):
 # punto d'ingresso per TEMPLATE
 # ==========================================
 
-from sc_elab.excel_hook.createTemplate import writeTemplate, W_template, allSheet, ask_question
+from sc_elab.excel_hook.createTemplate import writeTemplate, W_template, ask_question
+from sc_elab.excel_hook.xls_utils import allSheet
 from sc_elab.core.Tipologia_curva_dizionario import *
 from sc_elab.core.db_data_structure_v0 import table_dict, table_dict_Dati
 from Tkinter import *
@@ -1108,3 +1109,103 @@ def create_Template(control):
 
                     t = book.Worksheets(nameSheet).Delete()
                     writeTemplate(xla, book, nameSheet, table)
+
+
+
+
+
+# ========================================================
+# punto d'ingresso per ELABORATE TRANSITION MATRIX
+# ========================================================
+
+from sc_elab.excel_hook.W_quarterly_matrix import W_matrix_trim, W_select_matrix, writeQuarterlyMatrixResOnXls, W_dim_matrix, writeTemplateQuarterlyMatrixInput
+from sc_elab.excel_hook.W_calibration import readSheetObject, readFeaturesObject
+
+from sc_elab.excel_hook.xls_utils import allSheet
+from DEF_intef import nameSheetElabMatrix, nameSheetElabMatrixResult
+
+from Tkinter import *
+import tkMessageBox
+import imp
+
+@xl_func
+def elaborate_quarterly_matrix(control):
+
+    xla = xl_app()
+    wb = xla.ActiveWorkbook
+
+    allSheetInBook = allSheet(wb)
+
+    # -------------- controllo l'esistenza del foglio  ----------------
+    if not (nameSheetElabMatrix in allSheetInBook):
+        s = wb.Sheets.Add()
+        s.Name = nameSheetElabMatrix
+    else:
+        s = wb.Sheets(nameSheetElabMatrix)
+        s.Activate()
+    # -----------------------------------------------------------------
+
+    wb.Save()
+
+    objectOnSheetDictionary = readSheetObject(workbook_path = str(wb.FullName), sheet_name = nameSheetElabMatrix )
+
+
+    if objectOnSheetDictionary[1].empty:
+        root = Tk()
+        root.withdraw()
+        tkMessageBox.showinfo("Warning!", 'Nessuna matrice presente nel foglio!')
+        root.destroy()
+        return
+
+    else:
+        objectOnSheet = readFeaturesObject(objectOnSheetDictionary)
+        tmpMatrix = objectOnSheet.loc[objectOnSheet.TypeObject == 'Matrix', 'Name'].tolist()
+
+
+    root = Tk()
+    root.iconbitmap(default= imp.find_module('sc_elab')[1] + r'\\excel_hook\\fig\\icona.ico')
+    app1 = W_select_matrix(master = root, ListMatrix = tmpMatrix)
+    root.mainloop()
+
+    tmp = objectOnSheet.loc[objectOnSheet.Name == app1.MatrixNameChosen, 'keys'].values[0]
+    MatrixChosen = objectOnSheetDictionary[tmp].dropna(axis = 0).astype('float').copy()
+
+    if MatrixChosen.shape[0] != MatrixChosen.shape[1]:
+        root = Tk()
+        root.withdraw()
+        tkMessageBox.showinfo("Warning!", "La matrice deve essere quadrata. Errore!")
+        root.destroy()
+        return
+
+    root = Tk()
+    root.iconbitmap(default= imp.find_module('sc_elab')[1] + r'\\excel_hook\\fig\\icona.ico')
+    app2 = W_matrix_trim(master = root, matrix = MatrixChosen)
+    root.mainloop()
+
+    if app2.flag_save == True:
+        writeQuarterlyMatrixResOnXls(xla = xla, W_class = app2, book = wb, nameSheet = nameSheetElabMatrixResult, nameMatrix = app1.MatrixNameChosen)
+
+
+@xl_func
+def template_elaborate_matrix(control):
+
+    xla = xl_app()
+    wb = xla.ActiveWorkbook
+
+    allSheetInBook = allSheet(wb)
+
+    # -------------- controllo l'esistenza del foglio  ----------------
+    if not (nameSheetElabMatrix in allSheetInBook):
+        s = wb.Sheets.Add()
+        s.Name = nameSheetElabMatrix
+    else:
+        s = wb.Sheets(nameSheetElabMatrix)
+        s.Activate()
+    # -----------------------------------------------------------------
+
+    root = Tk()
+    root.iconbitmap(default= imp.find_module('sc_elab')[1] + r'\\excel_hook\\fig\\icona.ico')
+    app = W_dim_matrix(master = root)
+    root.mainloop()
+
+    writeTemplateQuarterlyMatrixInput(xla = xla, nameSheet = nameSheetElabMatrix, dimMatrix = app.dimMatrix.get())

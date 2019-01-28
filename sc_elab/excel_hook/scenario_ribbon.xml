@@ -46,10 +46,14 @@
                     <button id="Download_template" label="Templates" image=".\fig\template.png" onAction="sc_elab.excel_hook.interfacce_base.create_Template" />
                 </group>
                 <group id="Downloading" label="Option Surface">
-                    <button id="Downloading_data" label="Swaptions" image=".\fig\Swaptions.png" onAction="sc_elab.excel_hook.interfacce_base.download_matrix" />
+                    <button id="Downloading_data" label="Swaptions" image=".\fig\Swaptions.png" onAction="sc_elab.excel_hook.interfacce_base.writeSwaptions" />
                 </group>
                 <group id="Calibrate_" label="Elaborate">
                     <button id="menu_calibration" label="Calibrate" image=".\fig\Calibrate.png" onAction="sc_elab.excel_hook.interfacce_base.calibration_from_xls" />
+                </group>
+                <group id="Elaborate_Matrix" label="Elaborate Matrix">
+                    <button id="temp_matrix" label="Template Input Matrix" image=".\fig\template.png" onAction="sc_elab.excel_hook.interfacce_base.template_elaborate_matrix" />
+                    <button id="elab_matrix" label="Quartely Matrix" image=".\fig\Matrix_Quarterly.png" onAction="sc_elab.excel_hook.interfacce_base.elaborate_quarterly_matrix" />
                 </group>
             </tab>
         </tabs>

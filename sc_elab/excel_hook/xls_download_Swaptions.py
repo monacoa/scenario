@@ -2,8 +2,7 @@ import numpy as np
 import datetime
 from win32com.client import constants as const
 
-from sc_elab.excel_hook.xls_Calibration import findCalibrationPos,writeResultPandas
-from sc_elab.excel_hook.xls_utils import drawBox, formatTestataCurva
+from sc_elab.excel_hook.xls_utils import drawBox, formatTestataCurva, findCalibrationPos, writeResultPandas
 from sc_elab.core.anagrafica_dati import MaturityFromIntToString
 
 from DEF_intef import nameSheetScaricoSwaption
@@ -64,7 +63,7 @@ def writeSwaptionsResOnXls(data, xla, ref_date, option_print,currency, contribut
                   }
 
     r = intestazioneSwaptions(xla = xla, rng = r, attributi = Attributi)
-    r = writeResultPandas(xla = xla , rng = r, df = data)
+    r = writeResultPandas(xla = xla , rng = r, df = data, flagPrintColumns = True)
 
 
 def write_Swaptions(xla, res, ref_date, currency , contributor, tipo_modello, option_print = 'matrix'):

@@ -204,3 +204,61 @@ def findRigthPlaceBootCurveSeg(xla, r, distCurve, dir="O"):
         sys.exit()
 
     return rOut
+
+
+def allSheet(wb):
+    names = []
+    for s in wb.Worksheets:
+        names.append(s.Name)
+
+    return names
+
+
+
+def findCalibrationPos(xla, nameSheet):
+    rangeInitial = "B2"
+    distanza = 2
+    sheet = xla.ActiveWorkbook.Sheets(nameSheet)
+    r = sheet.Range(rangeInitial)
+    col = r.Column
+    i = 0
+
+    rStart = xla.Range(xla.Cells(r.Row + distanza, col), xla.Cells(r.Row + distanza, col))
+
+    while r.Value != None or rStart.Value != None:
+        i = 1
+        r = xla.Range(xla.Cells(r.Row + 1, col), xla.Cells(r.Row + 1, col))
+        rStart = xla.Range(xla.Cells(r.Row + distanza, col), xla.Cells(r.Row + distanza, col))
+
+    if i == 0:
+        rStart = sheet.Range(rangeInitial)
+
+    return rStart
+
+
+
+def writeResultPandas( xla, rng , df, flagPrintColumns = True):
+
+    nRows           = df.shape[0]
+    nCols           = df.shape[1]
+    topLeftRow      = rng.Row
+    topLeftCol      = rng.Column
+    drawBox(xla, 3 , topLeftRow, topLeftCol,topLeftRow + nRows - (1 - int(flagPrintColumns)), topLeftCol + nCols - 1, 0)
+
+    if flagPrintColumns == True:
+        for j in xrange(0,nCols):
+            xla.Cells(topLeftRow, topLeftCol + j).Font.Bold = True
+            xla.Cells(topLeftRow, topLeftCol + j).HorizontalAlignment = const.xlCenter
+            xla.Cells(topLeftRow , topLeftCol + j).Value = df.columns.values[j]
+
+        topLeftRow = topLeftRow + 1
+
+
+    for i in xrange(0,nRows):
+        for j in xrange(0,nCols):
+            xla.Cells(topLeftRow + i, topLeftCol+j).HorizontalAlignment = const.xlCenter
+            xla.Cells(topLeftRow + i, topLeftCol+j).Value   = df.iloc[i,j]
+
+    rangeStart = xla.Range(xla.Cells(topLeftRow + nRows + 1, topLeftCol),xla.Cells(topLeftRow + nRows + 1, topLeftCol))
+    return rangeStart
+

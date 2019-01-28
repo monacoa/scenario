@@ -100,12 +100,6 @@ def formatTemplate(xla,nRow,nCol):
             #xla.Selection.Interior.Pattern = const.xlSolid
 
 
-def allSheet(wb):
-    names = []
-    for s in wb.Worksheets:
-        names.append(s.Name)
-
-    return names
 
 def ask_question(header,msg):
     root = Tk()

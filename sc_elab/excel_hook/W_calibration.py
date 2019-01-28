@@ -531,4 +531,11 @@ def readFeaturesObject(input_dict):
                                                         'TypeObject': 'TS',
                                                         'Name': item.loc[0, 0]}, ignore_index=True)
 
+        elif u'MatrixType' in item.loc[:, 0].values:
+            element_on_sheet = element_on_sheet.append({'keys': k,
+                                                        'TypeObject': 'Matrix',
+                                                        'Name': item.loc[0, 0]}, ignore_index=True)
+
+
+
     return element_on_sheet

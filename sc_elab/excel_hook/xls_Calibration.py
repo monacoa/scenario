@@ -2,28 +2,10 @@ from pyxll import xl_func, xl_app, xl_menu, xl_macro, xlcAlert
 from sc_elab.excel_hook.xls_utils import drawBox, drawLine, formatTestataCurva, findRigthPlaceBootCurveSeg
 import datetime
 from sc_elab.excel_hook.DEF_intef import nameSheetCalib,nameSheetCalibRes
+from sc_elab.excel_hook.xls_utils import findCalibrationPos, writeResultPandas
+
 from    win32com.client import constants as const
 
-
-def findCalibrationPos (xla, nameSheet):
-    rangeInitial = "B2"
-    distanza = 2
-    sheet = xla.ActiveWorkbook.Sheets(nameSheet)
-    r = sheet.Range(rangeInitial)
-    col = r.Column
-    i = 0
-
-    rStart = xla.Range(xla.Cells(r.Row + distanza, col), xla.Cells(r.Row + distanza, col))
-
-    while r.Value != None or rStart.Value != None:
-        i = 1
-        r = xla.Range(xla.Cells(r.Row + 1, col), xla.Cells(r.Row + 1, col))
-        rStart = xla.Range(xla.Cells(r.Row + distanza, col), xla.Cells(r.Row + distanza, col))
-
-    if i == 0:
-        rStart = sheet.Range(rangeInitial)
-
-    return rStart
 
 
 def intestazioneCalibration( xla, rng,  attributi, nCols = 2, title= 'Calibration'):
@@ -73,29 +55,6 @@ def writeParameterCalibration( xla, rng , v_name , v_value,  dict, nCols = 4):
     return rangeStart
 
 
-def writeResultPandas( xla, rng , df):
-
-    nRows           = df.shape[0]
-    nCols           = df.shape[1]
-    topLeftRow      = rng.Row
-    topLeftCol      = rng.Column
-    drawBox(xla, 3 , topLeftRow, topLeftCol,topLeftRow + nRows, topLeftCol + nCols - 1, 0)
-
-    for j in xrange(0,nCols):
-        xla.Cells(topLeftRow, topLeftCol + j).Font.Bold = True
-        xla.Cells(topLeftRow, topLeftCol + j).HorizontalAlignment = const.xlCenter
-        xla.Cells(topLeftRow , topLeftCol + j).Value = df.columns.values[j]
-
-
-    for i in xrange(0,nRows):
-        for j in xrange(0,nCols):
-            xla.Cells(topLeftRow + 1+ i, topLeftCol+j).HorizontalAlignment = const.xlCenter
-            xla.Cells(topLeftRow + 1+ i, topLeftCol+j).Value   = df.iloc[i,j]
-
-    rangeStart = xla.Range(xla.Cells(topLeftRow + nRows + 1, topLeftCol),xla.Cells(topLeftRow + nRows + 1, topLeftCol))
-    return rangeStart
-
-
 def writeCalibrationResOnXls(model, W_class, xla, chi2, opt_dict, res):
 
     nameSheet = nameSheetCalibRes
@@ -131,5 +90,5 @@ def writeCalibrationResOnXls(model, W_class, xla, chi2, opt_dict, res):
     col = r.Column
     r = intestazioneCalibration(xla = xla, rng = r, attributi = Attributi , title = model)
     r = writeParameterCalibration(xla = xla, rng = r, v_name = W_class.params_names, v_value = opt_dict,  dict = W_class.param_dict)
-    r = writeResultPandas(xla = xla , rng = r, df = res)
+    r = writeResultPandas(xla = xla , rng = r, df = res, flagPrintColumns = True)
     s = xla.Cells.Columns.AutoFit()
