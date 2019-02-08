@@ -1462,7 +1462,7 @@ def select_segments(data_raw_p):
             mat_f.append(mat_tmp)
             nodo_f.append(nd_tmp)
 
-        elif (ts_tmp == 'S') or (ts_tmp == '3G'):      
+        elif (ts_tmp == 'S') or (ts_tmp == '3G') or (ts_tmp == 'G3'):
 
             ts_s.append(ts_tmp)
             valore_s.append(vn_tmp)

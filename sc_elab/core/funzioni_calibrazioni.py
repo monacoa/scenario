@@ -75,7 +75,7 @@ def preProcessignCurve(df):
 
     # seleziono solo le righe da considerare
     out = out.loc[(out.loc[:,2] == 'Y'),0:1]
-    out.columns = ['TIME','VALUE']
+    out.columns = ['TIME','MKT']
 
 
     if isinstance(out.iloc[0,0],datetime.datetime):
@@ -126,7 +126,7 @@ def fromContinuousToCompost(r):
 def loss_zc_model_cir(list_model_params, mkt_prices,order_difference):
 
     model_price_tmp = compute_zc_cir_rate(list_model_params, mkt_prices["TIME"])
-    diff = np.absolute(model_price_tmp - mkt_prices["VALUE"])
+    diff = np.absolute(model_price_tmp - mkt_prices["MKT"])
     diff = np.power(diff,order_difference)
 
     return diff.sum()
@@ -156,7 +156,7 @@ def compute_zc_cir_rate(p,t):
 def loss_zc_model_vsck(list_model_params, mkt_prices,order_difference):
 
     model_price_tmp = compute_zc_vsck_rate(list_model_params, mkt_prices["TIME"])
-    diff = np.absolute(model_price_tmp - mkt_prices["VALUE"])
+    diff = np.absolute(model_price_tmp - mkt_prices["MKT"])
     diff = np.power(diff,order_difference)
 
     return diff.sum()

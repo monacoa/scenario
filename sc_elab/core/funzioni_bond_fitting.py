@@ -699,6 +699,7 @@ def check_data_info(dict,ISIN):
 	print BDay
 	if BDay == None:
 		msg = msg + '\n\n' + 'Valore del campo Adjustment errato.\n Valori possibili: follow, previous, modfollow, modprevious'
+		res = True
 	else:
 		if not BDay.lower() in dict_Value_Adjustment.keys():
 			msg = msg + '\n\n' + 'Valore del campo Adjustment errato.\n Valori possibili: follow, previous, modfollow, modprevious'
@@ -1772,7 +1773,7 @@ def computeBondCF(data_portfolio, zc_times, zc_rf, rf_prms, rf_model, mkt_ref, d
 	else:
 		coupon_dates, coupon_times, coupon_dt  = computeBondCalendar(date_ref, date_end, frequency, dayCount, busDay, mkt_ref, tipo_bond_val)
 
-
+	#DA CONTROLLARE IL CALCOLO DEL RATEO
 	ln_b = len(coupon_times)
 
 	if (tipo_bond_val == 'FIXED'):
@@ -1796,7 +1797,6 @@ def computeBondCF(data_portfolio, zc_times, zc_rf, rf_prms, rf_model, mkt_ref, d
 		rateo   = ((100.0 - emissionPrice)/time_zc)*t_rateo
 
 	coupon_values.append(rateo)
-	#print 'rateo: ', rateo
 
 	for i in range(1, ln_b):
 

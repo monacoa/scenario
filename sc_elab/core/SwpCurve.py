@@ -178,7 +178,7 @@ class Curve(object):
 
             seg = self.segms[k]
             seg.name = k
-            if (k == 'GSwp1M') or (k == 'GSwp3M'):
+            if (k == 'GSwp1M') or (k == 'GSwp3M') or (k == 'GSwpOIS'):
                 ts = 'LIBOR'
 
             else:
@@ -193,10 +193,8 @@ class Curve(object):
                     AND TIPO_SEGMENTO = '%s'
                 )
             ''' % (self.curr, ts)
-
             cn.execute(qry)
             res = cn.fetchall()
-
             seg.anag = {}
             for record in res:
                 name  = record[0]
@@ -221,7 +219,6 @@ class Curve(object):
         #----
         #recupero il calendario di riferimento
         #----
-
         for s in self.segms.keys():
             #[(u'DATE ADJ.', u'Following'), (u'DAY COUNT CONV.', u'30/360'), (u'FREQ. PAYMENT', u'6M'), (u'LAG', u'2')]
             adj       = self.segms[s].anag['DATE ADJ.']
@@ -287,7 +284,7 @@ class Curve(object):
         #----------------------------------------
 
 
-        qry = "SELECT distinct BloombergTicker FROM DProCurve where (TipoDato = 'CLibor' or  TipoDato = 'CSwap' or TipoDato = 'CDepositi' or TipoDato = 'CDeopositi' or TipoDato = 'CFuture') and  (Descrizione = '%s')"%self.description
+        qry = "SELECT distinct BloombergTicker FROM DProCurve where (TipoDato = 'CLibor' or  TipoDato = 'CSwap' or TipoDato = 'CDepositi' or TipoDato = 'CDeopositi' or TipoDato = 'CFuture' or TipoDato= 'CSwapOis' or TipoDato= 'CSwap3M') and  (Descrizione = '%s')"%self.description
 
 
 
@@ -302,7 +299,7 @@ class Curve(object):
             sep = ","
 
 
-        blm_tckrs_lst_str = blm_tckrs_lst_str_n 
+        blm_tckrs_lst_str = blm_tckrs_lst_str_n
 
 
         #----------------------------------------
@@ -319,30 +316,25 @@ class Curve(object):
                 BLOOMBERGTICKER IN (%s) AND DATA = '%s'
                 )
             ''' % (blm_tckrs_lst_str, str(self.ref_date).replace("-", ""))
-
         c_d.execute(qry)
         res_n = c_d.fetchall()
-
         res_len = len(res_n)
 
-        c_list   = []
-        t_list   = []
+        c_list   = [] #c_list contiene la lista di contributor
+        t_list   = [] #t_list contiene la lista di TipoDato
         blm_list = []
+        blm_tkr_list_str_o = ""
 
         for i in range(0, res_len):
             c_list.append(res_n[i][1])
             t_list.append(res_n[i][0])
             blm_list.append(res_n[i][2])
 
-        
-        blm_tkr_list_str_o = ""
         sep = ""
         for record in res_n:
             blm_tkr_list_str_o += sep + "'" + record[2] + "'"
             sep = ","
 
-        
-        
         type_ctb_dict  =  fb.set_type_ctb_dict(c_list, t_list)                   
         
         
@@ -395,6 +387,21 @@ class Curve(object):
                 blm_tkr_list_str_n += sep + "'" + record[0] + "'"
                 sep = ","
 
+        ####----------- PARTE 1 INSERIMENTO Curva EUR SWAP FX vs 3M-----------
+        ####  codice definito appositamente per permettere lo scarico della curva Libor per lo Swap 3m
+        ####sulla quale costruire poi la curva zero Coupon, in quanto al momento la curva Swap 3M
+        ####scaricata da THOMSON REUTERS non possiede i ticker a 6M e 9M
+
+        if self.description == 'Curva EUR Swap Fx vs 3M':
+            c_f = con.db_data()
+            qry = "SELECT distinct BloombergTicker FROM DProCurve where (TipoDato = 'CLibor') and Currency = 'EUR' "
+            c_f.execute(qry)
+            print 'qry ci sono ???? ',qry
+            res3 = c_f.fetchall()
+            print 'res3 ,',res3
+            for record in res3:
+                blm_tkr_list_str_n += sep + "'" + record[0] + "'"
+                sep = ","
             
 
         #print 'blm_tkr_list_str_n: ', blm_tkr_list_str_n
@@ -414,7 +421,6 @@ class Curve(object):
                  DATA = '%s'
                 )
             ''' % (blm_tkr_list_str_n, str(self.ref_date).replace("-", ""))
-
         c_d.execute(qry)
         res = c_d.fetchall()
         self.curr = res[0][0]
@@ -492,7 +498,6 @@ class Curve(object):
                         ORDER BY    DProCurve.maturityInt
                         ''' % (quotazione, str(self.ref_date).replace("-", ""), segm, blm_tckrs_lst_str)
 
-
             c_d.execute(qry)
             res = c_d.fetchall()
             #print "*"*120
@@ -518,6 +523,21 @@ class Curve(object):
                     s.mats.append(mat)
                     s.values.append(val)
                     self.segms[s.name] = s
+            #####----------- PARTE 2 INSERIMENTO Curva EUR SWAP FX vs 3M-----------
+            ##### procedura che permette di definire come segmento Swap tutti i codici
+            ##### derivanti dalla Descrizione Curva EUR SWAP FX vs 3M. Si costruisce solamente
+            ##### una curva SWAP in quanto nella PARTE 1 si e forzato l inserimento della parte LIBOR
+            elif (segm == "CSwap3M"):
+                s1 = Segm()
+                s1.name = 'Swp'
+                for record in res:
+                    mat = record[0]
+                    val = record[1]
+                    s1.mats.append(mat)
+                    s1.values.append(val)
+                    self.segms[s1.name] = s1
+
+            ##### PROCEDURA DA INDAGARE IN QUANTO SEMBRA NON PERMETTA POI L ELABORAZIONE DEL BOOTSTRAP
             else:
                 #spezzo i segmenti in due, gli swap a breve e gli altri
                 s1= Segm()
@@ -567,7 +587,6 @@ class Curve(object):
         raw_data['ValoreNodo']   = []
         raw_data['TipoSegmento'] = []
         raw_data['MatDate']      = []
-
         for name in self.segms.keys():
             code = revDict(dict_segm2) [name]
             s = self.segms[name]
@@ -580,6 +599,7 @@ class Curve(object):
         try:
             res = fb.boot3s_elab_v2(data_opt, raw_data)
         except ValueError as ve:
+            print 'sono in eccezione, NON FUNZIONA boot3s_elab_v2'
             from Tkinter import *
             import tkMessageBox
             root = Tk()
@@ -836,7 +856,6 @@ class CdsCurve(Curve):
                         DATA = '%s'
                      )
               ''' % (blm_tckrs_lst_str, str(self.ref_date).replace("-",""))
-        #print qry
         c_d.execute(qry)
         res = c_d.fetchall()
         if len(res) <> 1: 'AAAA'

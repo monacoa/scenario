@@ -578,10 +578,8 @@ def load_all_new_anag(connection_status,dict):
         val_results, msg_anag = insert_anag_record(connection_status, table_name_anag, data_anag)
 
         if val_results == False:
-            root = Tk()
-            tkMessageBox.showinfo("Errore", msg_anag)
-            root.destroy()
-            return
+            return val_results,msg_anag
+    return val_results, msg_anag
 
 def take_anagrafica(ticker, presenti,assenti):
 
@@ -596,6 +594,7 @@ def take_anagrafica(ticker, presenti,assenti):
 def close_loading(db,msg,header):
     #db.close()
     root = Tk()
+    root.withdraw()
     tkMessageBox.showinfo(header, msg)
     root.destroy()
 
@@ -739,7 +738,10 @@ def test_load_nuovi_dati(file_new_data):
                             return
 
             # carico tutte le anagrafiche mancanti
-            load_all_new_anag(connection_status,anag_assenti)
+            val_results, msg_anag = load_all_new_anag(connection_status,anag_assenti)
+            if val_results == False:
+                close_loading(con.db, msg_anag, "Chk")
+                return
 
             for j in xrange(0, num_valori):
                 tickerTmp  = data_values[u'Ticker'][j]
@@ -778,3 +780,8 @@ def test_load_nuovi_dati(file_new_data):
             else:
                 close_loading(con.db, "Inserimento andato a buon fine", "Work done")
                 return
+
+if __name__ == '__main__':
+
+    input_file = r'C:\Users\scalambrinm\Desktop\per_test.xlsx'
+    test_load_nuovi_dati(input_file)

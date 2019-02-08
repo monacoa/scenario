@@ -57,7 +57,8 @@ def getCurvesListFromDb(curve_date, type):
 
     if type == "SWP":
         table        = "DProCurve"
-        where_clause = " where TipoDato in ('CDepositi', 'CSwap', 'CLibor', 'CFuture') "
+        where_clause = " where TipoDato in ('CDepositi', 'CSwap', 'CLibor', 'CFuture','CSwap3M','CSwapOIS') "
+        #where_clause = " where TipoDato in ('CDepositi', 'CSwap', 'CLibor', 'CFuture') "
     elif type == "CDS":
         table = "DProCDS"
         where_clause = ""
@@ -156,7 +157,7 @@ def getDatesListFromDb(type):
         qry = '''
                      select distinct Data from DProTS_master where BloombergTicker in
                      ( select distinct BloombergTicker from DProCurve where TipoDato in
-                         ('CDepositi', 'CSwap', 'CLibor')
+                         ('CDepositi', 'CSwap', 'CLibor','CFuture','CSwap3M','CSwapOIS')
                       )
                      order by Data desc
                     '''

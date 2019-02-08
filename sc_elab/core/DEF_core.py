@@ -7,7 +7,8 @@ dict_segm =\
     , "CFuture" : "Fut"     \
     , "CSwap"   : "Swp"     \
     , "CSwap1M" : "GSwp1M"  \
-    , "CSwap3M" : "GSwp3M"  \
+    , "CSwap3M" : "Swp"  \
+    , "CSwapOIS" :"GSwapOIS"  \
     }
 
 dict_segm2 =\

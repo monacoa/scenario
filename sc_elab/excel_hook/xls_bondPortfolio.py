@@ -69,7 +69,7 @@ def writePortfolioAnag(xla, rangeS, crv):
     field_list = ['Isin', 'Descrizione', 'Seniority', 'Tipo tasso', 'Tipo quotazione', 'Tipo rimborso', 'Prezzo emissione', 'Prezzo rimborso / Inflation Ratio', 'Data emissione',  'Data scadenza', 
         'Tempo scadenza', 'Giorni di fixing',    'Tipo fixing',    'Basis',    'Adjustment',    'Periodicita cedola (mesi)',    'Tenor del tasso floater (mesi)',
         'Tasso cedolare annuo (Fisso/spread)',    'Cedola in corso',    'Prezzo-MID',    'Prezzo-BID',    'Prezzo-ASK',    'YTM/DM (MID)',    'YTM/DM (BID)',    'YTM/DM (ASK)',
-        'Tasso di riferiemnto',    'Tasso repo',    'Data prezzo di mercato',    'Contributor',    'Peso',    'Indicizzazione']
+        'Tasso di riferimento',    'Tasso repo',    'Data prezzo di mercato',    'Contributor',    'Peso',    'Indicizzazione']
 
     n_field = len(field_list)
     for i in range(0, n_field):
@@ -887,7 +887,7 @@ def readPortfolioAnag(xla, r, cc):
     field_list = ['Isin', 'Descrizione', 'Seniority', 'Tipo tasso', 'Tipo quotazione', 'Tipo rimborso', 'Prezzo emissione', 'Prezzo rimborso / Inflation Ratio', 'Data emissione',  'Data scadenza', 
         'Tempo scadenza', 'Giorni di fixing',    'Tipo fixing',    'Basis',    'Adjustment',    'Periodicita cedola (mesi)',    'Tenor del tasso floater (mesi)',
         'Tasso cedolare annuo (Fisso/spread)',    'Cedola in corso',    'Prezzo-MID',    'Prezzo-BID',    'Prezzo-ASK',    'YTM/DM (MID)',    'YTM/DM (BID)',    'YTM/DM (ASK)',
-        'Tasso di riferiemnto',    'Tasso repo',    'Data prezzo di mercato',    'Contributor',    'Peso',    'Indicizzazione']
+        'Tasso di riferimento',    'Tasso repo',    'Data prezzo di mercato',    'Contributor',    'Peso',    'Indicizzazione']
 
     field_date_list = ['Data emissione', 'Data scadenza', 'Data prezzo di mercato']
 

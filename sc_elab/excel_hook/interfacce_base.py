@@ -24,6 +24,7 @@ from DEF_intef import nameSheetCurve, nameSheetCDS, nameSheetBond
 @xl_func
 def load_swap_curve_from_db(control):
     root = Tk()
+    root.iconbitmap(default=imp.find_module('sc_elab')[1] + r'\\excel_hook\\fig\\icona.ico')
     app  = W_curveType(root)
     root.mainloop()
 
@@ -77,6 +78,7 @@ def load_swap_curve_from_db(control):
 @xl_func
 def load_cds_curve_from_db(control):
     root = Tk()
+    root.iconbitmap(default=imp.find_module('sc_elab')[1] + r'\\excel_hook\\fig\\icona.ico')
     curve_type = "CDS"
 
     app =  W_curveDate(master = root, parent = None, type = curve_type)
@@ -117,6 +119,7 @@ def load_bond_data_from_db(control):
     
     root = Tk()
     data_type = "BOND"
+    root.iconbitmap(default=imp.find_module('sc_elab')[1] + r'\\excel_hook\\fig\\icona.ico')
     app =  W_bondDate(master = root, parent = None, type = data_type)
     root.mainloop()
 
@@ -171,6 +174,7 @@ def bootstrap_from_xls(control):
         s.Activate()
     except:
         root = Tk()
+        root.withdraw()
         msg = "Missing input sheet for Swap Curves in your workbook... \nNothing to do for me!"
         tkMessageBox.showinfo("Warning!", msg)
         root.destroy()
@@ -181,6 +185,7 @@ def bootstrap_from_xls(control):
 
     curveL = readCurvesNames(xla,s,rangeStart,"o", distance)
     root = Tk()
+    root.iconbitmap(default=imp.find_module('sc_elab')[1] + r'\\excel_hook\\fig\\icona.ico')
     #root.wm_withdraw()
     W = W_bootstrapSelection(root, curveL, "SWP")
     root.mainloop()
@@ -220,6 +225,7 @@ def bootstrap_from_xls(control):
     if boot_out == None:
         # significa che ho intercettato un errore!
         root = Tk()
+        root.iconbitmap(default=imp.find_module('sc_elab')[1] + r'\\excel_hook\\fig\\icona.ico')
         root.withdraw()
         msg = "Unable to perform curve bootstrap!"
         tkMessageBox.showinfo("ERROR!", msg)
@@ -237,6 +243,7 @@ def bootstrap_from_xls(control):
 def fitting_from_xls(control):
 
     root = Tk()
+    root.iconbitmap(default=imp.find_module('sc_elab')[1] + r'\\excel_hook\\fig\\icona.ico')
     # root.wm_withdraw()
     W = W_fittingType(root)
     root.mainloop()
@@ -338,6 +345,8 @@ def bond_fitting_from_xls(control):
         s.Activate()
     except:
         root = Tk()
+        root.withdraw()
+        root.iconbitmap(default=imp.find_module('sc_elab')[1] + r'\\excel_hook\\fig\\icona.ico')
         msg = "Non e presente il foglio dei dati relativi ai Bond!!"
         tkMessageBox.showinfo("Warning!", msg)
         root.destroy()
@@ -349,6 +358,7 @@ def bond_fitting_from_xls(control):
 
     curveL = readCurvesNames(xla,s,rangeStart,"v", distance, 0)
     root = Tk()
+    root.iconbitmap(default=imp.find_module('sc_elab')[1] + r'\\excel_hook\\fig\\icona.ico')
     #W = W_bootstrapSelection(root, curveL = curveL, type = "BOND") # da modificare 
     W = W_bondFitting(root, curveL = curveL, type = "BOND") # da modificare
     
@@ -630,6 +640,7 @@ from xls_fittingCurve   import  readInterpolatedCurveFromXls
 @xl_func
 def save_from_xls(control):
     root = Tk()
+    root.iconbitmap(default=imp.find_module('sc_elab')[1] + r'\\excel_hook\\fig\\icona.ico')
     #root.wm_withdraw()
     W = W_saveType(root)
     root.mainloop()
@@ -702,6 +713,8 @@ def bootstrap_cds_from_xls(control):
         s.Activate()
     except:
         root = Tk()
+        root.withdraw()
+        root.iconbitmap(default=imp.find_module('sc_elab')[1] + r'\\excel_hook\\fig\\icona.ico')
         msg = "Missing input sheet for CDS Curves in your workbook... \nNothing to do for me!"
         tkMessageBox.showinfo("Warning!", msg)
         root.destroy()
@@ -713,6 +726,7 @@ def bootstrap_cds_from_xls(control):
     curveL = readCurvesNames(xla,s,rangeStart,"o", distance)
 
     root = Tk()
+    root.iconbitmap(default=imp.find_module('sc_elab')[1] + r'\\excel_hook\\fig\\icona.ico')
     W = W_bootstrapSelection(root, curveL = curveL, type = "CDS")
     root.mainloop()
 
@@ -838,13 +852,14 @@ def calibration_from_xls(control):
     book = xla.ActiveWorkbook
 
     root = Tk()
-
+    root.iconbitmap(default=imp.find_module('sc_elab')[1] + r'\\excel_hook\\fig\\icona.ico')
     # -------------- controllo l'esistenza del foglio di input CalibData ----------------
     try:
         s = book.Sheets(nameSheet)
         s.Activate()
     except:
         msg = "Missing input sheet(%s) for Calibration in your workbook... \nNothing to do for me!" %nameSheetCalib
+        root.withdraw()
         tkMessageBox.showinfo("Warning!", msg)
         root.destroy()
         return
@@ -893,17 +908,17 @@ def calibration_from_xls(control):
             list_model_params_opt.append(ff.x[3])
 
             if W.model.get() == 'CIR':
-                mkt_value['VALUE_OPT'] = compute_zc_cir_rate(list_model_params_opt, mkt_value["TIME"])
+                mkt_value['MODEL'] = compute_zc_cir_rate(list_model_params_opt, mkt_value["TIME"])
             else:
-                mkt_value['VALUE_OPT'] = compute_zc_vsck_rate(list_model_params_opt, mkt_value["TIME"])
+                mkt_value['MODEL'] = compute_zc_vsck_rate(list_model_params_opt, mkt_value["TIME"])
 
 
             # converto i risultati in composto nel caso in cui in input lo siano
             if type_cap == 'CMP':
-                mkt_value['VALUE_OPT'] = fromContinuousToCompost(mkt_value['VALUE_OPT'])
+                mkt_value['MODEL'] = fromContinuousToCompost(mkt_value['MODEL'])
 
             # calcolo il chi quadro
-            chi2 = computeCHI2(mkt=mkt_value["VALUE"], mdl=mkt_value['VALUE_OPT'])
+            chi2 = computeCHI2(mkt=mkt_value["MKT"], mdl=mkt_value['MODEL'])
 
             # scrivo su foglio Excel
             writeCalibrationResOnXls(model = model, W_class = W1, xla = xla, chi2 = chi2, opt_dict = list_model_params_opt, res = mkt_value)
@@ -977,6 +992,7 @@ def writeSwaptions(control):
     cursor = con.db_data()
 
     root = Tk()
+    root.iconbitmap(default=imp.find_module('sc_elab')[1] + r'\\excel_hook\\fig\\icona.ico')
     app = W_SwaptionsDate(root)
     root.mainloop()
 
@@ -1004,6 +1020,7 @@ def writeSwaptions(control):
     res2 =pd.read_sql(qry_to_execute, con.db)
     if res2.shape[0] > 1:
         root = Tk()
+        root.withdraw()
         tkMessageBox.showinfo("Warning!", 'I dati selezionati hanno molteplici Contributor o Currency.')
         root.mainloop()
         return
@@ -1030,6 +1047,7 @@ def writeSwaptions(control):
         tipo_modello = '''Shifted'''
 
     root = Tk()
+    root.iconbitmap(default=imp.find_module('sc_elab')[1] + r'\\excel_hook\\fig\\icona.ico')
     app = W_SwaptionsOptionsPrint(root)
     root.mainloop()
 
@@ -1153,6 +1171,7 @@ def elaborate_quarterly_matrix(control):
     if objectOnSheetDictionary[1].empty:
         root = Tk()
         root.withdraw()
+        root.iconbitmap(default=imp.find_module('sc_elab')[1] + r'\\excel_hook\\fig\\icona.ico')
         tkMessageBox.showinfo("Warning!", 'Nessuna matrice presente nel foglio!')
         root.destroy()
         return

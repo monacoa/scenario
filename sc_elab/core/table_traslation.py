@@ -19,10 +19,11 @@ from_bond_table_to_datastream['prezzoMid']           ='COMPOSITE PR MID'
 from_bond_table_to_datastream['prezzoBid']           ='COMPOSITE PR BID'
 from_bond_table_to_datastream['prezzoAsk']           ='COMPOSITE PR ASK'
 from_bond_table_to_datastream['yieldToMaturityBid']  ='RED. YIELD'
-
-
+from_bond_table_to_datastream['principalfactor']  ='INDEXATION FACTOR'
+from_bond_table_to_datastream['Indicizzazione']  ='INDEX LINKED BASE'
 from_bond_table_to_datastream['Divisa']  ='Currency'
-from_bond_table_to_datastream['Indicizzazione']  ='NULL'
+
+
 from_bond_table_to_datastream['PUAdjustmentRule']  ='NULL'
 from_bond_table_to_datastream['Rating']  ='NULL'
 
@@ -54,7 +55,6 @@ from_bond_table_to_datastream['calctypedes']  ='NULL'
 from_bond_table_to_datastream['datagodimento']  ='NULL'
 
 from_bond_table_to_datastream['isinflation']  ='NULL'
-from_bond_table_to_datastream['principalfactor']  ='NULL'
 
 
 
