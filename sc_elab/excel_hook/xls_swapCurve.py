@@ -286,8 +286,20 @@ def readIntestazioneCds(xla , r , cc):
     else:
         cc.cal = 'us'
 
+
     cc.type = xla.Range(xla.Cells(row + 2, col + 1), xla.Cells(row + 2, col + 1)).Value
     dd = xla.Range(xla.Cells(row + 3, col + 1), xla.Cells(row + 3, col + 1)).Value
+
+    print 'xla.Cells(row + 2, col + 1): ', xla.Cells(row + 2, col + 1)
+    print 'xla.Cells(row + 3, col + 1): ', xla.Cells(row + 3, col + 1)
+
+    print 'xla: ', xla    
+    print 'row: ', row    
+    print 'col: ', col    
+
+    print 'dd: ', dd
+    print 'xxxxxxxxxxxxxxxx'
+    
     cc.ref_date = datetime.date(year=dd.year, month=dd.month, day=dd.day)
 
     #cc.dayAdj   = xla.Range(xla.Cells(row + 5, col + 1), xla.Cells(row + 5, col + 1)).Value
