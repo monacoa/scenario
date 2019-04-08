@@ -206,6 +206,36 @@ def findRigthPlaceBootCurveSeg(xla, r, distCurve, dir="O"):
     return rOut
 
 
+def findRigthPlaceBootCurveSeg_m(xla, r, distCurve, dir="O"):
+    rOut = None
+    if dir == "v" :
+        if (r.Value == None): return r
+        nCols = r.Columns.Count
+        row   = r.Row
+        col   = r.Column
+        j = 0
+        while (r.Value != None):
+            j += 1
+            r = xla.Range(xla.Cells(row, col + j), xla.Cells(row, col + j))
+            #porto avanti ancora per controllare
+            if (r.Value == None):  r = xla.Range(xla.Cells(row, col + j + distCurve ), xla.Cells(row, col + j + distCurve))
+        r = xla.Range(xla.Cells(row, col + j + distCurve), xla.Cells(row, col + j + distCurve))
+
+    else:
+        while (r.Value != None):
+            nCols = r.Columns.Count
+            row =r.Row
+            col =r.Column
+            r = xla.Range(xla.Cells(row, col + distCurve), xla.Cells(row, col + (nCols-1) + distCurve))
+    rOut = r
+    if (rOut == None):
+        msg = "Unable to compute the output range for your curve"
+        print msg
+        sys.exit()
+
+    return rOut
+
+
 def allSheet(wb):
     names = []
     for s in wb.Worksheets:

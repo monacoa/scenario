@@ -152,7 +152,10 @@ def load_bond_data_from_db(control):
 # punto di ingresso per bootstrap curve SWAP
 #=======================================================================================================================
 
-from xls_bootCurve import writeBootstrapResOnXls,writeCDSBootstrapRes1OnXls, writeCDSBootstrapRes2OnXls
+from xls_bootCurve import writeBootstrapResOnXls,writeCDSBootstrapRes1OnXls, writeCDSBootstrapRes2OnXls 
+from xls_bootCurve import writeCDSBootstrapRes1OnXls_surv_m, writeCDSBootstrapRes1OnXls_md_m, writeCDSBootstrapRes1OnXls_hr_m 
+from xls_bootCurve import writeCDSBootstrapRes2OnXls_zc_m, writeCDSBootstrapRes2OnXls_py_m
+
 from xls_swapCurve import readCurveFromXls
 
 from xls_bondPortfolio import writeBondFittingRes1OnXls, writeBondFittingRes2OnXls, writeBondFittingRes3OnXls, writeBondFittingRes4OnXls
@@ -214,7 +217,6 @@ def bootstrap_from_xls(control):
     codeL, codeR = curve.getCurveCode()
     
     boot_out     = curve.bootstrap(data_opt)
-    #print "risultati bootstrap:", boot_out
     
 
     if boot_out == None:
@@ -451,7 +453,6 @@ def bond_fitting_from_xls(control):
         root = Tk()
         root.withdraw()
         
-        #print 'curve_rf.ref_date: ', portfolio_xl.ref_date
         msg0 = "Curva benchmark associata al modello {} non presente alla data del {}, cambia modello o data!".format(interp_rf_model, portfolio_xl.ref_date)
         tkMessageBox.showinfo("Attenzione!", msg0)
 
@@ -463,7 +464,6 @@ def bond_fitting_from_xls(control):
         root = Tk()
         root.withdraw()
 
-        # print 'curve_rf.ref_date: ', curve_rf.ref_date
         msg0 = "Il modello %s non gestito." % (interp_rf_model)
         tkMessageBox.showinfo("Attenzione!", msg0)
 
@@ -546,14 +546,6 @@ def bond_fitting_from_xls(control):
     x0    = par_x0
     x_bnd = par_bnd
     
-    """
-    print 'x0: ', x0
-    print 'x_bnd: ', x_bnd
-    print '--------------------------------------'
-    print 'par_x0: ', par_x0
-    print 'par_bnd: ', par_bnd
-    print '--------------------------------------'
-    """
     
     dictPortfolio,resDict = bf.fromXLSToBondFittingPortfolio(portfolio_xl.portfolio_anag)
 
@@ -562,35 +554,6 @@ def bond_fitting_from_xls(control):
 
     # ------------ elaborazione ---------------------------
  
-    #data_zc_infl['DiscountFactors'] = []
-    
-    #print 'data_zc_infl: ', data_zc_infl
-    #print 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
-    
-    #dictPortfolio_xls = portfolio_xl.portfolio_anag
-
-    #print 'dictPortfolio_xls: ', dictPortfolio_xls
-    
-    #print 'dictPortfolio: ', dictPortfolio
-    
-
-    """
-    print 'data_zc_rf: ', data_zc_rf
-    print 'data_zc_rf[Model]: ', data_zc_rf['Model']
-    print 'data_zc_rf[ValoreNodo]: ', data_zc_rf['ValoreNodo']
-    print 'data_zc_rf[MatDate]: ', data_zc_rf['MatDate']
-    print 'data_zc_rf[prms]: ', data_zc_rf['prms']
-    print 'data_zc_rf[prms]: ', data_zc_rf['DiscountFactors']
-    
-    print 'dictPortfolio: ', dictPortfolio
-    
-    print '--------------------------------------------'
-    print 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'
-    print '--------------------------------------------'
-    """
-
-    #from test_plot_on_tkinter import test_tk
-    #test_tk()
     
     flag_elab, res_elab = bf.compute_bond_fitting(bf_options_elab, dictPortfolio, data_zc_rf, data_zc_infl, data_ts_infl, x0, x_bnd)
 
@@ -653,9 +616,7 @@ def save_from_xls(control):
         else:
             ans = tkMessageBox.askquestion("Unable to save Bootstrap results because they're already on DB.", "DELETING... Are You Sure?", icon='warning')
             if ans =='yes':
-                print "ho risposto yes, entro in delete"
                 deletingDbCurves(codes)
-                print "ora entro in save"
                 r, cd = saveZcDfOnDB(xla, nameSheet, des, pos, DF, ZC)
                 if not r:
                     msg = "Something's wrong!!!!!"
@@ -678,7 +639,6 @@ def save_from_xls(control):
         nameSheet   =  nameSheetBootstrap
         int_curve   =  readInterpolatedCurveFromXls(xla,nameSheet, pos_curve, pos_parms)
         
-        print 'int_curve: ', int_curve
         # ---
         saveInterpolationParmsOnDb(int_curve)
         # ---
@@ -712,16 +672,10 @@ def bootstrap_cds_from_xls(control):
 
     curveL = readCurvesNames(xla,s,rangeStart,"o", distance)
 
-    print '--------------------------------'
-    print '--------------------------------'
-    print 'curveL: ', curveL
-    print '--------------------------------'
-
     root = Tk()
     W = W_bootstrapSelection(root, curveL = curveL, type = "CDS")
     
     
-    #print 'W.curve: ', W.curve  
     
     root.mainloop()
 
@@ -753,6 +707,7 @@ def bootstrap_cds_from_xls(control):
         data_opt['hr_bootMethod']  = opt_boot_meth
         data_opt['bench_interp']   = opt_rf_interp
         data_opt['hr_interp']      = opt_hr_interp
+        data_opt['Emittente']      = curveDes
         
         
         
@@ -824,7 +779,6 @@ def bootstrap_cds_from_xls(control):
         # -------------- elaborazione ---------------------------
         boot_out     = curve_xl.bootstrap(data_opt)
         
-    
         
         if boot_out == None:
             # significa che ho intercettato un errore!
@@ -835,12 +789,32 @@ def bootstrap_cds_from_xls(control):
             root.destroy()
             return
         
-        writeCDSBootstrapRes1OnXls(curve_xl, xla, str_boot_opt, boot_out, codice_curva)
-        s = xla.Cells.Columns.AutoFit()
-    
-        writeCDSBootstrapRes2OnXls(curve_xl, xla, str_boot_opt, boot_out, codice_curva)
-        s = xla.Cells.Columns.AutoFit()
+        if (n_c > 1):
+        
+            writeCDSBootstrapRes1OnXls_surv_m(curve_xl, xla, str_boot_opt, boot_out, codice_curva)
+            s = xla.Cells.Columns.AutoFit()
 
+            writeCDSBootstrapRes1OnXls_md_m(curve_xl, xla, str_boot_opt, boot_out, codice_curva)
+            s = xla.Cells.Columns.AutoFit()
+
+        
+            writeCDSBootstrapRes1OnXls_hr_m(curve_xl, xla, str_boot_opt, boot_out, codice_curva)
+            s = xla.Cells.Columns.AutoFit()
+
+            writeCDSBootstrapRes2OnXls_zc_m(curve_xl, xla, str_boot_opt, boot_out, codice_curva)
+            s = xla.Cells.Columns.AutoFit()
+
+            writeCDSBootstrapRes2OnXls_py_m(curve_xl, xla, str_boot_opt, boot_out, codice_curva)
+            s = xla.Cells.Columns.AutoFit()
+        
+
+        else:
+
+            writeCDSBootstrapRes1OnXls(curve_xl, xla, str_boot_opt, boot_out, codice_curva)
+            s = xla.Cells.Columns.AutoFit()
+        
+            writeCDSBootstrapRes2OnXls(curve_xl, xla, str_boot_opt, boot_out, codice_curva)
+            s = xla.Cells.Columns.AutoFit()
 
 # ==========================================
 # punto d'ingresso per CALIBRAZIONE
