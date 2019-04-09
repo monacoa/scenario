@@ -366,7 +366,7 @@ def computeDateOutputCDS(raw_data, data_opt):
 
 
 
-def boot_cds(opt_dict, raw_data, bench_data, swap_data):
+def boot_cds(opt_dict, raw_data, bench_data, swap_data, flag_plot):
     
 
     output_data = {}
@@ -578,10 +578,12 @@ def boot_cds(opt_dict, raw_data, bench_data, swap_data):
     marg_d_n = np.insert(marg_d, 0, 0)
 
     #dumpDataOnFile(cds_times_n, marg_d_n, fileOutMDefault)
-    
-    cds_title = opt_dict['Emittente']
 
-    plotCDS(cds_times, cds_values,timeOut, pySpread, cds_title) 
+
+    if (flag_plot == True):    
+
+        cds_title = opt_dict['Emittente']
+        plotCDS(cds_times, cds_values,timeOut, pySpread, cds_title) 
 
     #------------------------------------------
     #------ set up Output----------------------

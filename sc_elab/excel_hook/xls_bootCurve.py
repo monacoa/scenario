@@ -5,8 +5,8 @@ from win32com.client import constants as const
 from Tkinter import *
 
 from sc_elab.core.SwpCurve import BootstrappedCurve
-from xls_swapCurve import intestazioneSwapCurveSegmenti
-from xls_utils import drawBox,drawLine, findRigthPlaceBootCurveSeg
+from xls_swapCurve import intestazioneSwapCurveSegmenti, intestazioneCDSCurveSegmenti
+from xls_utils import drawBox,drawLine, findRigthPlaceBootCurveSeg, findRigthPlaceBootCurveSeg_m
 
 from DEF_intef import FORMATT, nameSheetBootstrap, nameSheetCDSBootSurv, nameSheetCDSBootMarginal, nameSheetCDSBootHazard
 from DEF_intef import FORMATT, nameSheetCDSBootZcSpread, nameSheetCDSBootPySpread, nameSheetCDSBootSpread
@@ -241,21 +241,28 @@ def writeCDSBootstrapRes1OnXls(crv, xla, str_boot_opt, res, codice_curva):
         xla.Cells(topLeftRow + i, topLeftCol + 7).HorizontalAlignment = const.xlCenter
 
 
-def writeCDSBootstrapRes1OnXls_surv_m(crv, xla, str_boot_opt, res, codice_curva):
+def writeCDSBootstrapRes1OnXls_surv_m(crv, xla, str_boot_opt, res, flag_first, codice_curva, index_elab):
 
-    
     nameSheet = nameSheetCDSBootSurv
     try:
         s = xla.ActiveWorkbook.Sheets(nameSheet)
     except:
         s = xla.ActiveWorkbook.Sheets.Add()
         s.Name = nameSheet
+        
     s.Activate()
     rangeStart  = "B2"
-    distCurve   = 3
-    r           = s.Range(rangeStart)
-    r           = findRigthPlaceBootCurveSeg(xla, r, distCurve, "O")
 
+    distCurve   = 2
+    
+    
+    r  = s.Range(rangeStart)
+    r  = findRigthPlaceBootCurveSeg_m(xla, r, distCurve, "O")
+
+        
+    if (index_elab > 0) and (divmod(index_elab, 2)[1]==0):
+        r = xla.Range(xla.Cells(r.Row, r.Column - 1), xla.Cells(r.Row, r.Column - 1))
+    
     boot_type_0   = int(crv.cds_boot_method)
     interp_type_0 = crv.rf_interp_type
     
@@ -276,108 +283,61 @@ def writeCDSBootstrapRes1OnXls_surv_m(crv, xla, str_boot_opt, res, codice_curva)
         , "Tipo Bootstrap Hazard Rate" : boot_type_f
         }
 
-    Attributi_2 = \
-        { "Data riferimento"        : crv.ref_date
-        , "Descrizione"     : crv.description
-        , "Valuta"        : crv.curr
-        , "Tipo curva"    : crv.type
-        , "Tipo nodo"     : "Marginal Default Probability"
-        , "Emittente"     : crv.emittente
-        , "Recovery rate" : crv.recovery
-        , "Rating" : crv.rating
-        , "Modello interpolante" : interp_type_f
-        , "Tipo Bootstrap Hazard Rate" : boot_type_f
-        }
 
-    Attributi_3 = \
-        { "Data riferimento"        : crv.ref_date
-        , "Descrizione"     : crv.description
-        , "Valuta"        : crv.curr
-        , "Tipo curva"    : crv.type
-        , "Tipo nodo"     : "Hazard rate"
-        , "Emittente"     : crv.emittente
-        , "Recovery rate" : crv.recovery
-        , "Rating" : crv.rating
-        , "Modello interpolante" : interp_type_f
-        , "Tipo Bootstrap Hazard Rate" : boot_type_f
-        }
+    if (flag_first == True):
 
-    r2 = s.Range(xla.Cells(r.Row, r.Column + 3), xla.Cells(r.Row, r.Column + 3))
-    r3 = s.Range(xla.Cells(r.Row, r.Column + 6), xla.Cells(r.Row, r.Column + 7))
-
-    ra = intestazioneSwapCurveSegmenti(xla, s, r , Attributi_1, nCols=2, text = codice_curva)
-    #rb = intestazioneSwapCurveSegmenti(xla, s, r2, Attributi_2, nCols=2, text = codice_curva)
-    #rc = intestazioneSwapCurveSegmenti(xla, s, r3, Attributi_3, nCols=2, text = codice_curva)
-
+        ra = intestazioneCDSCurveSegmenti(xla, s, r , Attributi_1, flag_first, index_elab, nCols=2, text = codice_curva)
+    else:
+        ra = intestazioneCDSCurveSegmenti(xla, s, r , Attributi_1, flag_first, index_elab, nCols=1, text = codice_curva)
+    
     r  = s.Range(ra)
 
     topLeftRow = r.Row
     topLeftCol = r.Column
-
-    xla.Cells(topLeftRow - 1, topLeftCol).Value = "Date"
-    xla.Cells(topLeftRow - 1, topLeftCol).HorizontalAlignment = const.xlCenter
-    xla.Cells(topLeftRow - 1, topLeftCol + 1).Value = "Value"
-    xla.Cells(topLeftRow - 1, topLeftCol + 1).HorizontalAlignment = const.xlCenter
-
-    """
-    xla.Cells(topLeftRow - 1, topLeftCol + 3).Value = "Date"
-    xla.Cells(topLeftRow - 1, topLeftCol + 3).HorizontalAlignment = const.xlCenter
-    xla.Cells(topLeftRow - 1, topLeftCol + 4).Value = "Value"
-    xla.Cells(topLeftRow - 1, topLeftCol + 4).HorizontalAlignment = const.xlCenter
-    
-    xla.Cells(topLeftRow - 1, topLeftCol + 6).Value = "Date"
-    xla.Cells(topLeftRow - 1, topLeftCol + 6).HorizontalAlignment = const.xlCenter
-    xla.Cells(topLeftRow - 1, topLeftCol + 7).Value = "Value"
-    xla.Cells(topLeftRow - 1, topLeftCol + 7).HorizontalAlignment = const.xlCenter
-    """
-
     nRows = len(res['outputDates'])
 
-    drawBox(xla, const.xlMedium, topLeftRow - 1, topLeftCol, topLeftRow + nRows - 1, topLeftCol + 1)
-    drawLine(xla, topLeftRow - 1, topLeftCol, topLeftRow - 1, topLeftCol + 1, "o", const.xlThin)
-
-    """
-    drawBox(xla, const.xlMedium, topLeftRow - 1, topLeftCol + 3, topLeftRow + nRows - 1, topLeftCol + 4)
-    drawLine(xla, topLeftRow - 1, topLeftCol+3, topLeftRow - 1, topLeftCol + 4, "o", const.xlThin)
-
-    drawBox(xla, const.xlMedium, topLeftRow - 1, topLeftCol + 6, topLeftRow + nRows - 1, topLeftCol + 7)
-    drawLine(xla, topLeftRow - 1, topLeftCol +6, topLeftRow - 1, topLeftCol + 7, "o", const.xlThin)
-    """
     
+    if (flag_first == True):
+
+        xla.Cells(topLeftRow - 1, topLeftCol).Value = "Date"
+        xla.Cells(topLeftRow - 1, topLeftCol).HorizontalAlignment = const.xlCenter
+        xla.Cells(topLeftRow - 1, topLeftCol + 1).Value = "Value"
+        xla.Cells(topLeftRow - 1, topLeftCol + 1).HorizontalAlignment = const.xlCenter
+    
+        drawBox(xla, const.xlMedium, topLeftRow - 1, topLeftCol, topLeftRow + nRows - 1, topLeftCol + 1)
+        drawLine(xla, topLeftRow - 1, topLeftCol, topLeftRow - 1, topLeftCol + 1, "o", const.xlThin)
+    else:
+        xla.Cells(topLeftRow - 1, topLeftCol).Value = "Value"
+        xla.Cells(topLeftRow - 1, topLeftCol).HorizontalAlignment = const.xlCenter
+
+        drawBox(xla, const.xlMedium, topLeftRow - 1, topLeftCol, topLeftRow + nRows - 1, topLeftCol)
+        drawLine(xla, topLeftRow - 1, topLeftCol, topLeftRow - 1, topLeftCol, "o", const.xlThin)
+
+
     for i in range(nRows):
 
         date   = res['outputDates'][i]
         surv   = res['survProbCum'][i]
-        #marg   = res['marginalDefault'][i]
-        #h_rate = res['hazardRate'][i]
 
 
-        xla.Cells(topLeftRow + i, topLeftCol).Value = date
-        xla.Cells(topLeftRow + i, topLeftCol).NumberFormat = FORMATT
-        xla.Cells(topLeftRow + i, topLeftCol).HorizontalAlignment = const.xlCenter
-        xla.Cells(topLeftRow + i, topLeftCol + 1).Value = surv
-        xla.Cells(topLeftRow + i, topLeftCol + 1).NumberFormat = "0.00"
-        xla.Cells(topLeftRow + i, topLeftCol + 1).HorizontalAlignment = const.xlCenter
+        if (flag_first == True):
 
-        """
-        xla.Cells(topLeftRow + i, topLeftCol + 3).Value = date
-        xla.Cells(topLeftRow + i, topLeftCol + 3).NumberFormat = FORMATT
-        xla.Cells(topLeftRow + i, topLeftCol + 3).HorizontalAlignment = const.xlCenter
-        xla.Cells(topLeftRow + i, topLeftCol + 4).Value = marg
-        xla.Cells(topLeftRow + i, topLeftCol + 4).NumberFormat = "0.00000"
-        xla.Cells(topLeftRow + i, topLeftCol + 4).HorizontalAlignment = const.xlCenter
-        
-        
-        xla.Cells(topLeftRow + i, topLeftCol + 6).Value = date
-        xla.Cells(topLeftRow + i, topLeftCol + 6).NumberFormat = FORMATT
-        xla.Cells(topLeftRow + i, topLeftCol + 6).HorizontalAlignment = const.xlCenter
-        xla.Cells(topLeftRow + i, topLeftCol + 7).Value = h_rate
-        xla.Cells(topLeftRow + i, topLeftCol + 7).NumberFormat = "0.00000"
-        xla.Cells(topLeftRow + i, topLeftCol + 7).HorizontalAlignment = const.xlCenter
+            xla.Cells(topLeftRow + i, topLeftCol).Value = date
+            xla.Cells(topLeftRow + i, topLeftCol).NumberFormat = FORMATT
+            xla.Cells(topLeftRow + i, topLeftCol).HorizontalAlignment = const.xlCenter
 
-        """
+            xla.Cells(topLeftRow + i, topLeftCol + 1).Value = surv
+            xla.Cells(topLeftRow + i, topLeftCol + 1).NumberFormat = "0.000"
+            xla.Cells(topLeftRow + i, topLeftCol + 1).HorizontalAlignment = const.xlCenter
 
-def writeCDSBootstrapRes1OnXls_md_m(crv, xla, str_boot_opt, res, codice_curva):
+        else:
+
+            xla.Cells(topLeftRow + i, topLeftCol ).Value = surv
+            xla.Cells(topLeftRow + i, topLeftCol ).NumberFormat = "0.000"
+            xla.Cells(topLeftRow + i, topLeftCol ).HorizontalAlignment = const.xlCenter
+
+
+def writeCDSBootstrapRes1OnXls_md_m(crv, xla, str_boot_opt, res, codice_curva, index_elab):
 
     
     nameSheet = nameSheetCDSBootMarginal
@@ -388,9 +348,15 @@ def writeCDSBootstrapRes1OnXls_md_m(crv, xla, str_boot_opt, res, codice_curva):
         s.Name = nameSheet
     s.Activate()
     rangeStart  = "B2"
-    distCurve   = 3
+    distCurve   = 2
     r           = s.Range(rangeStart)
     r           = findRigthPlaceBootCurveSeg(xla, r, distCurve, "O")
+
+    if (index_elab > 1):
+        r = xla.Range(xla.Cells(r.Row, r.Column-1), xla.Cells(r.Row, r.Column-1))
+    else:
+        r = xla.Range(xla.Cells(r.Row, r.Column), xla.Cells(r.Row, r.Column))
+
 
     boot_type_0   = int(crv.cds_boot_method)
     interp_type_0 = crv.rf_interp_type
@@ -438,13 +404,8 @@ def writeCDSBootstrapRes1OnXls_md_m(crv, xla, str_boot_opt, res, codice_curva):
         , "Tipo Bootstrap Hazard Rate" : boot_type_f
         }
 
-    r2 = s.Range(xla.Cells(r.Row, r.Column + 3), xla.Cells(r.Row, r.Column + 3))
-    r3 = s.Range(xla.Cells(r.Row, r.Column + 6), xla.Cells(r.Row, r.Column + 7))
 
     ra = intestazioneSwapCurveSegmenti(xla, s, r , Attributi_2, nCols=2, text = codice_curva)
-    #rb = intestazioneSwapCurveSegmenti(xla, s, r2, Attributi_2, nCols=2, text = codice_curva)
-    #rc = intestazioneSwapCurveSegmenti(xla, s, r3, Attributi_3, nCols=2, text = codice_curva)
-
     r  = s.Range(ra)
 
     topLeftRow = r.Row
@@ -455,37 +416,17 @@ def writeCDSBootstrapRes1OnXls_md_m(crv, xla, str_boot_opt, res, codice_curva):
     xla.Cells(topLeftRow - 1, topLeftCol + 1).Value = "Value"
     xla.Cells(topLeftRow - 1, topLeftCol + 1).HorizontalAlignment = const.xlCenter
 
-    """
-    xla.Cells(topLeftRow - 1, topLeftCol + 3).Value = "Date"
-    xla.Cells(topLeftRow - 1, topLeftCol + 3).HorizontalAlignment = const.xlCenter
-    xla.Cells(topLeftRow - 1, topLeftCol + 4).Value = "Value"
-    xla.Cells(topLeftRow - 1, topLeftCol + 4).HorizontalAlignment = const.xlCenter
-    
-    xla.Cells(topLeftRow - 1, topLeftCol + 6).Value = "Date"
-    xla.Cells(topLeftRow - 1, topLeftCol + 6).HorizontalAlignment = const.xlCenter
-    xla.Cells(topLeftRow - 1, topLeftCol + 7).Value = "Value"
-    xla.Cells(topLeftRow - 1, topLeftCol + 7).HorizontalAlignment = const.xlCenter
-    """
 
     nRows = len(res['outputDates'])
 
     drawBox(xla, const.xlMedium, topLeftRow - 1, topLeftCol, topLeftRow + nRows - 1, topLeftCol + 1)
     drawLine(xla, topLeftRow - 1, topLeftCol, topLeftRow - 1, topLeftCol + 1, "o", const.xlThin)
 
-    """
-    drawBox(xla, const.xlMedium, topLeftRow - 1, topLeftCol + 3, topLeftRow + nRows - 1, topLeftCol + 4)
-    drawLine(xla, topLeftRow - 1, topLeftCol+3, topLeftRow - 1, topLeftCol + 4, "o", const.xlThin)
-
-    drawBox(xla, const.xlMedium, topLeftRow - 1, topLeftCol + 6, topLeftRow + nRows - 1, topLeftCol + 7)
-    drawLine(xla, topLeftRow - 1, topLeftCol +6, topLeftRow - 1, topLeftCol + 7, "o", const.xlThin)
-    """
     
     for i in range(nRows):
 
         date   = res['outputDates'][i]
-        surv   = res['survProbCum'][i]
         marg   = res['marginalDefault'][i]
-        #h_rate = res['hazardRate'][i]
 
 
         xla.Cells(topLeftRow + i, topLeftCol).Value = date
@@ -495,26 +436,9 @@ def writeCDSBootstrapRes1OnXls_md_m(crv, xla, str_boot_opt, res, codice_curva):
         xla.Cells(topLeftRow + i, topLeftCol + 1).NumberFormat = "0.00"
         xla.Cells(topLeftRow + i, topLeftCol + 1).HorizontalAlignment = const.xlCenter
 
-        """
-        xla.Cells(topLeftRow + i, topLeftCol + 3).Value = date
-        xla.Cells(topLeftRow + i, topLeftCol + 3).NumberFormat = FORMATT
-        xla.Cells(topLeftRow + i, topLeftCol + 3).HorizontalAlignment = const.xlCenter
-        xla.Cells(topLeftRow + i, topLeftCol + 4).Value = marg
-        xla.Cells(topLeftRow + i, topLeftCol + 4).NumberFormat = "0.00000"
-        xla.Cells(topLeftRow + i, topLeftCol + 4).HorizontalAlignment = const.xlCenter
-        
-        
-        xla.Cells(topLeftRow + i, topLeftCol + 6).Value = date
-        xla.Cells(topLeftRow + i, topLeftCol + 6).NumberFormat = FORMATT
-        xla.Cells(topLeftRow + i, topLeftCol + 6).HorizontalAlignment = const.xlCenter
-        xla.Cells(topLeftRow + i, topLeftCol + 7).Value = h_rate
-        xla.Cells(topLeftRow + i, topLeftCol + 7).NumberFormat = "0.00000"
-        xla.Cells(topLeftRow + i, topLeftCol + 7).HorizontalAlignment = const.xlCenter
-
-        """
 
 
-def writeCDSBootstrapRes1OnXls_hr_m(crv, xla, str_boot_opt, res, codice_curva):
+def writeCDSBootstrapRes1OnXls_hr_m(crv, xla, str_boot_opt, res, codice_curva, index_elab):
 
     
     nameSheet = nameSheetCDSBootHazard
@@ -525,9 +449,15 @@ def writeCDSBootstrapRes1OnXls_hr_m(crv, xla, str_boot_opt, res, codice_curva):
         s.Name = nameSheet
     s.Activate()
     rangeStart  = "B2"
-    distCurve   = 3
+    distCurve   = 2
     r           = s.Range(rangeStart)
     r           = findRigthPlaceBootCurveSeg(xla, r, distCurve, "O")
+
+    if (index_elab > 1):
+        r = xla.Range(xla.Cells(r.Row, r.Column-1), xla.Cells(r.Row, r.Column-1))
+    else:
+        r = xla.Range(xla.Cells(r.Row, r.Column), xla.Cells(r.Row, r.Column))
+
 
     boot_type_0   = int(crv.cds_boot_method)
     interp_type_0 = crv.rf_interp_type
@@ -536,31 +466,6 @@ def writeCDSBootstrapRes1OnXls_hr_m(crv, xla, str_boot_opt, res, codice_curva):
     interp_type_f = crv.mapCodeModelInv(interp_type_0)
 
 
-    Attributi_1 = \
-        { "Data riferimento"        : crv.ref_date
-        , "Descrizione"     : crv.description
-        , "Valuta"        : crv.curr
-        , "Tipo curva"    : crv.type
-        , "Tipo nodo"     : "Survival probability"
-        , "Emittente"     : crv.emittente
-        , "Recovery rate" : crv.recovery
-        , "Rating" : crv.rating
-        , "Modello interpolante" : interp_type_f
-        , "Tipo Bootstrap Hazard Rate" : boot_type_f
-        }
-
-    Attributi_2 = \
-        { "Data riferimento"        : crv.ref_date
-        , "Descrizione"     : crv.description
-        , "Valuta"        : crv.curr
-        , "Tipo curva"    : crv.type
-        , "Tipo nodo"     : "Marginal Default Probability"
-        , "Emittente"     : crv.emittente
-        , "Recovery rate" : crv.recovery
-        , "Rating" : crv.rating
-        , "Modello interpolante" : interp_type_f
-        , "Tipo Bootstrap Hazard Rate" : boot_type_f
-        }
 
     Attributi_3 = \
         { "Data riferimento"        : crv.ref_date
@@ -575,12 +480,8 @@ def writeCDSBootstrapRes1OnXls_hr_m(crv, xla, str_boot_opt, res, codice_curva):
         , "Tipo Bootstrap Hazard Rate" : boot_type_f
         }
 
-    r2 = s.Range(xla.Cells(r.Row, r.Column + 3), xla.Cells(r.Row, r.Column + 3))
-    r3 = s.Range(xla.Cells(r.Row, r.Column + 6), xla.Cells(r.Row, r.Column + 7))
 
     ra = intestazioneSwapCurveSegmenti(xla, s, r , Attributi_3, nCols=2, text = codice_curva)
-    #rb = intestazioneSwapCurveSegmenti(xla, s, r2, Attributi_2, nCols=2, text = codice_curva)
-    #rc = intestazioneSwapCurveSegmenti(xla, s, r3, Attributi_3, nCols=2, text = codice_curva)
 
     r  = s.Range(ra)
 
@@ -592,38 +493,17 @@ def writeCDSBootstrapRes1OnXls_hr_m(crv, xla, str_boot_opt, res, codice_curva):
     xla.Cells(topLeftRow - 1, topLeftCol + 1).Value = "Value"
     xla.Cells(topLeftRow - 1, topLeftCol + 1).HorizontalAlignment = const.xlCenter
 
-    """
-    xla.Cells(topLeftRow - 1, topLeftCol + 3).Value = "Date"
-    xla.Cells(topLeftRow - 1, topLeftCol + 3).HorizontalAlignment = const.xlCenter
-    xla.Cells(topLeftRow - 1, topLeftCol + 4).Value = "Value"
-    xla.Cells(topLeftRow - 1, topLeftCol + 4).HorizontalAlignment = const.xlCenter
-    
-    xla.Cells(topLeftRow - 1, topLeftCol + 6).Value = "Date"
-    xla.Cells(topLeftRow - 1, topLeftCol + 6).HorizontalAlignment = const.xlCenter
-    xla.Cells(topLeftRow - 1, topLeftCol + 7).Value = "Value"
-    xla.Cells(topLeftRow - 1, topLeftCol + 7).HorizontalAlignment = const.xlCenter
-    """
 
     nRows = len(res['outputDates'])
 
     drawBox(xla, const.xlMedium, topLeftRow - 1, topLeftCol, topLeftRow + nRows - 1, topLeftCol + 1)
     drawLine(xla, topLeftRow - 1, topLeftCol, topLeftRow - 1, topLeftCol + 1, "o", const.xlThin)
 
-    """
-    drawBox(xla, const.xlMedium, topLeftRow - 1, topLeftCol + 3, topLeftRow + nRows - 1, topLeftCol + 4)
-    drawLine(xla, topLeftRow - 1, topLeftCol+3, topLeftRow - 1, topLeftCol + 4, "o", const.xlThin)
-
-    drawBox(xla, const.xlMedium, topLeftRow - 1, topLeftCol + 6, topLeftRow + nRows - 1, topLeftCol + 7)
-    drawLine(xla, topLeftRow - 1, topLeftCol +6, topLeftRow - 1, topLeftCol + 7, "o", const.xlThin)
-    """
     
     for i in range(nRows):
 
         date   = res['outputDates'][i]
-        surv   = res['survProbCum'][i]
-        marg   = res['marginalDefault'][i]
         h_rate = res['hazardRate'][i]
-
 
         xla.Cells(topLeftRow + i, topLeftCol).Value = date
         xla.Cells(topLeftRow + i, topLeftCol).NumberFormat = FORMATT
@@ -632,23 +512,6 @@ def writeCDSBootstrapRes1OnXls_hr_m(crv, xla, str_boot_opt, res, codice_curva):
         xla.Cells(topLeftRow + i, topLeftCol + 1).NumberFormat = "0.00000"
         xla.Cells(topLeftRow + i, topLeftCol + 1).HorizontalAlignment = const.xlCenter
 
-        """
-        xla.Cells(topLeftRow + i, topLeftCol + 3).Value = date
-        xla.Cells(topLeftRow + i, topLeftCol + 3).NumberFormat = FORMATT
-        xla.Cells(topLeftRow + i, topLeftCol + 3).HorizontalAlignment = const.xlCenter
-        xla.Cells(topLeftRow + i, topLeftCol + 4).Value = marg
-        xla.Cells(topLeftRow + i, topLeftCol + 4).NumberFormat = "0.00000"
-        xla.Cells(topLeftRow + i, topLeftCol + 4).HorizontalAlignment = const.xlCenter
-        
-        
-        xla.Cells(topLeftRow + i, topLeftCol + 6).Value = date
-        xla.Cells(topLeftRow + i, topLeftCol + 6).NumberFormat = FORMATT
-        xla.Cells(topLeftRow + i, topLeftCol + 6).HorizontalAlignment = const.xlCenter
-        xla.Cells(topLeftRow + i, topLeftCol + 7).Value = h_rate
-        xla.Cells(topLeftRow + i, topLeftCol + 7).NumberFormat = "0.00000"
-        xla.Cells(topLeftRow + i, topLeftCol + 7).HorizontalAlignment = const.xlCenter
-
-        """
 
 
 
@@ -757,7 +620,7 @@ def writeCDSBootstrapRes2OnXls(crv, xla, str_boot_opt, res, codice_curva):
 
 
 
-def writeCDSBootstrapRes2OnXls_zc_m(crv, xla, str_boot_opt, res, codice_curva):
+def writeCDSBootstrapRes2OnXls_zc_m(crv, xla, str_boot_opt, res, flag_first, codice_curva, index_elab):
 
     
     nameSheet = nameSheetCDSBootZcSpread
@@ -768,30 +631,23 @@ def writeCDSBootstrapRes2OnXls_zc_m(crv, xla, str_boot_opt, res, codice_curva):
         s.Name = nameSheet
     s.Activate()
     rangeStart  = "B2"
-    distCurve   = 3
-    r           = s.Range(rangeStart)
-    r           = findRigthPlaceBootCurveSeg(xla, r, distCurve, "O")
+    distCurve   = 2
+    
+    r = s.Range(rangeStart)
+    r = findRigthPlaceBootCurveSeg(xla, r, distCurve, "O")
+
+    if (index_elab > 1):
+        r = xla.Range(xla.Cells(r.Row, r.Column-1), xla.Cells(r.Row, r.Column-1))
+    else:
+        r = xla.Range(xla.Cells(r.Row, r.Column), xla.Cells(r.Row, r.Column))
+
 
     boot_type_0   = int(crv.cds_boot_method)
     interp_type_0 = crv.rf_interp_type
     
-    boot_type = crv.mapBootCDS(boot_type_0)
+    boot_type   = crv.mapBootCDS(boot_type_0)
     interp_type = crv.mapCodeModelInv(interp_type_0)
   
-    # -----
-    Attributi_1 = \
-        { "Data riferimento"        : crv.ref_date
-        , "Descrizione"     : crv.description
-        , "Valuta"        : crv.curr
-        , "Tipo curva"    : crv.type
-        , "Tipo nodo"     : "Par Yield spread"
-        , "Emittente"     : crv.emittente
-        , "Recovery rate" : crv.recovery
-        , "Rating" : crv.rating
-        , "Seniority" : crv.seniority
-        , "Modello interpolante" : interp_type
-        , "Tipo Bootstrap Hazard Rate" : boot_type
-        }
 
     Attributi_2 = \
       { "Data riferimento"        : crv.ref_date
@@ -808,77 +664,63 @@ def writeCDSBootstrapRes2OnXls_zc_m(crv, xla, str_boot_opt, res, codice_curva):
         }
 
 
-    r2 = s.Range(xla.Cells(r.Row, r.Column + 3), xla.Cells(r.Row, r.Column + 3))
-    r3 = s.Range(xla.Cells(r.Row, r.Column + 6), xla.Cells(r.Row, r.Column + 7))
+    if (flag_first == True):
+        ra = intestazioneCDSCurveSegmenti(xla, s, r , Attributi_2, flag_first, nCols=2, text = codice_curva)
+    else:
+        ra = intestazioneCDSCurveSegmenti(xla, s, r , Attributi_2, flag_first, nCols=1, text = codice_curva)
+
     
-    ra = intestazioneSwapCurveSegmenti(xla, s, r , Attributi_2, nCols=2, text = codice_curva)
-    #ra = intestazioneSwapCurveSegmenti(xla, s, r , Attributi_1, nCols=2, text = codice_curva)
-    #rb = intestazioneSwapCurveSegmenti(xla, s, r2, Attributi_2, nCols=2, text = codice_curva)
-
-
     r  = s.Range(ra)
-    #r  = s.Range(rb)
 
     topLeftRow = r.Row
     topLeftCol = r.Column
-
-    
-    xla.Cells(topLeftRow - 1, topLeftCol).Value = "Date"
-    xla.Cells(topLeftRow - 1, topLeftCol).HorizontalAlignment = const.xlCenter
-    xla.Cells(topLeftRow - 1, topLeftCol + 1).Value = "Value"
-    xla.Cells(topLeftRow - 1, topLeftCol + 1).HorizontalAlignment = const.xlCenter
-    
-    """
-    xla.Cells(topLeftRow - 1, topLeftCol + 3).Value = "Date"
-    xla.Cells(topLeftRow - 1, topLeftCol + 3).HorizontalAlignment = const.xlCenter
-    xla.Cells(topLeftRow - 1, topLeftCol + 4).Value = "Value"
-    xla.Cells(topLeftRow - 1, topLeftCol + 4).HorizontalAlignment = const.xlCenter
-    """
-
     nRows = len(res['outputDates'])
 
+    if (flag_first == True):
     
-    drawBox(xla, const.xlMedium, topLeftRow - 1, topLeftCol, topLeftRow + nRows - 1, topLeftCol + 1)
-    drawLine(xla, topLeftRow - 1, topLeftCol, topLeftRow - 1, topLeftCol + 1, "o", const.xlThin)
-    
-    """
-    drawBox(xla, const.xlMedium, topLeftRow - 1, topLeftCol + 3, topLeftRow + nRows - 1, topLeftCol + 4)
-    drawLine(xla, topLeftRow - 1, topLeftCol+3, topLeftRow - 1, topLeftCol + 4, "o", const.xlThin)
-    """
+        xla.Cells(topLeftRow - 1, topLeftCol).Value = "Date"
+        xla.Cells(topLeftRow - 1, topLeftCol).HorizontalAlignment = const.xlCenter
+        xla.Cells(topLeftRow - 1, topLeftCol + 1).Value = "Value"
+        xla.Cells(topLeftRow - 1, topLeftCol + 1).HorizontalAlignment = const.xlCenter
+
+        drawBox(xla, const.xlMedium, topLeftRow - 1, topLeftCol, topLeftRow + nRows - 1, topLeftCol + 1)
+        drawLine(xla, topLeftRow - 1, topLeftCol, topLeftRow - 1, topLeftCol + 1, "o", const.xlThin)
+
+    else:
+
+        xla.Cells(topLeftRow - 1, topLeftCol).Value = "Value"
+        xla.Cells(topLeftRow - 1, topLeftCol).HorizontalAlignment = const.xlCenter
+        drawBox(xla, const.xlMedium, topLeftRow - 1, topLeftCol, topLeftRow + nRows - 1, topLeftCol)
+        drawLine(xla, topLeftRow - 1, topLeftCol, topLeftRow - 1, topLeftCol, "o", const.xlThin)
+
+
     
     for i in range(nRows):
 
         date   = res['outputDates'][i]
-        pySpread   = res['pySpread'][i]
         zcSpread   = res['zcSpread'][i]
 
+        if (flag_first == True):
+
         
-        xla.Cells(topLeftRow + i, topLeftCol).Value = date
-        xla.Cells(topLeftRow + i, topLeftCol).NumberFormat = FORMATT
-        xla.Cells(topLeftRow + i, topLeftCol).HorizontalAlignment = const.xlCenter
+            xla.Cells(topLeftRow + i, topLeftCol).Value = date
+            xla.Cells(topLeftRow + i, topLeftCol).NumberFormat = FORMATT
+            xla.Cells(topLeftRow + i, topLeftCol).HorizontalAlignment = const.xlCenter
+            
+            xla.Cells(topLeftRow + i, topLeftCol + 1).Value = zcSpread
+            xla.Cells(topLeftRow + i, topLeftCol + 1).NumberFormat = "0.00000"
+            xla.Cells(topLeftRow + i, topLeftCol + 1).HorizontalAlignment = const.xlCenter
         
-        xla.Cells(topLeftRow + i, topLeftCol + 1).Value = zcSpread
-        xla.Cells(topLeftRow + i, topLeftCol + 1).NumberFormat = "0.00000"
-        xla.Cells(topLeftRow + i, topLeftCol + 1).HorizontalAlignment = const.xlCenter
-        
-        """
-        xla.Cells(topLeftRow + i, topLeftCol + 1).Value = pySpread
-        xla.Cells(topLeftRow + i, topLeftCol + 1).NumberFormat = "0.00000"
-        xla.Cells(topLeftRow + i, topLeftCol + 1).HorizontalAlignment = const.xlCenter
-        
-        xla.Cells(topLeftRow + i, topLeftCol + 3).Value = date
-        xla.Cells(topLeftRow + i, topLeftCol + 3).NumberFormat = FORMATT
-        xla.Cells(topLeftRow + i, topLeftCol + 3).HorizontalAlignment = const.xlCenter
-        
-        xla.Cells(topLeftRow + i, topLeftCol + 4).Value = zcSpread
-        xla.Cells(topLeftRow + i, topLeftCol + 4).NumberFormat = "0.00000"
-        xla.Cells(topLeftRow + i, topLeftCol + 4).HorizontalAlignment = const.xlCenter
-        """
+        else:
+
+            
+            xla.Cells(topLeftRow + i, topLeftCol).Value = zcSpread
+            xla.Cells(topLeftRow + i, topLeftCol).NumberFormat = "0.00000"
+            xla.Cells(topLeftRow + i, topLeftCol).HorizontalAlignment = const.xlCenter
 
 
 
-
-def writeCDSBootstrapRes2OnXls_py_m(crv, xla, str_boot_opt, res, codice_curva):
+def writeCDSBootstrapRes2OnXls_py_m(crv, xla, str_boot_opt, res, codice_curva, index_elab):
 
     
     nameSheet = nameSheetCDSBootPySpread
@@ -889,9 +731,16 @@ def writeCDSBootstrapRes2OnXls_py_m(crv, xla, str_boot_opt, res, codice_curva):
         s.Name = nameSheet
     s.Activate()
     rangeStart  = "B2"
-    distCurve   = 3
+    distCurve   = 2
+    
     r           = s.Range(rangeStart)
     r           = findRigthPlaceBootCurveSeg(xla, r, distCurve, "O")
+
+    if (index_elab > 1):
+        r = xla.Range(xla.Cells(r.Row, r.Column-1), xla.Cells(r.Row, r.Column-1))
+    else:
+        r = xla.Range(xla.Cells(r.Row, r.Column), xla.Cells(r.Row, r.Column))
+
 
     boot_type_0   = int(crv.cds_boot_method)
     interp_type_0 = crv.rf_interp_type

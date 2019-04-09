@@ -68,6 +68,33 @@ def formatTestataCurva(xla,nRiga,nColonna,nLarghezza,testo):
     xla.Selection.Interior.Pattern      = const.xlSolid
     xla.Selection.Value                 = testo
 
+"""
+def formatTestataCurvaCDS(xla,nRiga,nColonna,nLarghezza,testo, idx_elab):
+
+    (xla.Range(xla.Cells(nRiga, nColonna - (idx_elab - 1)), xla.Cells(nRiga, nColonna - (idx_elab - 1)))).Select()
+    
+    #xla.Cells(nRiga, nColonna + nLarghezza - 1).Value = 'XXX'
+    #xla.Cells(nRiga, nColonna + nLarghezza - 1).Value = 'XXX'
+    
+    xla.Selection.HorizontalAlignment   = const.xlCenter
+    xla.Selection.VerticalAlignment     = const.xlBottom
+    xla.Selection.WrapText              = False
+    xla.Selection.Orientation           = 0
+    xla.Selection.AddIndent             = False
+    xla.Selection.IndentLevel           = 0
+    xla.Selection.ShrinkToFit           = False
+    xla.Selection.ReadingOrder          = const.xlContext
+    xla.Selection.MergeCells            = False
+    xla.Selection.Merge()
+    xla.Selection.Font.ColorIndex       = 2
+    xla.Selection.Font.Bold             = True
+    xla.Selection.Interior.ColorIndex   = 55
+    xla.Selection.Interior.Pattern      = const.xlSolid
+    xla.Selection.Value                 = testo
+    
+    (xla.Range(xla.Cells(nRiga, nColonna), xla.Cells(nRiga, nColonna + nLarghezza - 1))).Select()
+"""
+
 #----------
 
 def readCurvesNames(xla, s, rangeStart, direzione, distanza, offset = 0):
@@ -196,7 +223,9 @@ def findRigthPlaceBootCurveSeg(xla, r, distCurve, dir="O"):
             nCols = r.Columns.Count
             row =r.Row
             col =r.Column
-            r = xla.Range(xla.Cells(row, col + distCurve), xla.Cells(row, col + (nCols-1) + distCurve))
+            #r = xla.Range(xla.Cells(row, col + distCurve), xla.Cells(row, col + (nCols-1) + distCurve))
+            r = xla.Range(xla.Cells(row, col + distCurve), xla.Cells(row, col + distCurve))
+
     rOut = r
     if (rOut == None):
         msg = "Unable to compute the output range for your curve"
@@ -204,6 +233,7 @@ def findRigthPlaceBootCurveSeg(xla, r, distCurve, dir="O"):
         sys.exit()
 
     return rOut
+
 
 
 def findRigthPlaceBootCurveSeg_m(xla, r, distCurve, dir="O"):
@@ -216,10 +246,10 @@ def findRigthPlaceBootCurveSeg_m(xla, r, distCurve, dir="O"):
         j = 0
         while (r.Value != None):
             j += 1
-            r = xla.Range(xla.Cells(row, col + j), xla.Cells(row, col + j))
+            r = xla.Range(xla.Cells(row + j, col), xla.Cells(row + j, col))
             #porto avanti ancora per controllare
-            if (r.Value == None):  r = xla.Range(xla.Cells(row, col + j + distCurve ), xla.Cells(row, col + j + distCurve))
-        r = xla.Range(xla.Cells(row, col + j + distCurve), xla.Cells(row, col + j + distCurve))
+            if (r.Value == None):  r = xla.Range(xla.Cells(row + j + distCurve , col), xla.Cells(row + j+distCurve, col))
+        r = xla.Range(xla.Cells(row + j + distCurve, col), xla.Cells(row+j+distCurve, col))
 
     else:
         while (r.Value != None):
@@ -227,6 +257,8 @@ def findRigthPlaceBootCurveSeg_m(xla, r, distCurve, dir="O"):
             row =r.Row
             col =r.Column
             r = xla.Range(xla.Cells(row, col + distCurve), xla.Cells(row, col + (nCols-1) + distCurve))
+            #r = xla.Range(xla.Cells(row, col + distCurve), xla.Cells(row, col + distCurve))
+
     rOut = r
     if (rOut == None):
         msg = "Unable to compute the output range for your curve"

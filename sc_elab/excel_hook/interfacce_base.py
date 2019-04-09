@@ -189,7 +189,7 @@ def bootstrap_from_xls(control):
     root.mainloop()
 
     curveDes = W.curve
-    curvePos = W.pos
+    curvePos = int(W.pos[0])
 
 
     #opt
@@ -680,6 +680,10 @@ def bootstrap_cds_from_xls(control):
     root.mainloop()
 
     n_c = len( W.curve)
+    flag_plot = True
+
+    if (n_c > 1):
+        flag_plot = False
 
     for i in range(0, n_c):
 
@@ -724,7 +728,6 @@ def bootstrap_cds_from_xls(control):
         opt_download['valuta'] = curve_xl.curr
         opt_download['rating'] = curve_xl.rating
         opt_download['seniority'] = curve_xl.seniority
-    
         opt_download['tipo_modello'] = interp_rf_model
     
     
@@ -777,7 +780,7 @@ def bootstrap_cds_from_xls(control):
         
     
         # -------------- elaborazione ---------------------------
-        boot_out     = curve_xl.bootstrap(data_opt)
+        boot_out     = curve_xl.bootstrap(data_opt, flag_plot)
         
         
         if boot_out == None:
@@ -791,21 +794,27 @@ def bootstrap_cds_from_xls(control):
         
         if (n_c > 1):
         
-            writeCDSBootstrapRes1OnXls_surv_m(curve_xl, xla, str_boot_opt, boot_out, codice_curva)
+        
+            if (i==0):
+                flag_first = True
+            else:
+                flag_first = False
+
+            writeCDSBootstrapRes1OnXls_surv_m(curve_xl, xla, str_boot_opt, boot_out, flag_first, codice_curva, i)
             s = xla.Cells.Columns.AutoFit()
 
-            writeCDSBootstrapRes1OnXls_md_m(curve_xl, xla, str_boot_opt, boot_out, codice_curva)
-            s = xla.Cells.Columns.AutoFit()
+            #writeCDSBootstrapRes1OnXls_md_m(curve_xl, xla, str_boot_opt, boot_out, codice_curva)
+            #s = xla.Cells.Columns.AutoFit()
 
         
-            writeCDSBootstrapRes1OnXls_hr_m(curve_xl, xla, str_boot_opt, boot_out, codice_curva)
-            s = xla.Cells.Columns.AutoFit()
+            #writeCDSBootstrapRes1OnXls_hr_m(curve_xl, xla, str_boot_opt, boot_out, codice_curva)
+            #s = xla.Cells.Columns.AutoFit()
 
-            writeCDSBootstrapRes2OnXls_zc_m(curve_xl, xla, str_boot_opt, boot_out, codice_curva)
-            s = xla.Cells.Columns.AutoFit()
+            #writeCDSBootstrapRes2OnXls_zc_m(curve_xl, xla, str_boot_opt, boot_out, flag_first, codice_curva, i)
+            #s = xla.Cells.Columns.AutoFit()
 
-            writeCDSBootstrapRes2OnXls_py_m(curve_xl, xla, str_boot_opt, boot_out, codice_curva)
-            s = xla.Cells.Columns.AutoFit()
+            #writeCDSBootstrapRes2OnXls_py_m(curve_xl, xla, str_boot_opt, boot_out, codice_curva)
+            #s = xla.Cells.Columns.AutoFit()
         
 
         else:
