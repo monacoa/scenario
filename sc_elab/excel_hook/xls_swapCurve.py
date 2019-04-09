@@ -5,7 +5,7 @@ from    win32com.client import constants as const
 from Tkinter import *
 from sc_elab.core.SwpCurve import dict_segm2, Segm, Curve, CdsCurve
 
-from xls_utils import drawBox, drawLine, formatTestataCurva, formatTestataCurvaCDS, findRigthPlaceBootCurveSeg
+from xls_utils import drawBox, drawLine, formatTestataCurva, findRigthPlaceBootCurveSeg
 
 
 

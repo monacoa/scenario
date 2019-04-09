@@ -810,8 +810,8 @@ def bootstrap_cds_from_xls(control):
             #writeCDSBootstrapRes1OnXls_hr_m(curve_xl, xla, str_boot_opt, boot_out, codice_curva)
             #s = xla.Cells.Columns.AutoFit()
 
-            #writeCDSBootstrapRes2OnXls_zc_m(curve_xl, xla, str_boot_opt, boot_out, flag_first, codice_curva, i)
-            #s = xla.Cells.Columns.AutoFit()
+            writeCDSBootstrapRes2OnXls_zc_m(curve_xl, xla, str_boot_opt, boot_out, flag_first, codice_curva, i)
+            s = xla.Cells.Columns.AutoFit()
 
             #writeCDSBootstrapRes2OnXls_py_m(curve_xl, xla, str_boot_opt, boot_out, codice_curva)
             #s = xla.Cells.Columns.AutoFit()

@@ -633,13 +633,11 @@ def writeCDSBootstrapRes2OnXls_zc_m(crv, xla, str_boot_opt, res, flag_first, cod
     rangeStart  = "B2"
     distCurve   = 2
     
-    r = s.Range(rangeStart)
-    r = findRigthPlaceBootCurveSeg(xla, r, distCurve, "O")
+    r  = s.Range(rangeStart)
+    r  = findRigthPlaceBootCurveSeg_m(xla, r, distCurve, "O")
 
-    if (index_elab > 1):
-        r = xla.Range(xla.Cells(r.Row, r.Column-1), xla.Cells(r.Row, r.Column-1))
-    else:
-        r = xla.Range(xla.Cells(r.Row, r.Column), xla.Cells(r.Row, r.Column))
+    if (index_elab > 0) and (divmod(index_elab, 2)[1]==0):
+        r = xla.Range(xla.Cells(r.Row, r.Column - 1), xla.Cells(r.Row, r.Column - 1))
 
 
     boot_type_0   = int(crv.cds_boot_method)
@@ -665,9 +663,9 @@ def writeCDSBootstrapRes2OnXls_zc_m(crv, xla, str_boot_opt, res, flag_first, cod
 
 
     if (flag_first == True):
-        ra = intestazioneCDSCurveSegmenti(xla, s, r , Attributi_2, flag_first, nCols=2, text = codice_curva)
+        ra = intestazioneCDSCurveSegmenti(xla, s, r , Attributi_2, flag_first, index_elab, nCols=2, text = codice_curva)
     else:
-        ra = intestazioneCDSCurveSegmenti(xla, s, r , Attributi_2, flag_first, nCols=1, text = codice_curva)
+        ra = intestazioneCDSCurveSegmenti(xla, s, r , Attributi_2, flag_first, index_elab, nCols=1, text = codice_curva)
 
     
     r  = s.Range(ra)
