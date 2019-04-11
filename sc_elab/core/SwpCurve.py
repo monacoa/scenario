@@ -1638,7 +1638,7 @@ class CdsCurve(Curve):
 
 
 
-    def bootstrap(self, data_opt):
+    def bootstrap(self, data_opt, flag_plot):
         
         data_opt['Basis'  ]    = {}
         data_opt['BusConv']    = {}
@@ -1702,7 +1702,7 @@ class CdsCurve(Curve):
             import funzioni_boot_cds as f_cds
             
             
-            res = f_cds.boot_cds(data_opt, data_raw_cds, data_raw_bench, data_raw_swp)
+            res = f_cds.boot_cds(data_opt, data_raw_cds, data_raw_bench, data_raw_swp, flag_plot)
             #res = fb.boot3s_elab_v2(data_opt, raw_data)
 
         except ValueError as ve:

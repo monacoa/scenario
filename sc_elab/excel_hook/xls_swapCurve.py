@@ -40,6 +40,40 @@ def intestazioneSwapCurveSegmenti( xla, sheet, rng,  attributi, nCols = 2, text=
     return rangeStart
 
 
+def intestazioneCDSCurveSegmenti( xla, sheet, rng,  attributi, flag_first, index_elab, nCols = 2, text= None):
+
+    txt = text if text!=None else attributi['Description']
+    nRows           = len(attributi.keys())
+    topLeftRow      = rng.Row
+    topLeftCol      = rng.Column
+    
+    drawBox(xla, 3,topLeftRow, topLeftCol,topLeftRow + nRows, topLeftCol + nCols - 1, 0)
+    formatTestataCurva (xla, topLeftRow, topLeftCol, nCols, txt)
+
+
+    kk = (attributi.keys())
+    kk.sort()
+    i = 0
+    for k in kk:
+        
+        if (flag_first == True):
+
+            xla.Cells(topLeftRow + 1+ i, topLeftCol).Value   = k
+            xla.Cells(topLeftRow + 1+ i, topLeftCol+1).Value = attributi[k]
+            if (type(attributi[k]) == datetime.datetime) or (type(attributi[k]) == datetime.date):
+                xla.Cells(topLeftRow + 1 + i, topLeftCol + 1).NumberFormat = "gg/MM/aaaa"
+            xla.Cells(topLeftRow + 1 + i, topLeftCol + 1).HorizontalAlignment = const.xlCenter
+        else:
+            
+            xla.Cells(topLeftRow + 1+ i, topLeftCol).Value   = attributi[k]
+        
+        i+=1
+
+    rangeStart = xla.Cells(topLeftRow + nRows + 2, topLeftCol).Address
+    return rangeStart
+
+
+
 def displayHWParamSwCurve (xla, rangeStart, attributi):
     nRows = 1
     nCols = 4
@@ -286,8 +320,11 @@ def readIntestazioneCds(xla , r , cc):
     else:
         cc.cal = 'us'
 
+
     cc.type = xla.Range(xla.Cells(row + 2, col + 1), xla.Cells(row + 2, col + 1)).Value
     dd = xla.Range(xla.Cells(row + 3, col + 1), xla.Cells(row + 3, col + 1)).Value
+
+    
     cc.ref_date = datetime.date(year=dd.year, month=dd.month, day=dd.day)
 
     #cc.dayAdj   = xla.Range(xla.Cells(row + 5, col + 1), xla.Cells(row + 5, col + 1)).Value

@@ -277,7 +277,7 @@ def func_chr(hr,b,cds_rr,s_n,t,z,cds_m,delta_t):
 
 
 
-def  plotCDS(cds_times, cds_values,timeOut, pySpread):
+def  plotCDS(cds_times, cds_values,timeOut, pySpread, cds_title):
 
     import matplotlib
     matplotlib.use('TkAgg')
@@ -300,7 +300,7 @@ def  plotCDS(cds_times, cds_values,timeOut, pySpread):
     a.plot(cds_times, cds_values,'o', label='CDS Mkt')
     a.plot(timeOut, pySpread,'-.k', label='Py Spread')
     
-    a.set_title('CDS bootstrap results')
+    a.set_title('CDS bootstrap results: %s'%cds_title)
     a.set_xlabel('Tempo [anni]')
     a.set_ylabel('Livello CDS')
     a.legend(loc='lower right', shadow=False)
@@ -366,7 +366,7 @@ def computeDateOutputCDS(raw_data, data_opt):
 
 
 
-def boot_cds(opt_dict, raw_data, bench_data, swap_data):
+def boot_cds(opt_dict, raw_data, bench_data, swap_data, flag_plot):
     
 
     output_data = {}
@@ -578,9 +578,12 @@ def boot_cds(opt_dict, raw_data, bench_data, swap_data):
     marg_d_n = np.insert(marg_d, 0, 0)
 
     #dumpDataOnFile(cds_times_n, marg_d_n, fileOutMDefault)
-    
-    
-    plotCDS(cds_times, cds_values,timeOut, pySpread) 
+
+
+    if (flag_plot == True):    
+
+        cds_title = opt_dict['Emittente']
+        plotCDS(cds_times, cds_values,timeOut, pySpread, cds_title) 
 
     #------------------------------------------
     #------ set up Output----------------------

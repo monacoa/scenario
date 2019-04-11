@@ -30,7 +30,7 @@ class W_bootstrapSelection (LabelFrame):
         self.bar = Scrollbar(self)
 
         # create mylist
-        self.mylist = Listbox(self, yscrollcommand=self.bar.set)
+        self.mylist = Listbox(self, yscrollcommand=self.bar.set, selectmode = EXTENDED)
 
         for l in curveL:
             crv = l[0]
@@ -60,11 +60,60 @@ class W_bootstrapSelection (LabelFrame):
         self.master.destroy()
     def selected_curve(self, type):
         #recupero la curva selezionata
-        curve = str((self.mylist.get(ACTIVE)))
+
+        #print 'self.mylist.get(): ', self.mylist.get()
+        
+        curve_pos = self.mylist.curselection()
+        curve     = str((self.mylist.get(ACTIVE)))
+        
+        #curve_pos.sorted()
+        
+        print 'curve_pos: ', curve_pos
+        
+        selected_text_list = [self.mylist.get(i) for i in curve_pos]
+        n_s = len(selected_text_list)
+
+        self.curve_n = []
+        self.pos_n   = []
+
+        self.curve = []
+        self.pos   = []
+
+
+        for i in range(0, n_s):
+
+            cc_txt_tmp = selected_text_list[i]
+
+            cc_txt_tmp  = cc_txt_tmp.replace("(", "")
+            tmp = cc_txt_tmp.split(") ")
+
+            self.curve.append(tmp[1])
+            self.pos.append(tmp[0])
+            
+
+        """
+        print 'pos new: ', self.pos_n
+        print 'curve new: ',self.curve_n
+
+        print '--------------------------------'
+        print '--------  AAAAAA   -------------'
+        print '--------------------------------'
+
+
         curve  = curve.replace("(", "")
         tmp = curve.split(") ")
-        self.curve = tmp[1]
-        self.pos = int(tmp[0])
+        #-------------------------------------------        
+        #-------------------------------------------
+        self.curve.append(tmp[1])
+        self.pos.append(tmp[0])
+
+        print 'curve original: ', self.curve
+        print 'pos original: ', self.pos
+        """
+
+        #self.curve = tmp[1]
+        #self.pos = int(tmp[0])
+        
         self.new_window = W_boot_opt(parent=self, type = type)
 
 
@@ -241,7 +290,7 @@ class  W_boot_opt(LabelFrame):
 
         self.pack(fill="both", expand="yes")
 
-        #questa istruzione va messa dopo il pack altrimenti non vienne intercettato il valore dal .get() successivo
+        #questa istruzione va messa dopo il pack altrimenti non vienne intercettato il valore dal .() successivo
         if type == "SWP": self.variable5.set("C://")
         
         #filemenu = Menu(menubar, tearoff=0)

@@ -1,9 +1,10 @@
-from pyxll import xl_func, xl_app, xl_menu, xl_macro, xlcAlert
 from sc_elab.excel_hook.xls_utils import drawBox, drawLine, formatTestataCurva, findRigthPlaceBootCurveSeg
 import datetime
-from sc_elab.excel_hook.DEF_intef import nameSheetCalib,nameSheetCalibRes
+from sc_elab.excel_hook.DEF_intef import nameSheetCalib,nameSheetCalibRes,FORMATT
 from sc_elab.excel_hook.xls_utils import findCalibrationPos, writeResultPandas
 
+import pandas as pd
+import numpy as np
 from    win32com.client import constants as const
 
 
@@ -23,7 +24,7 @@ def intestazioneCalibration( xla, rng,  attributi, nCols = 2, title= 'Calibratio
         xla.Cells(topLeftRow + 1+ i, topLeftCol).Value   = k[3:]
         xla.Cells(topLeftRow + 1+ i, topLeftCol+1).Value = attributi[k]
         if isinstance(attributi[k],datetime.datetime):
-            xla.Cells(topLeftRow + 1 + i, topLeftCol + 1).NumberFormat = "gg/MM/aaaa"
+            xla.Cells(topLeftRow + 1 + i, topLeftCol + 1).NumberFormat = FORMATT
         xla.Cells(topLeftRow + 1 + i, topLeftCol + 1).HorizontalAlignment = const.xlCenter
         i+=1
 
@@ -55,7 +56,7 @@ def writeParameterCalibration( xla, rng , v_name , v_value,  dict, nCols = 4):
     return rangeStart
 
 
-def writeCalibrationResOnXls(model, W_class, xla, chi2, opt_dict, res):
+def writeCalibrationResOnXls(type_data, model, W_class, xla, chi2, opt_dict, res,capitalization_type = 'CNT'):
 
     nameSheet = nameSheetCalibRes
     try:
@@ -71,24 +72,193 @@ def writeCalibrationResOnXls(model, W_class, xla, chi2, opt_dict, res):
     #mi posiziono nella prima cella utile per scrivere i risultati del fitting
     #---
 
-    df = W_class.CurveChosen
-    ref_date = df.loc[df.loc[:, 0] == 'Date Ref',1].values[0]
+    if type_data == 'MKT':
 
-    Attributi = \
-        {     "0. Model"                 : model
-            , "1. Date ref"              : ref_date
-            , "2. Type Data Calibration" : W_class.set_mkt_ts.get()
-            , "3. Name Curve"            : W_class.NameCurve.get()
-            , "4. Name Option"           : W_class.NameOption.get()
-            , "5. Name Time Series"      : W_class.NameTS.get()
-            , "6. Type Calibration"      : W_class.mkt_calibration_type.get()
-            , "7. Type Loss Function"    : W_class.loss_function_type.get()
-            , "8. Chi-squared"           : chi2
-        }
+        df = W_class.CurveChosen
+        ref_date = df.loc[df.loc[:, 0] == 'Date Ref',1].values[0]
 
-    row = r.Row
-    col = r.Column
+
+        if W_class.loss_function_type.get() == 1:
+            text_type_loss_function = "Euclidean absolute"
+
+        elif  W_class.loss_function_type.get() == 2:
+            text_type_loss_function = "Euclidean relative"
+
+        elif W_class.loss_function_type.get() == 3:
+            text_type_loss_function = "Manhattan absolute"
+
+        elif W_class.loss_function_type.get() == 4:
+            text_type_loss_function = "Manhattan relative"
+
+        if model == 'CIR':
+
+            res_feller_condition = 2 * opt_dict[1] * opt_dict[2] > (np.power(opt_dict[3],2))
+
+            Attributi = \
+                {     "0. Model"                 : model
+                    , "1. Date ref"              : ref_date
+                    , "2. Type Data Calibration" : W_class.set_mkt_ts.get()
+                    , "3. Name Curve"            : W_class.NameCurve.get()
+                    , "4. Name Option"           : W_class.NameOption.get()
+                    , "5. Type Calibration"      : W_class.mkt_calibration_type.get()
+                    , "6. Type Loss Function"    : text_type_loss_function
+                    , "7. Chi-squared"           : chi2
+                    , "8. Interest rate Type"    : capitalization_type
+                    , "9. Feller condition"      : str(res_feller_condition)
+                }
+
+        else:
+            Attributi = \
+                {     "0. Model"                 : model
+                    , "1. Date ref"              : ref_date
+                    , "2. Type Data Calibration" : W_class.set_mkt_ts.get()
+                    , "3. Name Curve"            : W_class.NameCurve.get()
+                    , "4. Name Option"           : W_class.NameOption.get()
+                    , "5. Type Calibration"      : W_class.mkt_calibration_type.get()
+                    , "6. Type Loss Function"    : text_type_loss_function
+                    , "7. Chi-squared"           : chi2
+                    , "8. Interest rate Type"    : capitalization_type
+                }
+
+    else:
+        if model == 'CIR':
+
+            res_feller_condition = 2 * opt_dict[1] * opt_dict[2] > (np.power(opt_dict[3],2))
+
+            Attributi = \
+                {"0. Model": model
+                    , "1. Name Time Series"     : W_class.NameTS.get()
+                    , "2. Start date "          : W_class.TS_dateMIN.strftime("%d/%m/%Y")
+                    , "3. End date"             : W_class.TS_dateMAX.strftime("%d/%m/%Y")
+                    , "4. Chi-squared"          : chi2
+                    , "5. Feller condition"     : str(res_feller_condition)
+                }
+        else:
+            Attributi = \
+                {     "0. Model"                 : model
+                    , "1. Name Time Series"      : W_class.NameTS.get()
+                    , "2. Start date "           : W_class.TS_dateMIN.strftime("%d/%m/%Y")
+                    , "3. End date"              : W_class.TS_dateMAX.strftime("%d/%m/%Y")
+                    , "4. Chi-squared"           : chi2
+                }
+
     r = intestazioneCalibration(xla = xla, rng = r, attributi = Attributi , title = model)
     r = writeParameterCalibration(xla = xla, rng = r, v_name = W_class.params_names, v_value = opt_dict,  dict = W_class.param_dict)
     r = writeResultPandas(xla = xla , rng = r, df = res, flagPrintColumns = True)
     s = xla.Cells.Columns.AutoFit()
+
+
+
+
+def writeTemplateCalibration(xla, nameSheet):
+
+    r = findCalibrationPos(xla, nameSheet)
+
+    #---
+    #mi posiziono nella prima cella utile per scrivere i risultati del fitting
+    #---
+
+    ##########################
+    ## CURVE - Date
+    ##########################
+
+    mat = pd.DataFrame()
+
+    mat['Date']  = pd.date_range(start=datetime.datetime.now().date() - datetime.timedelta(7), periods=7)
+    mat['Value'] = np.zeros(7)
+    mat['Usage'] = 'Y'
+
+    Attributi = \
+        {       "0. CurveType"           : 'Swap'
+            ,   "1. Interest rate Type"  : 'SMP, CMP, CNT'
+            ,   "2. Date Ref"            :  datetime.datetime.now().strftime("%m/%d/%Y")
+        }
+
+    r = intestazioneCalibration(xla=xla, rng=r, attributi=Attributi, title='Template Calibration Curve - Date')
+    r = writeResultPandas(xla=xla, rng=r, df=mat, flagPrintColumns=True)
+    xla.Cells.ColumnWidth = 18
+
+
+    ##########################
+    ## CURVE - Time
+    ##########################
+
+    mat = pd.DataFrame()
+
+    mat['Times']  = np.arange(1,4.5,step=0.5)
+    mat['Value'] = np.zeros(7)
+    mat['Usage'] = 'Y'
+
+    Attributi = \
+        {       "0. CurveType"           : 'Swap'
+            ,   "1. Interest rate Type"  : 'SMP, CMP, CNT'
+            ,   "2. Date Ref"            :  datetime.datetime.now().strftime("%m/%d/%Y")
+        }
+
+    r = intestazioneCalibration(xla=xla, rng=r, attributi=Attributi, title='Template Calibration Curve - Times')
+    r = writeResultPandas(xla=xla, rng=r, df=mat, flagPrintColumns=True)
+    xla.Cells.ColumnWidth = 18
+
+    ##########################
+    ## TIME SERIES
+    ##########################
+
+    mat = pd.DataFrame()
+
+    mat['Date'] = pd.date_range(start=datetime.datetime.now().date() - datetime.timedelta(7),periods=7)
+    mat['Value'] = np.zeros(7)
+    mat['Usage'] = 'Y'
+
+    Attributi = \
+        {     "0. TSType"      : 'Time Series'
+        }
+
+    r = intestazioneCalibration(xla = xla, rng = r, attributi = Attributi , title = 'Template Calibration Time Series')
+    r = writeResultPandas(xla = xla , rng = r, df = mat, flagPrintColumns = True)
+    xla.Cells.ColumnWidth = 18
+
+    ##########################
+    ## OPTION - Swaption
+    ##########################
+
+    mat = pd.DataFrame()
+
+    mat['Expiry']   = np.arange(1,8,step=1) * 360.
+    mat['Maturity'] = 10. * 360.
+    mat['Value'] = np.zeros(7)
+    mat['Usage'] = 'Y'
+
+    Attributi = {
+             "0. Date Ref"    : datetime.datetime.now().strftime("%m/%d/%Y")
+            ,"1. OptionType"  : 'Swaption'
+            ,"2. Type value"  : 'Price, Volatility'
+            ,"3. Type model"  : 'No Shifted'
+            ,"4. Tenor swap"  : 0.5
+    }
+
+    r = intestazioneCalibration(xla=xla, rng=r, attributi=Attributi, title='Template Calibration Swaption')
+    r = writeResultPandas(xla=xla, rng=r, df=mat, flagPrintColumns=True)
+    xla.Cells.ColumnWidth = 18
+
+
+    ##########################
+    ## OPTION - Opzione
+    ##########################
+
+    mat = pd.DataFrame()
+
+    mat['Times']   = np.arange(1,8,step=1)
+    mat['Value'] = np.zeros(7)
+    mat['Usage'] = 'Y'
+
+    Attributi = {
+             "0. Date Ref"           : datetime.datetime.now().strftime("%m/%d/%Y")
+            ,"1. OptionType"         : 'CapFloor, Cap, Floor'
+            ,"2. Type value"         : 'Price, Volatility'
+            ,"3. Tenor oplet (month)": 0
+            ,"4. Strike"             : 0.
+    }
+
+    r = intestazioneCalibration(xla=xla, rng=r, attributi=Attributi, title='Template Calibration Option')
+    r = writeResultPandas(xla=xla, rng=r, df=mat, flagPrintColumns=True)
+    xla.Cells.ColumnWidth = 18

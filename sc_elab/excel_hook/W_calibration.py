@@ -2,6 +2,7 @@ from Tkinter import *
 import tkMessageBox
 import numpy as np
 import pandas as pd
+import datetime
 
 def FQ(label):
     print ('------------- FIN QUI TUTTO OK  %s ----------' %(label))
@@ -9,36 +10,50 @@ def FQ(label):
 
 def model_parameters(value):
     if value == 'CIR':
-        dict = {'r0':{'sv':'0.03','min':'0.000001','max':'0.5','fix':0},
-                  'k'  :{'sv':'0.03', 'min':'0.0001', 'max':'10.0','fix':0},
-                  'sigma': {'sv': '0.1', 'min': '0.0001', 'max': '1.0','fix':0},
-                  'theta': {'sv': '0.03', 'min': '0.0001', 'max': '10.0','fix':0}
-                  }
+        dict = {'r0'    :{'sv':'0.03','min':'0.000001', 'max':'0.5' ,'fix':0},
+                'k'     :{'sv':'0.5' ,'min':'0.001'   , 'max':'10.0','fix':0},
+                'sigma' :{'sv':'0.05','min':'0.005'   , 'max':'1.0' ,'fix':0},
+                'theta' :{'sv':'0.03','min':'0.001'   , 'max':'0.3' ,'fix':0}
+                }
 
         # mi servono ordinati
         names = ['r0', 'k', 'theta', 'sigma']
         attribute = ['sv', 'min', 'max', 'fix']
 
     elif value == 'VSCK':
-        dict = {'r0':{'sv':'0.03','min':'-0.5','max':'0.5','fix':0},
-                  'k'  :{'sv':'0.03', 'min':'0.0001', 'max':'10.0','fix':0},
-                  'sigma': {'sv': '0.1', 'min': '0.0001', 'max': '10.0','fix':0},
-                  'theta': {'sv': '0.03', 'min': '0.0001', 'max': '10.0','fix':0}
-                  }
+        dict = {'r0'    :{'sv':'0.03', 'min': '-0.5'  , 'max':'0.5'  ,'fix':0},
+                'k'     :{'sv':'0.03', 'min': '0.0001', 'max':'10.0' ,'fix':0},
+                'sigma' :{'sv':'0.1' , 'min': '0.0001', 'max': '10.0','fix':0},
+                'theta' :{'sv':'0.03', 'min': '0.0001', 'max': '10.0','fix':0}
+                }
 
         # mi servono ordinati
         names = ['r0', 'k', 'theta', 'sigma']
         attribute = ['sv', 'min', 'max', 'fix']
 
     elif value == 'Jarrow Yildirim':
-        dict ={}
-        names = []
-        attribute = []
+        dict ={'aN'   :{'sv':'0.07' , 'min': '-0.8'  , 'max': '5.0' ,'fix':0},
+              'aR'    :{'sv':'0.02' , 'min': '-0.8'  , 'max': '5.0' ,'fix':0},
+              'sigmaR':{'sv':'0.009', 'min': '0.0001', 'max': '0.01','fix':0},
+              'sigmaN':{'sv':'0.009', 'min': '0.0001', 'max': '0.01','fix':0},
+              'sigmaI':{'sv':'0.009', 'min': '0.0001', 'max': '0.01','fix':0},
+              'rhoNR' :{'sv':'0.2'  , 'min': '-0.5'  , 'max': '0.5' ,'fix':0},
+              'rhoNI' :{'sv':'0.2'  , 'min': '-0.5'  , 'max': '0.5' ,'fix':0},
+              'rhoRI' :{'sv':'0.2'  , 'min': '-0.5'  , 'max': '0.5' ,'fix':0}
+              }
+        names = ['aN', 'aR', 'sigmaR', 'sigmaN', 'sigmaI', 'rhoNR', 'rhoNI', 'rhoRI']
+        attribute = ['sv', 'min', 'max', 'fix']
 
     elif value == 'G2++':
-        dict ={}
-        names = []
-        attribute = []
+        dict ={'a'      :{'sv':'0.1'  , 'min': '0.0001', 'max': '5.0','fix':0},
+              'sigma'   :{'sv':'0.1'  , 'min': '0.0001', 'max': '0.7','fix':0},
+              'b'       :{'sv': '0.01', 'min': '0.0001', 'max': '5.0','fix':0},
+              'eta'     :{'sv': '0.01', 'min': '0.0001', 'max': '0.7','fix':0},
+              'rho'     :{'sv': '0.1' , 'min': '-0.7'  , 'max': '0.7','fix':0}
+              }
+        names = ['a', 'sigma', 'b', 'eta', 'rho']
+        attribute = ['sv', 'min', 'max', 'fix']
+
     else:
         dict ={}
         names = []
@@ -49,15 +64,14 @@ def model_parameters(value):
 
 class W_calib_models(Frame):
     def close_window(self):
+        self.res = 0
         self.master.destroy()
 
-    def donothing(self):
-        tkMessageBox.showinfo("Nothing To do!", "bye bye")
-        self.close_window()
 
     def __init__(self, master = None,nameWorkbook = None ,nameWorksheet = None):
         Frame.__init__(self, master)
         self.master = master
+        self.master.title("Calibration models")
 
         self.nameWorkbook = nameWorkbook
         self.nameWorksheet = nameWorksheet
@@ -79,6 +93,7 @@ class W_calib_models(Frame):
                         variable=self.model,
                         value=name_calib).pack(anchor=W)
 
+        self.res = 1
         # create button
         self.btn2 = Button(self, text="Cancel",  command=lambda:self.close_window())
         self.btn2.pack(side=BOTTOM, fill = 'x')
@@ -102,11 +117,8 @@ import ttk
 class W_calib_menu(LabelFrame):
 
     def close_window(self):
+        self.res = 0
         self.destroy()
-        self.master.destroy()
-
-    def donothing(self):
-        tkMessageBox.showinfo("Nothing To do!", "bye bye")
         self.master.destroy()
 
     def actionTAB(self):
@@ -133,8 +145,9 @@ class W_calib_menu(LabelFrame):
         #########################################################################
 
         LabelFrame.__init__(self, self.master)
-        self.config(width=465, height=460)
-        self.pack(fill=BOTH)
+        self.grid()
+        self.master.title("Configure calibration")
+
 
         self.nameWorkbook = nameWorkbook
         self.nameWorksheet = nameWorksheet
@@ -157,8 +170,7 @@ class W_calib_menu(LabelFrame):
         #########################################################################
 
         label_tit = Label(self,font=font9,text='Model: ' + model,
-                               anchor='nw',justify='left')
-        label_tit.place(relx=0.043, rely=0.025, height=21, width=170)
+                               anchor='nw',justify='left').grid(row = 0, column = 0, rowspan = 1, columnspan = 2,pady=5, sticky = W+E+N+S)
 
         #########################################################################
         # Area di scelta tra MKT e TS
@@ -166,10 +178,10 @@ class W_calib_menu(LabelFrame):
 
         self.set_mkt_ts = StringVar()
         self.rb_type1 = Radiobutton(self,text='Market',justify='left',variable=self.set_mkt_ts,value='MKT',command=self.actionTAB)
-        self.rb_type1.place(relx=0.065, rely=0.099, relheight=0.062, relwidth=0.14)
+        self.rb_type1.grid(row = 1, column = 1, rowspan = 1, columnspan = 1, pady =5, sticky = W+E+N+S)
 
         self.rb_type2 = Radiobutton(self,text='Time Series',justify='left',variable=self.set_mkt_ts,value='TS',command=self.actionTAB)
-        self.rb_type2.place(relx=0.215, rely=0.099, relheight=0.062, relwidth=0.189)
+        self.rb_type2.grid(row = 1, column = 2, rowspan = 1, columnspan = 1, pady = 5, sticky = W+E+N+S)
         self.set_mkt_ts.set('MKT')
 
         #########################################################################
@@ -177,7 +189,7 @@ class W_calib_menu(LabelFrame):
         #########################################################################
 
         self.nb = ttk.Notebook(self)
-        self.nb.place(relx=0.043, rely=0.173, relheight=0.681, relwidth=0.955)
+        self.nb.grid(row = 3, column = 1, rowspan = 7, columnspan = 5, sticky = W+E+N+S)
 
         self.nb_t0 = Frame(self.nb)
         self.nb.add(self.nb_t0,text="MKT",compound="left")
@@ -195,18 +207,18 @@ class W_calib_menu(LabelFrame):
         #### Area Calibration Type
 
         Label2 = Label(self.nb_t0,text='Calibration Type')
-        Label2.place(relx=0.023, rely=0.04, height=21, width=93)
+        Label2.grid(row = 0, column = 1, rowspan = 1, columnspan = 1, pady =5, sticky = W+N+S)
 
         self.mkt_calibration_type = StringVar()
 
         self.rb_calib1 = Radiobutton(self.nb_t0,text='Options',justify='left',variable=self.mkt_calibration_type,value='OPT')
-        self.rb_calib1.place(relx=0.068, rely=0.16, relheight=0.1, relwidth=0.159)
+        self.rb_calib1.grid(row = 1, column = 1, rowspan = 1, columnspan = 1, pady =2, sticky = W+N+S)
 
         self.rb_calib2 = Radiobutton(self.nb_t0,text='Curve',justify='left',variable=self.mkt_calibration_type,value='CURVE')
-        self.rb_calib2.place(relx=0.068, rely=0.28, relheight=0.1, relwidth=0.134)
+        self.rb_calib2.grid(row = 2, column = 1, rowspan = 1, columnspan = 1, pady =2, sticky = W+N+S)
 
         self.rb_calib3 = Radiobutton(self.nb_t0,text='Curve + Options',justify='left',variable=self.mkt_calibration_type,value='CURVE_OPT')
-        self.rb_calib3.place(relx=0.068, rely=0.4, relheight=0.1, relwidth=0.261)
+        self.rb_calib3.grid(row = 3, column = 1, rowspan = 1, columnspan = 1, pady =2, sticky = W+N+S)
 
         if model in ['CIR','VSCK']:
             self.rb_calib1.config(state = "disabled")
@@ -218,91 +230,106 @@ class W_calib_menu(LabelFrame):
         #### Separatore Verticale
 
         self.TSeparator1 = ttk.Separator(self.nb_t0,orient="vertical")
-        self.TSeparator1.place(relx=0.409, rely=0.08, relheight=0.44)
+        self.TSeparator1.grid(row = 1, column = 2, rowspan = 4, columnspan = 1, padx = 15, sticky = W+E+N+S)
 
         #### Area Loss Function
 
         Label1 = Label(self.nb_t0,text='Loss Function')
-        Label1.place(relx=0.5, rely=0.04, height=21, width=79)
+        Label1.grid(row = 0, column = 3, rowspan = 1, columnspan = 1, pady =5, sticky = W+N+S)
 
         self.loss_function_type = IntVar()
 
-        self.rb_loss1 = Radiobutton(self.nb_t0,text= u"(\u0394x)^2",justify='left',variable=self.loss_function_type,value=2)
-        self.rb_loss1.place(relx=0.523, rely=0.16, relheight=0.1, relwidth=0.136)
+        self.rb_loss1 = Radiobutton(self.nb_t0,text= "Euclidean absolute",justify='left',variable=self.loss_function_type,value=1)
+        self.rb_loss1.grid(row = 1, column = 3, rowspan = 1, columnspan = 1, pady =1, sticky = W+N+S)
 
-        self.rb_loss2 = Radiobutton(self.nb_t0,text= u"|\u0394x|",justify='left',variable=self.loss_function_type,value=1)
-        self.rb_loss2.place(relx=0.523, rely=0.28, relheight=0.1, relwidth=0.1)
+        self.rb_loss2 = Radiobutton(self.nb_t0,text= "Euclidean relative",justify='left',variable=self.loss_function_type,value=2)
+        self.rb_loss2.grid(row = 2, column = 3, rowspan = 1, columnspan = 1, pady =1, sticky = W+N+S)
 
-        self.loss_function_type.set(2)
+        self.rb_loss3 = Radiobutton(self.nb_t0,text= "Manhattan absolute",justify='left',variable=self.loss_function_type,value=3)
+        self.rb_loss3.grid(row = 3, column = 3, rowspan = 1, columnspan = 1, pady =1, sticky = W+N+S)
+
+        self.rb_loss4 = Radiobutton(self.nb_t0,text= "Manhattan relative",justify='left',variable=self.loss_function_type,value=4)
+        self.rb_loss4.grid(row = 4, column = 3, rowspan = 1, columnspan = 1, pady =1, sticky = W+N+S)
+
+        self.loss_function_type.set(1)
 
         #### Alimentazione della curva di input da foglio Excel
+        Label(self.nb_t0, text='').grid(row = 5, column = 0, rowspan = 1, columnspan = 1, sticky = W+E+N+S)
 
         Label3 = Label(self.nb_t0, text='Curve')
-        Label3.place(relx=0.045, rely=0.64, height=21, width=37)
+        Label3.grid(row = 6, column = 1, rowspan = 1, columnspan = 1, pady =2, sticky = W+E+N+S)
 
         self.cb_curve = ttk.Combobox(self.nb_t0)
         self.NameCurve = StringVar()
         self.cb_curve.config(textvariable = self.NameCurve, state = "readonly", values = tmpCurve)
-        self.cb_curve.place(relx=0.227, rely=0.64, relheight=0.084, relwidth=0.416)
+        self.cb_curve.grid(row = 6, column = 2, rowspan = 1, columnspan = 3, pady =2, sticky = W+E+N+S)
 
         #### Alimentazione delle opzioni di input da foglio Excel
 
         Label4 = Label(self.nb_t0,text='Options')
-        Label4.place(relx=0.045, rely=0.76, height=21, width=48)
+        Label4.grid(row = 7, column = 1, rowspan = 1, columnspan = 1, pady =2, sticky = W+E+N+S)
 
         self.cb_options = ttk.Combobox(self.nb_t0)
         self.NameOption = StringVar()
         self.cb_options.config(textvariable = self.NameOption, state = "readonly", values = tmpOptions)
-        self.cb_options.place(relx=0.227, rely=0.76, relheight=0.084, relwidth=0.416)
+        self.cb_options.grid(row = 7, column = 2, rowspan = 1, columnspan = 3, pady =2, sticky = W+E+N+S)
 
         #########################################################################
         # Area TS
         #########################################################################
 
         ####
-        Label13 = Label(self.nb_t1,text='Time Series')
-        Label13.place(relx=0.045, rely=0.08, height=21, width=66)
+        Label(self.nb_t1, text='').grid(row=0, column=0, rowspan=1, columnspan=1, sticky=W + E + N + S)
+
+        Label13 = Label(self.nb_t1, text='Time Series')
+        Label13.grid(row=1, column=1, rowspan=1, columnspan=1, pady=2, sticky=W + N + S)
 
         self.cb_ts = ttk.Combobox(self.nb_t1)
         self.NameTS = StringVar()
-        self.cb_ts.config(textvariable = self.NameTS, state = "readonly", values = tmpTS)
-        self.cb_ts.place(relx=0.25, rely=0.08, relheight=0.084, relwidth=0.37)
+        self.cb_ts.config(textvariable=self.NameTS, state="readonly", values=tmpTS)
+        self.cb_ts.grid(row=1, column=2, rowspan=1, columnspan=1, pady=2, sticky=W + N + S)
+        self.cb_ts.bind("<<ComboboxSelected>>",
+                        lambda _: self.list_combobox_ts(dictObject=objectOnSheetDictionary, tableObject=objectOnSheet))
+
+        Label(self.nb_t1, text='').grid(row=2, column=0, rowspan=1, columnspan=1, sticky=W + E + N + S)
 
         ####
-        Label14 = Label(self.nb_t1,text= 'Date min')
-        Label14.place(relx=0.045, rely=0.24, height=21, width=54)
+        Label14 = Label(self.nb_t1, text='Date min')
+        Label14.grid(row=3, column=1, rowspan=1, columnspan=1, pady=2, sticky=W + N + S)
 
-        self.te_dateMin = ttk.Entry(self.nb_t1)
-        self.te_dateMin.place(relx=0.25, rely=0.24, relheight=0.084, relwidth=0.195)
-        self.te_dateMin.configure(width=86)
+        self.te_dateMin = ttk.Combobox(self.nb_t1)
+        self.te_dateMin.grid(row=3, column=2, rowspan=1, columnspan=1, pady=2, sticky=W + N + S)
+        self.te_dateMin.configure(width=15)
 
         ####
-        Label15 = Label(self.nb_t1,text='Date max')
-        Label15.place(relx=0.045, rely=0.36, height=21, width=55)
+        Label15 = Label(self.nb_t1, text='Date max')
+        Label15.grid(row=4, column=1, rowspan=1, columnspan=1, pady=2, sticky=W + N + S)
 
-        self.te_dateMax = ttk.Entry(self.nb_t1)
-        self.te_dateMax.place(relx=0.25, rely=0.36, relheight=0.084, relwidth=0.195)
-        self.te_dateMax.configure(width=86)
+        self.te_dateMax = ttk.Combobox(self.nb_t1)
+        self.te_dateMax.grid(row=4, column=2, rowspan=1, columnspan=1, pady=2, sticky=W + N + S)
+        self.te_dateMax.configure(width=15)
 
         #########################################################################
         # Area PARAMS
         #########################################################################
 
         # carico i parametri per il modello selezionato
-        self.param_dict,self.params_names,self.params_attribute = model_parameters(model)
+        self.param_dict, self.params_names, self.params_attribute = model_parameters(model)
 
         # creo la tabella in base al modello
-        self.create_range_parameter(self.nb_t2,self.params_names,self.params_attribute)
+        self.create_range_parameter(self.nb_t2, self.params_names, self.params_attribute)
 
         #########################################################################
         # Bottoni finali
         #########################################################################
+        self.res = 1
 
-        self.bSubmit = Button(self,text='Submit',command=lambda:self.go_to_calib(dictObject = objectOnSheetDictionary,tableObject = objectOnSheet))
-        self.bSubmit.place(relx=0.688, rely=0.889, height=34, width=67)
+        self.bSubmit = Button(self, text='Submit', command=lambda: self.go_to_calib(dictObject=objectOnSheetDictionary,
+                                                                                    tableObject=objectOnSheet))
+        self.bSubmit.grid(row=10, column=4, rowspan=2, columnspan=1, sticky=W + E + N + S)
 
-        self.bCancel = Button(self,text='Cancel',command=lambda: self.close_window())
-        self.bCancel.place(relx=0.839, rely=0.889, height=34, width=67)
+        self.bCancel = Button(self, text='Cancel', command=lambda: self.close_window())
+        self.bCancel.grid(row=10, column=5, rowspan=2, columnspan=1, sticky=W + E + N + S)
 
     def update_param(self):
         for y in self.params_names:
@@ -319,7 +346,7 @@ class W_calib_menu(LabelFrame):
                     else:
                         self.param_dict[y][x] = eval("self.{}[0].get()".format(y))
 
-    def createInsertRange(self,var, row_nr, frame, par_name):
+    def createInsertRange(self, var, row_nr, frame, par_name):
         Label(frame, height=1, width=5, text=par_name).grid(row=row_nr, column=0)
 
         p0 = Entry(frame, textvariable=var[0])
@@ -337,12 +364,12 @@ class W_calib_menu(LabelFrame):
         p4 = Checkbutton(frame, variable=var[3])
         p4.grid(row=row_nr, column=4)
 
-    def create_range_parameter(self,frame,params_names,params_attribute):
+    def create_range_parameter(self, frame, params_names, params_attribute):
         i00 = Label(frame, height=1, width=10, text="").grid(row=0, column=0)
         i01 = Label(frame, height=1, width=10, text="N sample").grid(row=1, column=0)
 
         self.nTime = IntVar()
-        nTimeEntry = Entry(frame, textvariable= self.nTime)
+        nTimeEntry = Entry(frame, textvariable=self.nTime)
         nTimeEntry.grid(row=1, column=1)
         nTimeEntry.config(width=7)
         self.nTime.set('1')
@@ -374,14 +401,36 @@ class W_calib_menu(LabelFrame):
             row_idx = row_idx + 1
 
 
+    def list_combobox_ts(self, dictObject, tableObject):
+
+        if self.NameTS.get() != '':
+            # lettura delle date della TS selezionata
+            tmp = tableObject.loc[tableObject.Name == self.NameTS.get(), 'keys'].values[0]
+            v = np.array([isinstance(dictObject[tmp][0].values[i], datetime.datetime) for i in
+                          xrange(dictObject[tmp][0].values.__len__())])
+
+            # creazione della lista con le date disponibili
+            date_list_tmp = dictObject[tmp][0].values[np.array(v)]
+            date_list = [date_list_tmp[i].strftime("%d/%m/%Y") for i in xrange(date_list_tmp.__len__())]
+
+            # selezione della data minima
+            self.te_dateMin['values'] = date_list
+            self.te_dateMin.current(0)
+
+            # selezione della data massima
+            date_list_tmp[::-1].sort()
+            date_list = [date_list_tmp[i].strftime("%d/%m/%Y") for i in xrange(date_list_tmp.__len__())]
+            self.te_dateMax['values'] = date_list
+            self.te_dateMax.current(0)
+
+
     def go_to_calib(self, dictObject, tableObject):
         # recupero la calibrazione selezionata
         self.update_param()
         print 'Letto tutte le configurazioni'
-        #print 'Parametri:', self.param_dict
+        # print 'Parametri:', self.param_dict
 
-
-        if self.set_mkt_ts.get()== 'MKT':
+        if self.set_mkt_ts.get() == 'MKT':
             print 'Calibratore per il mercato'
 
             if self.NameCurve.get() == "":
@@ -390,10 +439,10 @@ class W_calib_menu(LabelFrame):
 
                 tmp = tableObject.loc[tableObject.Name == self.NameCurve.get(), 'keys'].values[0]
                 self.CurveChosen = dictObject[tmp]
-                #print 'Curva selezionata:', self.CurveChosen
+                # print 'Curva selezionata:', self.CurveChosen
 
                 if self.mkt_calibration_type.get() == 'CURVE':
-                    self.close_window()
+                    self.master.destroy()
 
                 else:
                     if self.NameOption.get() == "":
@@ -401,10 +450,10 @@ class W_calib_menu(LabelFrame):
                     else:
                         tmp = tableObject.loc[tableObject.Name == self.NameOption.get(), 'keys'].values[0]
                         self.OptionChosen = dictObject[tmp]
-                        #print 'Opzione selezionata:', self.OptionChosen
-                        self.close_window()
+                        # print 'Opzione selezionata:', self.OptionChosen
+                        self.master.destroy()
 
-        if self.set_mkt_ts.get()== 'TS':
+        if self.set_mkt_ts.get() == 'TS':
             print 'Calibratore per il TS'
 
             if self.NameTS.get() == "":
@@ -412,9 +461,11 @@ class W_calib_menu(LabelFrame):
             else:
                 tmp = tableObject.loc[tableObject.Name == self.NameTS.get(), 'keys'].values[0]
                 self.TSChosen = dictObject[tmp]
-                #print 'TS selezionata:', self.TSChosen
 
-                self.close_window()
+                self.TS_dateMIN = datetime.datetime.strptime(self.te_dateMin.get(), "%d/%m/%Y")
+                self.TS_dateMAX = datetime.datetime.strptime(self.te_dateMax.get(), "%d/%m/%Y")
+
+                self.master.destroy()
 
 
 def readSheetObject_clearRows(input_dict = None):

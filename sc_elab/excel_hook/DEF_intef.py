@@ -8,7 +8,11 @@ fitt_translate ={'0' : 'linear', '1':'AVD', '2':'SVE', '3':'CIR', '4':'NS' }
 nameSheetCurve         = 'SwapCurve'
 nameSheetBootstrap     = 'ElabSwapCurve'
 nameSheetCDSBootSurv   = 'Surv Prob CDS'
+nameSheetCDSBootMarginal = 'Marginal default'
+nameSheetCDSBootHazard = 'Hazard rate'
 nameSheetCDSBootSpread = 'Spread CDS'
+nameSheetCDSBootZcSpread = 'ZC Spread CDS'
+nameSheetCDSBootPySpread = 'PY Spread CDS'
 
 nameSheetBondSurv = 'Surv Prob BOND'
 nameSheetBondSpread = 'Spread BOND'

@@ -571,7 +571,8 @@ from sc_elab.excel_hook.connection import Connection
 
 
 def load_all_new_anag(connection_status,dict):
-
+    val_results = False
+    msg_anag = 'Errore'
     for tkt in dict.keys():
         data_anag = dict[tkt].copy()
         table_name_anag = data_anag.pop('tableDB')
@@ -673,7 +674,7 @@ def test_load_nuovi_dati(file_new_data):
             close_loading(con.db,msg_alert,"Chk")
             return
 
-        # ------- NOTA ==> DA PERSONALIZZARE PER CARICAMENTO MASSIMO
+
         if num_isin == 0 :
             elenco_escluso_bond = elenco_tabelle.copy()
             del elenco_escluso_bond['Bond_master']
@@ -738,10 +739,12 @@ def test_load_nuovi_dati(file_new_data):
                             return
 
             # carico tutte le anagrafiche mancanti
-            val_results, msg_anag = load_all_new_anag(connection_status,anag_assenti)
-            if val_results == False:
-                close_loading(con.db, msg_anag, "Chk")
-                return
+            val_results = False
+            if len(anag_assenti)!=0:
+                val_results, msg_anag = load_all_new_anag(connection_status,anag_assenti)
+                if val_results == False:
+                    close_loading(con.db, msg_anag, "Chk")
+                    return
 
             for j in xrange(0, num_valori):
                 tickerTmp  = data_values[u'Ticker'][j]
@@ -749,7 +752,7 @@ def test_load_nuovi_dati(file_new_data):
 
                 table_name_data = 'DProTS_master'
                 data_tick = df1.loc[df1['Ticker'] == tickerTmp,:].to_dict('list')
-
+                val_results = False
                 print 'try insert data: '+ str(tickerTmp)
                 val_results, msg_insert = Insert_data_record(connection_status, table_name_data, tickerAnag,
                                                              data_tick)
@@ -782,6 +785,5 @@ def test_load_nuovi_dati(file_new_data):
                 return
 
 if __name__ == '__main__':
-
-    input_file = r'C:\Users\scalambrinm\Desktop\per_test.xlsx'
+    input_file = r'C:\Users\scalambrinm\Desktop\RENAULT_CDS.xlsx'
     test_load_nuovi_dati(input_file)
