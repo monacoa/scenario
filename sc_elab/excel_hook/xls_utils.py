@@ -1,9 +1,6 @@
 from pyxll import xlcAlert
-import sys
-import datetime
 from win32com.client import constants as const
 from Tkinter import *
-from sc_elab.core.SwpCurve import dict_segm2, Segm, Curve, BootstrappedCurve
 
 
 
@@ -250,6 +247,12 @@ def writeResultPandas( xla, rng , df, flagPrintColumns = True):
             xla.Cells(topLeftRow, topLeftCol + j).Font.Bold = True
             xla.Cells(topLeftRow, topLeftCol + j).HorizontalAlignment = const.xlCenter
             xla.Cells(topLeftRow , topLeftCol + j).Value = df.columns.values[j]
+
+        # scrittura della linea sotto i nomi delle colonne
+        RR = xla.Range(xla.Cells(topLeftRow, topLeftCol), xla.Cells(topLeftRow, topLeftCol + nCols - 1))
+        RR.Borders(const.xlEdgeBottom).LineStyle = const.xlContinuous
+        RR.Borders(const.xlEdgeBottom).Weight = const.xlThin
+        RR.Borders(const.xlEdgeBottom).ColorIndex = 0
 
         topLeftRow = topLeftRow + 1
 

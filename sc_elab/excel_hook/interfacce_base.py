@@ -836,93 +836,201 @@ def calibration_from_xls(control):
 
     xla = xl_app()
     book = xla.ActiveWorkbook
+    wbName = str(book.FullName)
+    book.Save()
 
     root = Tk()
+    root.iconbitmap(default= imp.find_module('sc_elab')[1] + r'\\excel_hook\\fig\\icona.ico')
 
-    # -------------- controllo l'esistenza del foglio di input CalibData ----------------
-    try:
+    allSheetInBook = allSheet(book)
+
+    # -------------- controllo l'esistenza del foglio  ----------------
+    if nameSheet in allSheetInBook:
         s = book.Sheets(nameSheet)
         s.Activate()
-    except:
-        msg = "Missing input sheet(%s) for Calibration in your workbook... \nNothing to do for me!" %nameSheetCalib
+    else:
+        msg = "Missing input sheet(%s) for Calibration in your workbook... \nNothing to do for me!" %nameSheet
         tkMessageBox.showinfo("Warning!", msg)
         root.destroy()
         return
-    # -------------- apro la finestra di input della scelta  ----------------------------
-
-    wbName = str(book.FullName)
-    book.Save()
+    # -----------------------------------------------------------------
 
     W = W_calib_models(master = root, nameWorkbook= wbName, nameWorksheet=nameSheet)
     root.mainloop()
 
-    W1 = W.newWindow
-    loss_function_type = W1.loss_function_type.get()
-    model_dict = W1.param_dict
+    if W.res > 0:
+        W1 = W.newWindow
 
-    model = W.model.get()
-    type_data = W1.set_mkt_ts.get()
+        if W1.res > 0:
+            loss_function_type_tmp = W1.loss_function_type.get()
 
-    if type_data == 'MKT':
+            if loss_function_type_tmp == 1:
+                loss_function_type_power = 2
+                loss_function_type_absrel = 'abs'
 
-        if (model in ['CIR','VSCK']):
-            mkt_value, mkt_to_fit, type_cap = preProcessignCurve(W1.CurveChosen)
+            elif  loss_function_type_tmp == 2:
+                loss_function_type_power = 2
+                loss_function_type_absrel = 'rel'
 
-            x0_m  = []
-            x_bnd = []
+            elif loss_function_type_tmp == 3:
+                loss_function_type_power = 1
+                loss_function_type_absrel = 'abs'
 
-            l_bound = []
-            h_bound = []
+            elif loss_function_type_tmp == 4:
+                loss_function_type_power = 1
+                loss_function_type_absrel = 'rel'
 
-            for p_name in W1.params_names:
-                x0_m.append(float(W1.param_dict[p_name]['sv']))
-                x_bnd.append([float(W1.param_dict[p_name]['min']), float(W1.param_dict[p_name]['max'])])
-                l_bound.append(float(W1.param_dict[p_name]['min']))
-                h_bound.append(float(W1.param_dict[p_name]['max']))
 
-            if W.model.get() == 'CIR':
-                ff = minimize(loss_zc_model_cir, args = (mkt_to_fit , W1.loss_function_type.get()), x0 = x0_m, method='TNC', bounds=x_bnd)
+            model_dict = W1.param_dict
+
+            model = W.model.get()
+            type_data = W1.set_mkt_ts.get()
+
+            if type_data == 'MKT':
+
+                if (model in ['CIR','VSCK']):
+                    mkt_value, mkt_to_fit, type_cap = preProcessignCurve(W1.CurveChosen)
+
+                    x0_m  = []
+                    x_bnd = []
+
+                    l_bound = []
+                    h_bound = []
+
+                    for p_name in W1.params_names:
+                        x0_m.append(float(W1.param_dict[p_name]['sv']))
+                        x_bnd.append([float(W1.param_dict[p_name]['min']), float(W1.param_dict[p_name]['max'])])
+                        l_bound.append(float(W1.param_dict[p_name]['min']))
+                        h_bound.append(float(W1.param_dict[p_name]['max']))
+
+                    if W.model.get() == 'CIR':
+                        ff = minimize(loss_zc_model_cir, args = (mkt_to_fit ,loss_function_type_power,loss_function_type_absrel), x0 = x0_m, method='TNC', bounds=x_bnd)
+                    else:
+                        ff = minimize(loss_zc_model_vsck, args = (mkt_to_fit ,loss_function_type_power,loss_function_type_absrel), x0 = x0_m, method='TNC', bounds=x_bnd)
+
+                    # creo la lista dei risultati ottimali
+                    list_model_params_opt = []
+                    list_model_params_opt.append(ff.x[0])
+                    list_model_params_opt.append(ff.x[1])
+                    list_model_params_opt.append(ff.x[2])
+                    list_model_params_opt.append(ff.x[3])
+
+                    if W.model.get() == 'CIR':
+                        mkt_value['VALUE_OPT'] = compute_zc_cir_rate(list_model_params_opt, mkt_value["TIME"])
+                    else:
+                        mkt_value['VALUE_OPT'] = compute_zc_vsck_rate(list_model_params_opt, mkt_value["TIME"])
+
+
+                    # converto i risultati in composto nel caso in cui in input lo siano
+                    if type_cap == 'CMP':
+                        mkt_value['VALUE_OPT'] = fromContinuousToCompost(mkt_value['VALUE_OPT'])
+
+                    # calcolo il chi quadro
+                    chi2 = computeCHI2(mkt=mkt_value["VALUE"], mdl=mkt_value['VALUE_OPT'])
+
+                    # scrivo su foglio Excel
+                    writeCalibrationResOnXls(type_data = type_data,
+                                             model = model,
+                                             W_class = W1,
+                                             xla = xla,
+                                             chi2 = chi2,
+                                             opt_dict = list_model_params_opt,
+                                             res = mkt_value,
+                                             capitalization_type = type_cap)
+
+                    # produco il grafico
+                    mkt_value.set_index('TIME',inplace=True)
+                    mkt_value.plot(style=['o', '-'])
+                    plt.title('Calibration results')
+                    plt.xlabel('Time')
+                    plt.ylabel('Rate')
+                    plt.show()
+
+                if W1.NameOption.get() != "":
+                    opt_total = W1.OptionChosen
+
             else:
-                ff = minimize(loss_zc_model_vsck, args = (mkt_to_fit , W1.loss_function_type.get()), x0 = x0_m, method='TNC', bounds=x_bnd)
 
-            # creo la lista dei risultati ottimali
-            list_model_params_opt = []
-            list_model_params_opt.append(ff.x[0])
-            list_model_params_opt.append(ff.x[1])
-            list_model_params_opt.append(ff.x[2])
-            list_model_params_opt.append(ff.x[3])
+                if (model in ['CIR','VSCK']):
+                    # pre processing time series
+                    mkt_to_fit = preProcessignTimeSeries(df = W1.TSChosen, dt_min= W1.TS_dateMIN , dt_max= W1.TS_dateMAX)
 
-            if W.model.get() == 'CIR':
-                mkt_value['VALUE_OPT'] = compute_zc_cir_rate(list_model_params_opt, mkt_value["TIME"])
-            else:
-                mkt_value['VALUE_OPT'] = compute_zc_vsck_rate(list_model_params_opt, mkt_value["TIME"])
+                    # creazione del set di parametri
+                    x0_m  = []
+                    x_bnd = []
 
+                    l_bound = []
+                    h_bound = []
 
-            # converto i risultati in composto nel caso in cui in input lo siano
-            if type_cap == 'CMP':
-                mkt_value['VALUE_OPT'] = fromContinuousToCompost(mkt_value['VALUE_OPT'])
+                    for p_name in W1.params_names:
+                        x0_m.append(float(W1.param_dict[p_name]['sv']))
+                        x_bnd.append([float(W1.param_dict[p_name]['min']), float(W1.param_dict[p_name]['max'])])
+                        l_bound.append(float(W1.param_dict[p_name]['min']))
+                        h_bound.append(float(W1.param_dict[p_name]['max']))
 
-            # calcolo il chi quadro
-            chi2 = computeCHI2(mkt=mkt_value["VALUE"], mdl=mkt_value['VALUE_OPT'])
+                    # ottimizzazione
+                    if W.model.get() == 'CIR':
+                        ff = minimize(mle_cir, args=(mkt_to_fit), x0 = x0_m, method='TNC', bounds=x_bnd)
+                    else:
+                        ff = minimize(mle_vsck, args=(mkt_to_fit), x0 = x0_m, method='TNC', bounds=x_bnd)
 
-            # scrivo su foglio Excel
-            writeCalibrationResOnXls(model = model, W_class = W1, xla = xla, chi2 = chi2, opt_dict = list_model_params_opt, res = mkt_value)
+                    # creo la lista dei risultati ottimali
+                    list_model_params_opt = []
+                    list_model_params_opt.append(mkt_to_fit.loc[0,'VALUE'])
+                    list_model_params_opt.append(ff.x[1])
+                    list_model_params_opt.append(ff.x[2])
+                    list_model_params_opt.append(ff.x[3])
 
-            # produco il grafico
-            mkt_value.set_index('TIME',inplace=True)
-            mkt_value.plot(style=['o', '-'])
-            plt.title('Calibration results')
-            plt.xlabel('Time')
-            plt.ylabel('Rate')
-            plt.show()
+                    # creazione dei risultati
+                    if W.model.get() == 'CIR':
+                        model_value = generate_cir_perc(params = list_model_params_opt, data_to_fit = mkt_to_fit)
+                    else:
+                        model_value = generate_vsck_perc(params = list_model_params_opt, data_to_fit = mkt_to_fit)
 
-        if W1.NameOption.get() != "":
-            opt_total = W1.OptionChosen
+                    # calcolo il chi quadro
+                    chi2 = computeCHI2(mkt=model_value["VALUE"], mdl=model_value['MODEL VALUE MEAN'])
 
+                    # scrivo su foglio Excel
+                    writeCalibrationResOnXls(type_data = type_data,model = model, W_class = W1, xla = xla, chi2 = chi2, opt_dict = list_model_params_opt, res = model_value)
+
+                    # produzione del grafico
+                    model_value.set_index('DATE',inplace=True)
+                    model_value.plot(style=['bo','r-', 'k--', 'k--'])
+                    plt.title('Calibration results')
+                    plt.xlabel('Date')
+                    plt.ylabel('Value')
+                    plt.show()
+
+# ==========================================
+# punto d'ingresso per Template Calibration
+# ==========================================
+
+@xl_func
+def template_elaborate_calibration(control):
+
+    xla = xl_app()
+    wb = xla.ActiveWorkbook
+
+    allSheetInBook = allSheet(wb)
+
+    # -------------- controllo l'esistenza del foglio  ----------------
+    if not (nameSheetCalib in allSheetInBook):
+        s = wb.Sheets.Add()
+        s.Name = nameSheetCalib
     else:
-        ts_total = W1.TSChosen
+        s = wb.Sheets(nameSheetCalib)
+        s.Activate()
+    # -----------------------------------------------------------------
 
+    '''
+    possibilita di scegliere la tipologia di template
+    
+    root = Tk()
+    root.iconbitmap(default= imp.find_module('sc_elab')[1] + r'\\excel_hook\\fig\\icona.ico')
+    root.mainloop()
+    '''
 
+    writeTemplateCalibration(xla = xla, nameSheet = nameSheetCalib)
 
 # ==========================================
 # punto d'ingresso per Caricamento Dati
