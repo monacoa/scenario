@@ -1035,7 +1035,7 @@ class CdsCurve(Curve):
             self.values.append(val)
             #print self.mats, self.tags, self.values
 
-        self.show()
+        #self.show()
 
 
 

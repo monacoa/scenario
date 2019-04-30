@@ -85,28 +85,36 @@ def load_cds_curve_from_db(control):
     curve_des = app.new_window.curve
     curve_date= app.date
 
+    print 'curve_des:',curve_des
+
     xla  = xl_app()
     book = xla.ActiveWorkbook
+
     # -----
     # creo foglio nameSheetCurve se non esiste
     # -----
     nameSheet = nameSheetCDS
-    try:
-        s = book.Sheets(nameSheet)
-        s.Activate()
-    except:
+
+    allSheetInBook = allSheet(book)
+    # -------------- controllo l'esistenza del foglio  ----------------
+    if not (nameSheetElabMatrix in allSheetInBook):
         s = book.Sheets.Add()
         s.Name = nameSheet
-        # ------------------
-    cc = CdsCurve()
+    else:
+        s = book.Sheets(nameSheet)
+        s.Activate()
+    # -----------------------------------------------------------------
 
-    cc.ref_date       = datetime.date(day=int(curve_date[-2:]), month=int(curve_date[5:7]), year=int(curve_date[:4]))
-    cc.description    = curve_des
+    for x in xrange(0,len(curve_des)):
+        cc = CdsCurve()
 
-    cc.ratingProvider = app.new_window.new_window.rating.get()
-    cc.sectorProvider = app.new_window.new_window.sector.get()
-    cc.loadDataFromDB()
-    writeCurveOnXls(cc, nameSheet, xla, curve_type)
+        cc.ref_date       = datetime.date(day=int(curve_date[-2:]), month=int(curve_date[5:7]), year=int(curve_date[:4]))
+        cc.description    = curve_des[x]
+
+        cc.ratingProvider = app.new_window.new_window.rating.get()
+        cc.sectorProvider = app.new_window.new_window.sector.get()
+        cc.loadDataFromDB()
+        writeCurveOnXls(cc, nameSheet, xla, curve_type)
 
 #=======================================================================================================================
 # punto di ingresso per load BondData
@@ -657,6 +665,7 @@ def bootstrap_cds_from_xls(control):
     nameSheet = nameSheetCDS
     xla       = xl_app()
     book      = xla.ActiveWorkbook
+
     try:
         s = book.Sheets(nameSheet)
         s.Activate()
@@ -674,9 +683,6 @@ def bootstrap_cds_from_xls(control):
 
     root = Tk()
     W = W_bootstrapSelection(root, curveL = curveL, type = "CDS")
-    
-    
-    
     root.mainloop()
 
     n_c = len( W.curve)
