@@ -975,7 +975,7 @@ class CdsCurve(Curve):
         self.rendimento = 'Par Yield'
         self.node_type  = 'CDS'
         self.lag       = 2
-        self.recovery  =  35
+        self.recovery  =  40
         cod_segm       = 'SCDS' #codice_segmentazione
         self.settore   = 999
         self.rating    = 999
@@ -1024,10 +1024,10 @@ class CdsCurve(Curve):
 
         for record in res:
             #print "record:", record
-            mat = float(record[0])/365.0
+            mat = float(record[0])/360.
             #if (mat-int(mat)) < 1.e-2: mat = int(mat)
             mat = round(mat, 1)
-            tag = str(mat)+"Y"
+            tag = MaturityFromIntToString[record[0]]
             val = float(record[1])
             #print mat, tag, val
             self.mats.append(mat)

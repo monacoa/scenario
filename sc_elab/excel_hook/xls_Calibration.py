@@ -2,6 +2,8 @@ from sc_elab.excel_hook.xls_utils import drawBox, drawLine, formatTestataCurva, 
 import datetime
 from sc_elab.excel_hook.DEF_intef import nameSheetCalib,nameSheetCalibRes,FORMATT
 from sc_elab.excel_hook.xls_utils import findCalibrationPos, writeResultPandas
+from sc_elab.core.anagrafica_dati import MaturityFromIntToString
+
 
 import pandas as pd
 import numpy as np
@@ -169,7 +171,7 @@ def writeTemplateCalibration(xla, nameSheet):
     mat['Usage'] = 'Y'
 
     Attributi = \
-        {       "0. CurveType"           : 'Swap'
+        {       "0. CurveType"           : 'Swap, Inflation'
             ,   "1. Interest rate Type"  : 'SMP, CMP, CNT'
             ,   "2. Date Ref"            :  datetime.datetime.now().strftime("%m/%d/%Y")
         }
@@ -190,7 +192,7 @@ def writeTemplateCalibration(xla, nameSheet):
     mat['Usage'] = 'Y'
 
     Attributi = \
-        {       "0. CurveType"           : 'Swap'
+        {       "0. CurveType"           : 'Swap, Inflation'
             ,   "1. Interest rate Type"  : 'SMP, CMP, CNT'
             ,   "2. Date Ref"            :  datetime.datetime.now().strftime("%m/%d/%Y")
         }
@@ -225,15 +227,18 @@ def writeTemplateCalibration(xla, nameSheet):
 
     mat['Expiry']   = np.arange(1,8,step=1) * 360.
     mat['Maturity'] = 10. * 360.
+    mat['Expiry']   = mat['Expiry'].map(MaturityFromIntToString)
+    mat['Maturity'] = mat['Maturity'].map(MaturityFromIntToString)
     mat['Value'] = np.zeros(7)
     mat['Usage'] = 'Y'
 
     Attributi = {
              "0. Date Ref"    : datetime.datetime.now().strftime("%m/%d/%Y")
             ,"1. OptionType"  : 'Swaption'
-            ,"2. Type value"  : 'Price, Volatility'
-            ,"3. Type model"  : 'No Shifted'
-            ,"4. Tenor swap"  : 0.5
+            ,"2. SwaptionType": 'Payer, Receiver'
+            ,"3. Type value"  : 'Price, Volatility'
+            ,"4. Type model"  : 'No Shifted'
+            ,"5. Tenor swap"  : '6M'
     }
 
     r = intestazioneCalibration(xla=xla, rng=r, attributi=Attributi, title='Template Calibration Swaption')
