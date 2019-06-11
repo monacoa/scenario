@@ -47,7 +47,7 @@
                 </group>
                 <group id="Downloading" label="Option Surface">
                     <button id="Downloading_data" label="Swaptions" image=".\fig\Swaptions.png" onAction="sc_elab.excel_hook.interfacce_base.writeSwaptions" />
-                    <button id="Downloading_vols" label="Cap Floor" image=".\fig\Swaptions.png" onAction="sc_elab.excel_hook.interfacce_base.CapFloor_BVol_fromDBtoXls" />
+                    <button id="Downloading_vols" label="Cap Floor" image=".\fig\CapFloor.png" onAction="sc_elab.excel_hook.interfacce_base.CapFloor_BVol_fromDBtoXls" />
                     <button id="Bootstrap_vols" label="Bootstrap" image=".\fig\Bootstrap.png" onAction="sc_elab.excel_hook.interfacce_base.BootstrapCapFloorVol_on_xls"/>
                 </group>
                 <group id="Calibrate_" label="Elaborate">
