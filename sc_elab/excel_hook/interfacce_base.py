@@ -1505,7 +1505,9 @@ def BootstrapCapFloorVol_on_xls(control):
 
     # controllo di avere i dati per il Bootstrap
     if len(volsdata_choices) == 0 or len(disc_curves_choices) == 0:
+        root = Tk()
         tkMessageBox.showwarning('Warning', 'Missing data to perform the bootstrap...I cannot do anything!')
+        root.destroy()
         return
 
     # apro la finestra di selezione dei dati
