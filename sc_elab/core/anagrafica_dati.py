@@ -22,3 +22,8 @@ MaturityFromIntToString[330] ='11M'
 MaturityFromIntToString[450] ='15M'
 MaturityFromIntToString[540] ='18M'
 MaturityFromIntToString[630] ='21M'
+
+
+MaturityFromStringToYear = dict(zip([s + 'Y' for s in map(str, range(1, 70))],np.arange(1.,70.)))
+MaturityFromStringToYear['6M']  = 0.5
+MaturityFromStringToYear['18M'] = 1.5

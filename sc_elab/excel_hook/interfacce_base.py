@@ -1329,3 +1329,223 @@ def template_elaborate_matrix(control):
     root.mainloop()
 
     writeTemplateQuarterlyMatrixInput(xla = xla, nameSheet = nameSheetElabMatrix, dimMatrix = app.dimMatrix.get())
+
+# ===================================================================
+# punto d'ingresso per scarico volatilita' implicite nei Cap e Floor
+# ===================================================================
+
+from W_Bootstrap_VolCapFloor import W_VolCapFloorDate, W_CurrencySelection
+from xls_Bootstrap_VolCapFloor import write_VolCapFloor
+from DEF_intef import nameSheetCapFloorVolatilities
+from sc_elab.excel_hook.connection import Connection
+
+@xl_func
+def CapFloor_BVol_fromDBtoXls(control):
+
+    nameSheet = nameSheetCapFloorVolatilities
+    xla = xl_app()
+    book = xla.ActiveWorkbook
+
+    # -------------- controllo l'esistenza del foglio di input  ----------------
+    try:
+        s = book.Sheets(nameSheet)
+        s.Activate()
+    except:
+        s = book.Sheets.Add()
+        s.Name = nameSheet
+    # -------------- apro la finestra di input della scelta  ----------------------------
+
+    con = Connection()
+    # necessario per inizializzare il db
+    cursor = con.db_data()
+
+    root = Tk()
+    app = W_VolCapFloorDate(root)
+    root.mainloop()
+
+    ref_date = datetime.date(day=int(app.date[-2:]), month=int(app.date[5:7]), year=int(app.date[:4]))
+
+    # query che permette di trovare per una certa data la currency
+    qry_to_execute = '''
+                    SELECT distinct DProCFS.Currency from DProCFS,DProTS_master
+                    WHERE DProTS_master.BloombergTicker = DProCFS.BloombergTicker
+                    AND (DProCFS.TipoDato = 'VCapFloor')
+                    and DProTS_master.Data= '%s' ''' % (ref_date)
+
+    currencies = pd.read_sql(qry_to_execute, con.db)['Currency'].tolist()
+
+    # query che permette di trovare per una certa data il contributor
+    qry_to_execute = '''
+                        SELECT distinct DProCFS.Contributor from DProCFS,DProTS_master
+                        WHERE DProTS_master.BloombergTicker = DProCFS.BloombergTicker
+                        AND (DProCFS.TipoDato = 'VCapFloor')
+                        and DProTS_master.Data= '%s' ''' % (ref_date)
+
+    contributors = pd.read_sql(qry_to_execute, con.db)['Contributor'].tolist()
+
+    # La seguente selezione genera un errore, ma tutto funziona
+    root = Tk()
+    app = W_CurrencySelection(root,currencies=currencies,contributors=contributors)
+    root.mainloop()
+
+
+    currency = app.curr.get()
+    contributor = app.cont.get()
+
+    # query di scarico dei dati da stampare su foglio Excel
+    qry_to_execute = '''
+                 SELECT DProCFS.MaturityInt, DProCFS.Strike, DProTS_master.ValoreMid
+                 FROM DProCFS, DProTS_master
+                 WHERE DProTS_master.BloombergTicker = DProCFS.BloombergTicker
+                 AND(DProCFS.TipoDato = 'VCapFloor')
+                 and DProCFS.Contributor = '%s'
+                 and DProCFS.Currency = '%s' 
+                 and DProTS_master.Data= '%s' 
+                 order by DProCFS.MaturityInt ASC''' % (contributor, currency, ref_date)
+
+    res = pd.read_sql(qry_to_execute, con.db)
+
+    if res['ValoreMid'].shape[0]==0:
+        tkMessageBox.showwarning('Attenzione', 'Non si dispone di dati per la coppia Contributor-Currency selezionata')
+
+    # Interrogo il campo deltaBp per capire se i Cap e Floor sono shiftati. Qualora il campo deltaBp
+    # per tutte le componenti della superficie di volatilita Cap e Floor ad una certa data sia identico e pari
+    # a None, allora restituisce No Shifted
+
+    qry_to_execute = '''
+                        SELECT distinct DProCFS.deltaBp from DProCFS,DProTS_master 
+                        WHERE DProTS_master.BloombergTicker = DProCFS.BloombergTicker
+                        AND (DProCFS.TipoDato = 'VCapFloor') 
+                        and DProTS_master.Data= '%s' ''' % (ref_date)
+
+    res3 = pd.read_sql(qry_to_execute, con.db)
+
+    if not res3['deltaBp'][0] and res3.shape[0] == 1:
+        tipo_modello = "No Shifted"
+        shift='0'
+    elif res3.shape[0] > 1:
+        root = Tk()
+        root.withdraw()
+        tkMessageBox.showwarning('Attenzione', 'Sono presenti shift diversi')
+        shift = '-999'
+        root.destroy()
+    else:
+        tipo_modello = 'Shifted'
+        shift = res3['deltaBp'][0]
+
+    # root = Tk()
+    # app = W_SwaptionsOptionsPrint(root)
+    # root.mainloop()
+
+    write_VolCapFloor(xla, res, ref_date, currency, contributor, tipo_modello, shift)
+    s = xla.Cells.Columns.AutoFit()
+
+
+
+# ====================================================================
+# punto d'ingresso per Bootstrap volatilita' implicite nei Cap e Floor
+# ====================================================================
+
+import pandas as pd
+
+from W_Bootstrap_VolCapFloor import Bootstrap_BVol_menu
+from xls_Bootstrap_VolCapFloor import writeBootstrapVolOnXls, readFeaturesDiscCurve
+from DEF_intef import nameSheetCapFloorVolatilities, nameSheetBootstrap
+from W_calibration import readSheetObject, readFeaturesObject
+from sc_elab.core.anagrafica_dati import MaturityFromStringToYear
+from sc_elab.core.funzioni_boot_cap_floor import Bootstrap_CapFloor_ATM
+import tkMessageBox
+
+@xl_func
+def BootstrapCapFloorVol_on_xls(control):
+
+    nameSheetVols = nameSheetCapFloorVolatilities
+    nameSheetCurve= nameSheetBootstrap
+    xla = xl_app()
+    book = xla.ActiveWorkbook
+
+    allSheetInBook = allSheet(book)
+
+    # -------------- controllo l'esistenza del foglio di input per le volatilita' e scarico i dati -------------
+    if nameSheetVols not in allSheetInBook:
+        msg = "Missing input sheet(%s) for Bootstrap in your workbook... \nNothing to do for me!" % nameSheetVols
+        root = Tk()
+        tkMessageBox.showwarning("Warning!", msg)
+        root.destroy()
+        return
+
+    # -------------- controllo l'esistenza del foglio di input per la curva e scarico i dati -------------
+    if nameSheetCurve not in allSheetInBook:
+        msg = "Missing input sheet(%s) for Bootstrap in your workbook... \nNothing to do for me!" % nameSheetCurve
+        root = Tk()
+        tkMessageBox.showwarning("Warning!", msg)
+        root.destroy()
+        return
+
+    # scarico i dati
+    volsdata = readSheetObject(str(book.FullName), nameSheetVols)
+    discount_curves = readSheetObject(str(book.FullName), nameSheetCurve)
+
+    # leggo le caratteristiche identificative di questi oggetti
+    volsdata_list = readFeaturesObject(volsdata)
+    disc_curves_list = readFeaturesDiscCurve(discount_curves)
+
+    # creo le liste da passare alle combobox per la scelta di curva e volatilita'
+    volsdata_choices = []
+    for i in volsdata_list.index:
+        if volsdata_list.loc[i, 'TypeObject'] == 'Option':
+            volsdata_tmp = str(volsdata_list.loc[i, 'keys']) + ' ' + str(volsdata_list.loc[i, 'Name'])
+            volsdata_choices.append(volsdata_tmp)
+
+    disc_curves_choices = []
+    for i in disc_curves_list.index:
+        if disc_curves_list.loc[i, 'TypeObject'] == 'Discount Curve':
+            discount_curve_tmp = str(disc_curves_list.loc[i, 'keys']) + ' ' + str(disc_curves_list.loc[i, 'Name'])
+            disc_curves_choices.append(discount_curve_tmp)
+
+    # controllo di avere i dati per il Bootstrap
+    if len(volsdata_choices) == 0 or len(disc_curves_choices) == 0:
+        tkMessageBox.showwarning('Warning', 'Missing data to perform the bootstrap...I cannot do anything!')
+        return
+
+    # apro la finestra di selezione dei dati
+
+    choices = Bootstrap_BVol_menu(volsdata_choices, disc_curves_choices)
+    if choices[0] == 0:
+        root=Tk()
+        tkMessageBox.showwarning('Salutation', 'Au-revoir')
+        root.destroy()
+        return
+
+    selected_disc_curve = int(choices[1][:1])
+    selected_vols = int(choices[2][:1])
+
+    # Eseguo un controllo sulle date di riferimento
+    refdate_vol   = volsdata[selected_vols].loc[(volsdata[selected_vols].loc[:,0]=='Date ref'),1].values[0]
+    refdate_curve = discount_curves[selected_disc_curve].loc[(discount_curves[selected_disc_curve].loc[:,0]=='Date Ref'),1].values[0]
+    if refdate_vol != refdate_curve:
+        root=Tk()
+        tkMessageBox.showinfo('Attenzione', 'Curve and volatilities reference date are not the same')
+        root.destroy()
+
+    # seleziono i dati che andranno in input alla funzione di bootstrap e li formatto come array di floats
+
+    shift = float(volsdata[selected_vols].loc[volsdata[selected_vols][0] == 'Shift', 1])
+
+    volsdata_noint = volsdata[selected_vols].loc[(volsdata[selected_vols].loc[:, 3] == 'Y'), [0, 2]]
+    volatilities = {}
+    volatilities['Maturities'] = volsdata_noint.loc[:, 0].map(MaturityFromStringToYear).values.astype(float)
+    volatilities['Volatilities'] = np.divide(volsdata_noint.loc[:, 2].values.astype(float),100)
+
+    curve = discount_curves[selected_disc_curve].loc[(discount_curves[selected_disc_curve].loc[:, 2] == 'Y'), [0, 1]]
+    discount = {}
+    discount['discount times'] = curve.loc[:, 0].values
+    discount['discount factors'] = curve.loc[:, 1].values.astype(float)
+
+    # converto le date dei fattori di sconto in intervalli in termini di giorni (intanto provo)
+    discount['discount times'] = discount['discount times'] - discount['discount times'][0]
+    discount['discount times'] = np.array([(d.days) / 365.2425 for d in discount['discount times']])
+
+    bootstrapped_volatilities = Bootstrap_CapFloor_ATM(shift, discount, volatilities)
+
+    writeBootstrapVolOnXls(xla, bootstrapped_volatilities, volsdata[selected_vols], discount_curves[selected_disc_curve])
