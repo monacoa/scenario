@@ -116,7 +116,7 @@ class W_CurrencySelection(LabelFrame):
 
 
 
-# Finestra di selezione curva dei fettori di sconto e dati sulle volatilita'
+# Finestra di selezione curva dei fattori di sconto e dati sulle volatilita'
 def Bootstrap_BVol_menu(volsdata = None, discount_curves = None):
 
     list_choices=[]

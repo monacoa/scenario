@@ -121,12 +121,13 @@ def Bootstrap_CapFloor_ATM(shift, discount_curve, volsdata):
         Caplet_prices.append(Caplet_tmp)
         vol_boot.append(vol_boot_tmp)
 
-    # moltiplico per 100 le volatilita'
-    vol_boot = np.multiply(vol_boot,100)
+    # moltiplico per 100 le volatilita' e gli strike
+    vol_boot  = np.multiply(vol_boot,100)
+    StrikeATM = np.multiply(StrikeATM,100)
 
-    bootstrap_result=pd.DataFrame(
-        {'Time'       : times_list[1:],
-         'Strike'     : StrikeATM,
-         'Volatility (x100)' : vol_boot})
+    bootstrap_result = pd.DataFrame()
+    bootstrap_result['Time']= times_list[1:]
+    bootstrap_result['Strike (x100)']= StrikeATM
+    bootstrap_result['Volatility (x100)']= vol_boot
 
     return bootstrap_result

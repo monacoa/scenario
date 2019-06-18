@@ -46,8 +46,8 @@ def model_parameters(value):
 
     elif value == 'G2++':
         dict ={'a'      :{'sv':'0.1'  , 'min': '0.0001', 'max': '5.0','fix':0},
-              'sigma'   :{'sv':'0.1'  , 'min': '0.0001', 'max': '0.7','fix':0},
-              'b'       :{'sv': '0.01', 'min': '0.0001', 'max': '5.0','fix':0},
+              'sigma'   :{'sv':'0.01'  , 'min': '0.0001', 'max': '0.7','fix':0},
+              'b'       :{'sv': '0.1', 'min': '0.0001', 'max': '5.0','fix':0},
               'eta'     :{'sv': '0.01', 'min': '0.0001', 'max': '0.7','fix':0},
               'rho'     :{'sv': '0.1' , 'min': '-0.7'  , 'max': '0.7','fix':0}
               }
@@ -224,6 +224,10 @@ class W_calib_menu(LabelFrame):
             self.rb_calib1.config(state = "disabled")
             self.rb_calib3.config(state = "disabled")
             self.mkt_calibration_type.set('CURVE')
+        elif model in ['G2++']:
+            self.rb_calib1.config(state = 'disabled')
+            self.rb_calib2.config(state = 'disabled')
+            self.mkt_calibration_type.set('CURVE_OPT')
         else:
             self.mkt_calibration_type.set('OPT')
 
@@ -428,30 +432,36 @@ class W_calib_menu(LabelFrame):
         # recupero la calibrazione selezionata
         self.update_param()
         print 'Letto tutte le configurazioni'
-        # print 'Parametri:', self.param_dict
 
         if self.set_mkt_ts.get() == 'MKT':
             print 'Calibratore per il mercato'
 
-            if self.NameCurve.get() == "":
-                tkMessageBox.showinfo("Error", "Nessuna curva selezionata.")
+            if self.mkt_calibration_type.get() == 'CURVE':
+                if self.NameCurve.get() == "":
+                    tkMessageBox.showinfo("Error", "Nessuna curva selezionata.")
+                else:
+                    tmp = tableObject.loc[tableObject.Name == self.NameCurve.get(), 'keys'].values[0]
+                    self.CurveChosen = dictObject[tmp]
+                    self.master.destroy()
+            elif self.mkt_calibration_type.get() == 'OPT':
+                if self.NameOption.get() == "":
+                    tkMessageBox.showinfo("Error", "Nessuna opzione selezionata.")
+                else:
+                    tmp = tableObject.loc[tableObject.Name == self.NameOption.get(), 'keys'].values[0]
+                    self.OptionChosen = dictObject[tmp]
+                    self.master.destroy()
             else:
-
-                tmp = tableObject.loc[tableObject.Name == self.NameCurve.get(), 'keys'].values[0]
-                self.CurveChosen = dictObject[tmp]
-                # print 'Curva selezionata:', self.CurveChosen
-
-                if self.mkt_calibration_type.get() == 'CURVE':
+                if self.NameCurve.get() == "":
+                    tkMessageBox.showinfo("Error", "Nessuna curva selezionata.")
+                elif self.NameOption.get() == "":
+                    tkMessageBox.showinfo("Error", "Nessuna opzione selezionata.")
+                else:
+                    tmp_curve = tableObject.loc[tableObject.Name == self.NameCurve.get(), 'keys'].values[0]
+                    self.CurveChosen = dictObject[tmp_curve]
+                    tmp_opt = tableObject.loc[tableObject.Name == self.NameOption.get(), 'keys'].values[0]
+                    self.OptionChosen = dictObject[tmp_opt]
                     self.master.destroy()
 
-                else:
-                    if self.NameOption.get() == "":
-                        tkMessageBox.showinfo("Error", "Nessuna opzione selezionata.")
-                    else:
-                        tmp = tableObject.loc[tableObject.Name == self.NameOption.get(), 'keys'].values[0]
-                        self.OptionChosen = dictObject[tmp]
-                        # print 'Opzione selezionata:', self.OptionChosen
-                        self.master.destroy()
 
         if self.set_mkt_ts.get() == 'TS':
             print 'Calibratore per il TS'

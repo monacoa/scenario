@@ -113,7 +113,7 @@ def writeBootstrapVolOnXls(xla, res, df_vols, df_curva):
 
     Attributi = \
         {     "1. Date ref"              : df_vols.loc[(df_vols.loc[:,0]== 'Date ref'),1].values[0]
-            , "2. Option Type"           : 'Vol Cap Floor'
+            , "2. OptionType"            : 'Vol Cap Floor'
             , "3. Curve Name"            : df_curva.iloc[0,0]
             , "4. Type Bootstrap"        : df_vols.loc[(df_vols.loc[:,0]== 'Tipo dato'),1].values[0]
             , "5. Contributor"           : df_vols.loc[(df_vols.loc[:,0]== 'Contributor'),1].values[0]

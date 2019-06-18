@@ -2,6 +2,7 @@ import tkMessageBox
 import numpy as np
 import pandas as pd
 from scipy.special import ive
+from scipy.stats import norm
 import datetime
 
 
@@ -306,3 +307,143 @@ def computeCHI2(mkt, mdl):
     tmp = np.power(mkt - mdl,2)/np.absolute(mkt)
 
     return tmp.sum()
+
+
+####################################################
+#       G2++
+####################################################
+
+# ====================================================================
+#  Funzioni per il calcolo dei Caplet col modello di Black con shift
+# ====================================================================
+
+# valore atteso di Black con shift
+# si considera come valuation_time il tempo 0
+def BlackExpectedValue(fwdPrice,strike,TimeToReset,vol,shift,type):
+    if TimeToReset == 0.0:
+        diff = fwdPrice - strike
+        if type=='Call':
+            ExpectedValue=np.maximum(0.0,diff)
+        elif type=='Put':
+            ExpectedValue=np.maximum(0.0,-diff)
+        else:
+            ExpectedValue = None
+            print('tipo opzione non valido')
+    else:
+        d1=(np.log((fwdPrice+shift)/(strike+shift))+((vol*vol)/2)*TimeToReset)/(vol*np.sqrt(TimeToReset))
+        d2=d1-vol*np.sqrt(TimeToReset)
+        if type=='Call':
+            ExpectedValue=(fwdPrice+shift)*norm.cdf(d1)-(strike+shift)*norm.cdf(d2)
+        elif type=='Put':
+            ExpectedValue=(strike+shift)*norm.cdf(-d2)-(fwdPrice+shift)*norm.cdf(-d1)
+        else:
+            ExpectedValue=None
+            print('tipo opzione non valido')
+    return ExpectedValue
+
+# ------------------- Prezzo Caplet --------------------------------------------------
+# Va passata la curva dei fattori di sconto come dizionario {t_zc_list, discount_vec}
+def Black_shifted_Caplet(curve, reset_time, exercise_time, nominal_amount, strike, shift, vol):
+
+    P0 = np.exp(np.interp(reset_time, curve['t_zc_list'], np.log(curve['discount_vec'])))
+    P1 = np.exp(np.interp(exercise_time, curve['t_zc_list'], np.log(curve['discount_vec'])))
+    tenor = float(exercise_time-reset_time)
+    forward_rate = ((P0/P1)-1)/tenor
+
+    Caplet = nominal_amount*P1*tenor*BlackExpectedValue(forward_rate,strike,reset_time,vol,shift,'Call')
+
+    return  Caplet
+
+
+# ---------- Lista prezzi di mercato dei Caplet---------------------------
+# mkt data va dato come DataFrame
+def compute_Black_prices(curve, mkt_data, nominal_amount, shift):
+
+    caplet_prices=[]
+    for i in range(0,len(mkt_data['time'])):
+        time = mkt_data['time'][i]
+        strike = mkt_data['strike'][i]
+        volatility = mkt_data['vols_data'][i]
+        caplet_tmp=Black_shifted_Caplet(curve,time-0.5,time,nominal_amount,strike,shift,volatility)
+        caplet_prices.append(caplet_tmp)
+
+    return caplet_prices
+
+
+# ===========================================================
+#     Funzioni di calcolo prezzo dei Caplet nel modello G2++
+# ===========================================================
+# Calcolo del singolo Caplet
+# I parametri del G2++ vanno passati come un dizionario {a, b, sigma, eta, rho}
+# Va passata la curva dei fattori di sconto come dizionario {t_zc_list, discount_vec}
+def Caplet_G2pp(curve,parameters,valuation_time,reset_time,exercise_time,nominal_amount,strike):
+    a     = float(parameters['a'])
+    b     = float(parameters['b'])
+    sigma = float(parameters['sigma'])
+    eta   = float(parameters['eta'])
+    rho   = float(parameters['rho'])
+    t= float(valuation_time)
+    T= float(reset_time)
+    S= float(exercise_time)
+    N= float(nominal_amount)
+    Nmod=N*(1+float(strike)*(S-T))
+    P1  = np.exp(np.interp(reset_time, curve['t_zc_list'], np.log(curve['discount_vec'])))
+    P2  = np.exp(np.interp(exercise_time, curve['t_zc_list'], np.log(curve['discount_vec'])))
+    Pt  = np.exp(np.interp(valuation_time, curve['t_zc_list'], np.log(curve['discount_vec'])))
+    P1  = P1/Pt
+    P2  = P2/Pt
+
+    if T == 0:
+        forward_rate=((P1/P2)-1)/(S-T)
+        Caplet = np.maximum(0.0,forward_rate-strike)
+    else:
+        SIGMA = np.sqrt((np.power(sigma,2)/(2*np.power(a,3)))*np.power(1-np.exp(-a*(S-T)),2)*(1-np.exp(-2*a*(T-t))) \
+                        + (np.power(eta,2)/(2*np.power(b,3)))*np.power(1-np.exp(-b*(S-T)),2)*(1-np.exp(-2*b*(T-t))) \
+                        + 2*rho*((sigma*eta)/(a*b*(a+b)))*(1-np.exp(-a*(S-T)))*(1-np.exp(-b*(S-T)))*(1-np.exp(-(a+b)*(T-t))))
+
+        x1= (np.log((N*P1)/(Nmod*P2))/SIGMA) - ((1/2)*SIGMA)
+        x2 = x1 + SIGMA
+        Caplet = -Nmod*P2*norm.cdf(x1)+P1*N*norm.cdf(x2)
+
+    return Caplet
+
+
+
+# ---- Lista prezzi dei Caplet da modello G2++ -----------------------------
+# i parametri del modello vengono passati tramite una lista [a,b,sigma,eta,rho]
+def compute_G2pp_prices(parameters_list, curve, times, strikes):
+    parameters_dict={}
+    parameters_dict['a']=parameters_list[0]
+    parameters_dict['sigma'] = parameters_list[1]
+    parameters_dict['b'] = parameters_list[2]
+    parameters_dict['eta'] = parameters_list[3]
+    parameters_dict['rho'] = parameters_list[4]
+
+    caplet_prices=[]
+    # for elem in strikes_and_times:
+    #     caplet_tmp=Caplet_G2pp(curve,parameters_dict,0.0,elem[1]-0.5,elem[1],1.0,elem[0])
+    #     caplet_prices.append(caplet_tmp)
+
+    for i in range(0,len(times)):
+        time_tmp   = times[i]
+        strike_tmp = strikes[i]
+        caplet_tmp = Caplet_G2pp(curve, parameters_dict, 0.0, time_tmp - 0.5, time_tmp, 1.0, strike_tmp)
+        caplet_prices.append(caplet_tmp)
+
+    return caplet_prices
+
+# ---------- Funzione di calcolo norma da ottimizzare ------------------------------------
+# power=1 metrica di Manhattan
+# power=2 metrica euclidea
+# se absrel='rel' viene calcolata la norma delle differenze relative
+# mkt_data e' un DataFrame contenente tre series 'time', 'strike' e 'market price'
+def loss_G2pp(list_model_params, curve, mkt_prices, power, absrel):
+
+    model_price_tmp = np.array(compute_G2pp_prices(list_model_params, curve, mkt_prices['time'], mkt_prices['strike']))
+    diff = np.absolute(model_price_tmp - mkt_prices['market price'])
+    if absrel == 'rel':
+        diff = diff /np.absolute(mkt_prices['market price'])
+
+    diff = np.power(diff,power)
+
+    return diff.sum()

@@ -840,6 +840,7 @@ from scipy.optimize import minimize
 import matplotlib.pyplot as plt
 from sc_elab.core.funzioni_calibrazioni import *
 from sc_elab.excel_hook.xls_Calibration import *
+import pandas as pd
 
 @xl_func
 def calibration_from_xls(control):
@@ -900,66 +901,136 @@ def calibration_from_xls(control):
 
             if type_data == 'MKT':
 
-                if (model in ['CIR','VSCK']):
-                    mkt_value, mkt_to_fit, type_cap = preProcessignCurve(W1.CurveChosen)
+                if W1.mkt_calibration_type.get() == 'CURVE':
 
-                    x0_m  = []
-                    x_bnd = []
+                    if (model in ['CIR','VSCK']):
+                        mkt_value, mkt_to_fit, type_cap = preProcessignCurve(W1.CurveChosen)
 
-                    l_bound = []
-                    h_bound = []
+                        x0_m  = []
+                        x_bnd = []
 
-                    for p_name in W1.params_names:
-                        x0_m.append(float(W1.param_dict[p_name]['sv']))
-                        x_bnd.append([float(W1.param_dict[p_name]['min']), float(W1.param_dict[p_name]['max'])])
-                        l_bound.append(float(W1.param_dict[p_name]['min']))
-                        h_bound.append(float(W1.param_dict[p_name]['max']))
+                        # l_bound = []
+                        # h_bound = []
 
-                    if W.model.get() == 'CIR':
-                        ff = minimize(loss_zc_model_cir, args = (mkt_to_fit ,loss_function_type_power,loss_function_type_absrel), x0 = x0_m, method='TNC', bounds=x_bnd)
-                    else:
-                        ff = minimize(loss_zc_model_vsck, args = (mkt_to_fit ,loss_function_type_power,loss_function_type_absrel), x0 = x0_m, method='TNC', bounds=x_bnd)
+                        for p_name in W1.params_names:
+                            x0_m.append(float(W1.param_dict[p_name]['sv']))
+                            x_bnd.append([float(W1.param_dict[p_name]['min']), float(W1.param_dict[p_name]['max'])])
+                            # l_bound.append(float(W1.param_dict[p_name]['min']))
+                            # h_bound.append(float(W1.param_dict[p_name]['max']))
 
-                    # creo la lista dei risultati ottimali
-                    list_model_params_opt = []
-                    list_model_params_opt.append(ff.x[0])
-                    list_model_params_opt.append(ff.x[1])
-                    list_model_params_opt.append(ff.x[2])
-                    list_model_params_opt.append(ff.x[3])
+                        if W.model.get() == 'CIR':
+                            ff = minimize(loss_zc_model_cir, args = (mkt_to_fit ,loss_function_type_power,loss_function_type_absrel), x0 = x0_m, method='TNC', bounds=x_bnd)
+                        else:
+                            ff = minimize(loss_zc_model_vsck, args = (mkt_to_fit ,loss_function_type_power,loss_function_type_absrel), x0 = x0_m, method='TNC', bounds=x_bnd)
 
-                    if W.model.get() == 'CIR':
-                        mkt_value['VALUE_OPT'] = compute_zc_cir_rate(list_model_params_opt, mkt_value["TIME"])
-                    else:
-                        mkt_value['VALUE_OPT'] = compute_zc_vsck_rate(list_model_params_opt, mkt_value["TIME"])
+                        # creo la lista dei risultati ottimali
+                        list_model_params_opt = []
+                        list_model_params_opt.append(ff.x[0])
+                        list_model_params_opt.append(ff.x[1])
+                        list_model_params_opt.append(ff.x[2])
+                        list_model_params_opt.append(ff.x[3])
+
+                        if W.model.get() == 'CIR':
+                            mkt_value['VALUE_OPT'] = compute_zc_cir_rate(list_model_params_opt, mkt_value["TIME"])
+                        else:
+                            mkt_value['VALUE_OPT'] = compute_zc_vsck_rate(list_model_params_opt, mkt_value["TIME"])
 
 
-                    # converto i risultati in composto nel caso in cui in input lo siano
-                    if type_cap == 'CMP':
-                        mkt_value['VALUE_OPT'] = fromContinuousToCompost(mkt_value['VALUE_OPT'])
+                        # converto i risultati in composto nel caso in cui in input lo siano
+                        if type_cap == 'CMP':
+                            mkt_value['VALUE_OPT'] = fromContinuousToCompost(mkt_value['VALUE_OPT'])
 
-                    # calcolo il chi quadro
-                    chi2 = computeCHI2(mkt=mkt_value["VALUE"], mdl=mkt_value['VALUE_OPT'])
+                        # calcolo il chi quadro
+                        chi2 = computeCHI2(mkt=mkt_value["VALUE"], mdl=mkt_value['VALUE_OPT'])
 
-                    # scrivo su foglio Excel
-                    writeCalibrationResOnXls(type_data = type_data,
-                                             model = model,
-                                             W_class = W1,
-                                             xla = xla,
-                                             chi2 = chi2,
-                                             opt_dict = list_model_params_opt,
-                                             res = mkt_value,
-                                             capitalization_type = type_cap)
+                        # scrivo su foglio Excel
+                        writeCalibrationResOnXls(type_data = type_data,
+                                                 model = model,
+                                                 W_class = W1,
+                                                 xla = xla,
+                                                 chi2 = chi2,
+                                                 opt_dict = list_model_params_opt,
+                                                 res = mkt_value,
+                                                 capitalization_type = type_cap)
 
-                    # produco il grafico
-                    mkt_value.set_index('TIME',inplace=True)
-                    mkt_value.plot(style=['o', '-'])
-                    plt.title('Calibration results')
-                    plt.xlabel('Time')
-                    plt.ylabel('Rate')
-                    plt.show()
+                        # produco il grafico
+                        mkt_value.set_index('TIME',inplace=True)
+                        mkt_value.plot(style=['o', '-'])
+                        plt.title('Calibration results')
+                        plt.xlabel('Time')
+                        plt.ylabel('Rate')
+                        plt.show()
 
-                if W1.NameOption.get() != "":
-                    opt_total = W1.OptionChosen
+                elif W1.mkt_calibration_type.get() == 'CURVE_OPT':
+
+                    if model in ['G2++']:
+
+                        # leggo la curva dei fattori di sconto
+                        curve_noint = W1.CurveChosen.loc[(W1.CurveChosen.loc[:, 2] == 'Y'), [0, 1]]
+                        curve = {}
+                        curve['t_zc_list'] = curve_noint.loc[:, 0].values
+                        curve['discount_vec'] = curve_noint.loc[:, 1].values.astype(float)
+                        # converto le date dei fattori di sconto in intervalli in termini di giorni
+                        curve['t_zc_list'] = curve['t_zc_list'] - curve['t_zc_list'][0]
+                        curve['t_zc_list'] = np.array([(d.days) / 365.2425 for d in curve['t_zc_list']])
+
+                        # leggo le opzioni distinguendo fra Volatilita' e prezzi Caplet
+
+                        volsdata_noint = W1.OptionChosen.loc[(W1.OptionChosen.loc[:,3] == 'Y'), [0, 1, 2]]
+                        market_data = pd.DataFrame()
+                        market_data['time'] = volsdata_noint.loc[:,0].values.astype(float)
+                        market_data['strike'] = np.divide(volsdata_noint.loc[:,1].values.astype(float),100.)
+
+                        if W1.OptionChosen.loc[(W1.OptionChosen.loc[:,0] == 'OptionType'), 1].values[0] == 'Vol Cap Floor':
+
+                            shift = float(W1.OptionChosen.loc[W1.OptionChosen[0] == 'Shift', 1])
+                            market_data['vols_data'] = np.divide(volsdata_noint.loc[:,2].values.astype(float),100.)
+
+                            # Calcolo i prezzi di mercato dei Caplet
+                            market_data['market price'] = np.array(compute_Black_prices(curve, market_data, 1, shift))
+
+                        # Ipotizzo che se non vengono passate le volatilita' vengano passati i prezzi dei Caplet
+                        else:
+                            market_data['market price'] = volsdata_noint.loc[:,2].values.astype(float)
+
+                        # Leggo i parametri iniziali del modello e i loro limiti superiore e inferiore
+                        x0_m = []
+                        x_bnd = []
+
+                        for p_name in W1.params_names:
+                            x0_m.append(float(W1.param_dict[p_name]['sv']))
+                            x_bnd.append([float(W1.param_dict[p_name]['min']), float(W1.param_dict[p_name]['max'])])
+
+                        ff = minimize(loss_G2pp,
+                                      args=(curve, market_data, loss_function_type_power, loss_function_type_absrel),
+                                      x0=x0_m, bounds=x_bnd, method='TNC')
+
+                        market_data['model price'] = compute_G2pp_prices(ff.x, curve, market_data['time'],
+                                                           market_data['strike'])
+
+                        # Produco il grafico della calibrazione
+                        plt.plot(market_data['time'], market_data['market price'], 'b^', label='Market Prices')
+                        plt.plot(market_data['time'], market_data['model price'], 'r--o', label='Model Prices')
+                        plt.title('Calibration results')
+                        plt.xlabel('Time')
+                        plt.ylabel('Caplet price')
+                        plt.legend()
+                        plt.show()
+
+                        # Calcolo il chi quadro
+                        chi2 = computeCHI2(mkt=market_data['market price'], mdl=market_data['model price'])
+                        print chi2
+                        market_data=pd.DataFrame(market_data)
+
+                        # scrivo su foglio Excel
+                        writeCalibrationResOnXls(type_data=type_data,
+                                                 model=model,
+                                                 W_class=W1,
+                                                 xla=xla,
+                                                 chi2=chi2,
+                                                 opt_dict=ff.x,
+                                                 res=market_data,
+                                                 capitalization_type='')
 
             else:
 
@@ -1515,7 +1586,7 @@ def BootstrapCapFloorVol_on_xls(control):
     choices = Bootstrap_BVol_menu(volsdata_choices, disc_curves_choices)
     if choices[0] == 0:
         root=Tk()
-        tkMessageBox.showwarning('Salutation', 'Au-revoir')
+        tkMessageBox.showinfo('Salutation', 'Au revoir')
         root.destroy()
         return
 
@@ -1534,9 +1605,10 @@ def BootstrapCapFloorVol_on_xls(control):
 
     shift = float(volsdata[selected_vols].loc[volsdata[selected_vols][0] == 'Shift', 1])
 
-    volsdata_noint = volsdata[selected_vols].loc[(volsdata[selected_vols].loc[:, 3] == 'Y'), [0, 2]]
+    volsdata_noint = volsdata[selected_vols].loc[(volsdata[selected_vols].loc[:, 3] == 'Y'), [0,1,2]]
     volatilities = {}
     volatilities['Maturities'] = volsdata_noint.loc[:, 0].map(MaturityFromStringToYear).values.astype(float)
+    volatilities['Strikes']= np.divide(volsdata_noint.loc[:, 1].values.astype(float),100)
     volatilities['Volatilities'] = np.divide(volsdata_noint.loc[:, 2].values.astype(float),100)
 
     curve = discount_curves[selected_disc_curve].loc[(discount_curves[selected_disc_curve].loc[:, 2] == 'Y'), [0, 1]]
@@ -1544,10 +1616,11 @@ def BootstrapCapFloorVol_on_xls(control):
     discount['discount times'] = curve.loc[:, 0].values
     discount['discount factors'] = curve.loc[:, 1].values.astype(float)
 
-    # converto le date dei fattori di sconto in intervalli in termini di giorni (intanto provo)
+    # converto le date dei fattori di sconto in intervalli in termini di giorni
     discount['discount times'] = discount['discount times'] - discount['discount times'][0]
     discount['discount times'] = np.array([(d.days) / 365.2425 for d in discount['discount times']])
 
     bootstrapped_volatilities = Bootstrap_CapFloor_ATM(shift, discount, volatilities)
+    bootstrapped_volatilities['Usage']='Y'
 
     writeBootstrapVolOnXls(xla, bootstrapped_volatilities, volsdata[selected_vols], discount_curves[selected_disc_curve])
