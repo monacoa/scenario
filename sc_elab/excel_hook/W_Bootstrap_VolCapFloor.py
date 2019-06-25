@@ -115,6 +115,41 @@ class W_CurrencySelection(LabelFrame):
         self.close_window()
 
 
+# Finestra di selezione del tipo di dato (ATM o Surface)
+class W_tipo_dato_selection(LabelFrame):
+    def __init__(self, parent = None):
+        if parent:
+            self.master = parent.master
+            parent.destroy()
+        LabelFrame.__init__(self, self.master)
+        # Create the grid and the outer content frame
+        self.config(text='Data type selection')
+        self.grid(column=0, row=0, sticky='n e s w')
+
+        self.tipo_dato = 'Misto'
+
+        self.type_choice = StringVar()
+        ATMbutton = ttk.Radiobutton(self, text='ATM', variable=self.type_choice, value='ATM')
+        ATMbutton.grid(row=1, column=0, rowspan=1, columnspan=1, pady=2, sticky=W + E + N + S)
+
+        surfacebutton = ttk.Radiobutton(self, text='Surface', variable=self.type_choice, value='Surface')
+        surfacebutton.grid(row=2, column=0, rowspan=1, columnspan=1, pady=2, sticky=W + E + N + S)
+
+        # Bottoni
+        SubmitButton = ttk.Button(self, text='Submit', command=self.close_window)
+        SubmitButton.grid(row=3, column=0, rowspan=1, columnspan=1, pady=2, sticky=W + E + N + S)
+
+        CancelButton = ttk.Button(self, text='Cancel', command=self.close_without_selection)
+        CancelButton.grid(row=3, column=1, rowspan=1, columnspan=1, pady=2, sticky=W + E + N + S)
+
+    def close_window(self):
+        self.tipo_dato = self.type_choice.get()
+        self.destroy()
+        self.master.destroy()
+
+    def close_without_selection(self):
+        self.destroy()
+        self.master.destroy()
 
 # Finestra di selezione curva dei fattori di sconto e dati sulle volatilita'
 def Bootstrap_BVol_menu(volsdata = None, discount_curves = None):

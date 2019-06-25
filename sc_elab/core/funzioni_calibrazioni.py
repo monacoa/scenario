@@ -217,7 +217,8 @@ def loss_zc_model_vsck(list_model_params, mkt_prices,power, absrel):
     return diff.sum()
 
 
-def compute_zc_vsck_rate(list_model_params, T):
+# output='rate' restituisce il tasso, output='discount' restituisce il fattore di sconto
+def compute_zc_vsck_rate(list_model_params, T,output='rate'):
     r0 = list_model_params[0]
     kappa = list_model_params[1]
     theta = list_model_params[2]
@@ -228,7 +229,10 @@ def compute_zc_vsck_rate(list_model_params, T):
     G0 = (theta - sigma * sigma / (2.0 * kappa * kappa))
     A0 = np.exp(G0 * (B0 - T) - g0 * B0 * B0)
 
-    model_rate = -(np.log(A0) - B0 * r0) / T
+    if output=='rate':
+        model_rate = -(np.log(A0) - B0 * r0) / T
+    elif output=='discount':
+        model_rate = A0*np.exp(-B0*r0)
 
     return model_rate
 
@@ -302,9 +306,85 @@ def generate_vsck_perc(params, data_to_fit):
 
     return model_value
 
+#======= Calibrazione sulle opzioni Cap Floor ================
+# Calcolo del singolo Caplet
+# I parametri del Vasicek vanno passati come dizionario {r0, k, sigma, theta}
+# Va passata la curva dei tassi come dizionario {t_zc_list, rf_rate_list}
+def Caplet_Vasicek(parameters, reset_time, exercise_time, nominal_amount, strike):
+    r0    = float(parameters['r0'])
+    k     = float(parameters['k'])
+    theta = float(parameters['theta'])
+    sigma = float(parameters['sigma'])
 
-def computeCHI2(mkt, mdl):
-    tmp = np.power(mkt - mdl,2)/np.absolute(mkt)
+    T = float(reset_time)
+    S = float(exercise_time)
+    N = float(nominal_amount)
+
+    if T == 0.:
+        P6m = compute_zc_vsck_rate([r0,k,theta,sigma],S,'discount')
+        forward_rate = ((1. / P6m)-1) / S
+        Caplet = P6m*nominal_amount*S*np.maximum(0., forward_rate-strike)
+    else:
+        PT = compute_zc_vsck_rate([r0, k, theta, sigma], T, 'discount')
+        PS = compute_zc_vsck_rate([r0, k, theta, sigma], S, 'discount')
+        Nmod = N * (1 + float(strike) * (S - T))
+        BTS = (1/k)*(1-np.exp(-k*(S-T)))
+        SIGMAP = np.sqrt((1-np.exp(-2*k*T))/(2*k))*BTS
+        h = (1/SIGMAP)*np.log((PS*Nmod)/(PT*N))+(SIGMAP/2)
+
+        Caplet = N*PT*norm.cdf(SIGMAP-h)-Nmod*PS*norm.cdf(-h)
+
+    return Caplet
+
+
+
+# ---- Lista prezzi dei Caplet da modello Vasicek -----------------------------
+# i parametri del modello vengono passati tramite una lista [r0, k, theta, sigma]
+def compute_Vasicek_prices(parameters_list, times, strikes):
+    parameters_dict={}
+    parameters_dict['r0']=parameters_list[0]
+    parameters_dict['k']=parameters_list[1]
+    parameters_dict['theta'] = parameters_list[2]
+    parameters_dict['sigma'] = parameters_list[3]
+
+    caplet_prices=[]
+
+    for i in range(0,len(times)):
+        time_tmp   = times[i]
+        strike_tmp = strikes[i]
+        caplet_tmp = Caplet_Vasicek(parameters_dict, time_tmp - 0.5, time_tmp, 1., strike_tmp)
+        caplet_prices.append(caplet_tmp)
+
+    return caplet_prices
+
+
+
+
+# ---------- Funzione di calcolo norma da ottimizzare ------------------------------------
+# power=1 metrica di Manhattan
+# power=2 metrica euclidea
+# se absrel='rel' viene calcolata la norma delle differenze relative
+# mkt_data e' un DataFrame contenente tre series 'time', 'strike' e 'market price'
+def loss_caplets_Vasicek(list_model_params, mkt_prices, power, absrel):
+
+    model_price_tmp = np.array(compute_Vasicek_prices(list_model_params, mkt_prices['time'], mkt_prices['strike']))
+    diff = np.absolute(model_price_tmp - mkt_prices['market price'])
+    if absrel == 'rel':
+        diff = diff /np.absolute(mkt_prices['market price'])
+
+    diff = np.power(diff,power)
+
+    return diff.sum()
+
+def computeCHI2(mkt, mdl,type_calib='CURVE'):
+    if type_calib=='CURVE':
+        tmp = np.power(mkt - mdl,2)/np.absolute(mkt)
+    elif type_calib=='CURVE_OPT':
+        tmp=[]
+        for i in range(0,len(mkt)):
+            tmp.append(np.power(mkt[i]-mdl[i],2))
+            if mkt[i]!=0: tmp[i]=tmp[i]/mkt[i]
+        tmp=np.array(tmp)
 
     return tmp.sum()
 
@@ -376,30 +456,28 @@ def compute_Black_prices(curve, mkt_data, nominal_amount, shift):
 # Calcolo del singolo Caplet
 # I parametri del G2++ vanno passati come un dizionario {a, b, sigma, eta, rho}
 # Va passata la curva dei fattori di sconto come dizionario {t_zc_list, discount_vec}
-def Caplet_G2pp(curve,parameters,valuation_time,reset_time,exercise_time,nominal_amount,strike):
+def Caplet_G2pp(curve,parameters,reset_time,exercise_time,nominal_amount,strike):
     a     = float(parameters['a'])
     b     = float(parameters['b'])
     sigma = float(parameters['sigma'])
     eta   = float(parameters['eta'])
     rho   = float(parameters['rho'])
-    t= float(valuation_time)
+
     T= float(reset_time)
     S= float(exercise_time)
     N= float(nominal_amount)
     Nmod=N*(1+float(strike)*(S-T))
-    P1  = np.exp(np.interp(reset_time, curve['t_zc_list'], np.log(curve['discount_vec'])))
-    P2  = np.exp(np.interp(exercise_time, curve['t_zc_list'], np.log(curve['discount_vec'])))
-    Pt  = np.exp(np.interp(valuation_time, curve['t_zc_list'], np.log(curve['discount_vec'])))
-    P1  = P1/Pt
-    P2  = P2/Pt
 
-    if T == 0:
+    P1  = np.exp(np.interp(T, curve['t_zc_list'], np.log(curve['discount_vec'])))
+    P2  = np.exp(np.interp(S, curve['t_zc_list'], np.log(curve['discount_vec'])))
+
+    if T == 0.:
         forward_rate=((P1/P2)-1)/(S-T)
-        Caplet = np.maximum(0.0,forward_rate-strike)
+        Caplet = P2*nominal_amount*(S-T)*np.maximum(0.0,forward_rate-strike)
     else:
-        SIGMA = np.sqrt((np.power(sigma,2)/(2*np.power(a,3)))*np.power(1-np.exp(-a*(S-T)),2)*(1-np.exp(-2*a*(T-t))) \
-                        + (np.power(eta,2)/(2*np.power(b,3)))*np.power(1-np.exp(-b*(S-T)),2)*(1-np.exp(-2*b*(T-t))) \
-                        + 2*rho*((sigma*eta)/(a*b*(a+b)))*(1-np.exp(-a*(S-T)))*(1-np.exp(-b*(S-T)))*(1-np.exp(-(a+b)*(T-t))))
+        SIGMA = np.sqrt((np.power(sigma,2)/(2*np.power(a,3)))*np.power(1-np.exp(-a*(S-T)),2)*(1-np.exp(-2*a*(T))) \
+                        + (np.power(eta,2)/(2*np.power(b,3)))*np.power(1-np.exp(-b*(S-T)),2)*(1-np.exp(-2*b*(T))) \
+                        + 2*rho*((sigma*eta)/(a*b*(a+b)))*(1-np.exp(-a*(S-T)))*(1-np.exp(-b*(S-T)))*(1-np.exp(-(a+b)*(T))))
 
         x1= (np.log((N*P1)/(Nmod*P2))/SIGMA) - ((1/2)*SIGMA)
         x2 = x1 + SIGMA
@@ -427,7 +505,7 @@ def compute_G2pp_prices(parameters_list, curve, times, strikes):
     for i in range(0,len(times)):
         time_tmp   = times[i]
         strike_tmp = strikes[i]
-        caplet_tmp = Caplet_G2pp(curve, parameters_dict, 0.0, time_tmp - 0.5, time_tmp, 1.0, strike_tmp)
+        caplet_tmp = Caplet_G2pp(curve, parameters_dict, time_tmp - 0.5, time_tmp, 1.0, strike_tmp)
         caplet_prices.append(caplet_tmp)
 
     return caplet_prices

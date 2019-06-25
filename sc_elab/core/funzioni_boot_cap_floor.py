@@ -110,8 +110,6 @@ def Bootstrap_CapFloor_ATM(shift, discount_curve, volsdata):
 
     Caplet_prices=[]
     vol_boot=[]
-    Caplet_prices.append(Cap_prices[0])
-    vol_boot.append(vols[0])
     for i in range(1,len(Tenors)):
         Caplet_tmp = Cap_prices[i]-Cap_prices[i-1]
         Black_tmp  = Caplet_tmp/(Tenors[i]*zc_discount_list[i+1])
@@ -126,8 +124,8 @@ def Bootstrap_CapFloor_ATM(shift, discount_curve, volsdata):
     StrikeATM = np.multiply(StrikeATM,100)
 
     bootstrap_result = pd.DataFrame()
-    bootstrap_result['Time']= times_list[1:]
-    bootstrap_result['Strike (x100)']= StrikeATM
+    bootstrap_result['Time']= times_list[2:]
+    bootstrap_result['Strike (x100)']= StrikeATM[1:]
     bootstrap_result['Volatility (x100)']= vol_boot
 
     return bootstrap_result

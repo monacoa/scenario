@@ -23,8 +23,8 @@ def model_parameters(value):
     elif value == 'VSCK':
         dict = {'r0'    :{'sv':'0.03', 'min': '-0.5'  , 'max':'0.5'  ,'fix':0},
                 'k'     :{'sv':'0.03', 'min': '0.0001', 'max':'10.0' ,'fix':0},
-                'sigma' :{'sv':'0.1' , 'min': '0.0001', 'max': '10.0','fix':0},
-                'theta' :{'sv':'0.03', 'min': '0.0001', 'max': '10.0','fix':0}
+                'theta' :{'sv':'0.03', 'min': '0.0001', 'max': '10.0','fix':0},
+                'sigma' :{'sv':'0.1' , 'min': '0.0001', 'max': '10.0','fix':0}
                 }
 
         # mi servono ordinati
@@ -222,7 +222,7 @@ class W_calib_menu(LabelFrame):
 
         if model in ['CIR','VSCK']:
             self.rb_calib1.config(state = "disabled")
-            self.rb_calib3.config(state = "disabled")
+            # self.rb_calib3.config(state = "disabled")
             self.mkt_calibration_type.set('CURVE')
         elif model in ['G2++']:
             self.rb_calib1.config(state = 'disabled')

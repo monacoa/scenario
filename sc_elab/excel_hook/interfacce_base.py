@@ -963,7 +963,7 @@ def calibration_from_xls(control):
 
                 elif W1.mkt_calibration_type.get() == 'CURVE_OPT':
 
-                    if model in ['G2++']:
+                    if model in ['G2++','VSCK']:
 
                         # leggo la curva dei fattori di sconto
                         curve_noint = W1.CurveChosen.loc[(W1.CurveChosen.loc[:, 2] == 'Y'), [0, 1]]
@@ -1001,12 +1001,18 @@ def calibration_from_xls(control):
                             x0_m.append(float(W1.param_dict[p_name]['sv']))
                             x_bnd.append([float(W1.param_dict[p_name]['min']), float(W1.param_dict[p_name]['max'])])
 
-                        ff = minimize(loss_G2pp,
+                        if model=='G2++':
+                            ff = minimize(loss_G2pp,
                                       args=(curve, market_data, loss_function_type_power, loss_function_type_absrel),
                                       x0=x0_m, bounds=x_bnd, method='TNC')
 
-                        market_data['model price'] = compute_G2pp_prices(ff.x, curve, market_data['time'],
-                                                           market_data['strike'])
+                            market_data['model price'] = compute_G2pp_prices(ff.x, curve, market_data['time'],
+                                                               market_data['strike'])
+                        elif model=='VSCK':
+                            ff = minimize(loss_caplets_Vasicek,args=(market_data, 2, 'abs'), x0=x0_m,
+                                          bounds=x_bnd, method='TNC')
+                            market_data['model price'] = compute_Vasicek_prices(ff.x, market_data['time'],
+                                                                             market_data['strike'])
 
                         # Produco il grafico della calibrazione
                         plt.plot(market_data['time'], market_data['market price'], 'b^', label='Market Prices')
@@ -1018,9 +1024,9 @@ def calibration_from_xls(control):
                         plt.show()
 
                         # Calcolo il chi quadro
-                        chi2 = computeCHI2(mkt=market_data['market price'], mdl=market_data['model price'])
-                        print chi2
-                        market_data=pd.DataFrame(market_data)
+                        chi2 = computeCHI2(mkt=market_data['market price'], mdl=market_data['model price'],type_calib='CURVE_OPT')
+
+                        # market_data=pd.DataFrame(market_data)
 
                         # scrivo su foglio Excel
                         writeCalibrationResOnXls(type_data=type_data,
@@ -1405,7 +1411,7 @@ def template_elaborate_matrix(control):
 # punto d'ingresso per scarico volatilita' implicite nei Cap e Floor
 # ===================================================================
 
-from W_Bootstrap_VolCapFloor import W_VolCapFloorDate, W_CurrencySelection
+from W_Bootstrap_VolCapFloor import W_VolCapFloorDate, W_CurrencySelection, W_tipo_dato_selection
 from xls_Bootstrap_VolCapFloor import write_VolCapFloor
 from DEF_intef import nameSheetCapFloorVolatilities
 from sc_elab.excel_hook.connection import Connection
@@ -1472,12 +1478,29 @@ def CapFloor_BVol_fromDBtoXls(control):
                  and DProCFS.Contributor = '%s'
                  and DProCFS.Currency = '%s' 
                  and DProTS_master.Data= '%s' 
-                 order by DProCFS.MaturityInt ASC''' % (contributor, currency, ref_date)
+                 order by DProCFS.MaturityInt, DProCFS.Strike ASC''' % (contributor, currency, ref_date)
 
     res = pd.read_sql(qry_to_execute, con.db)
 
-    if res['ValoreMid'].shape[0]==0:
+    if len(res)==0:
+        root=Tk()
         tkMessageBox.showwarning('Attenzione', 'Non si dispone di dati per la coppia Contributor-Currency selezionata')
+        root.destroy()
+
+    # Identificazione ed eventuale selezione del tipo di dato (ATM o Surface)
+    if res['Strike'].nunique()== 1 and res['Strike'][0]==-1:
+        tipo_dato = 'ATM'
+    elif -1. not in res['Strike'].values:
+        tipo_dato = 'Surface'
+    else:
+        root=Tk()
+        W_type = W_tipo_dato_selection(root)
+        root.mainloop()
+        tipo_dato = W_type.tipo_dato
+        if tipo_dato == 'ATM':
+            res = res.loc[res['Strike']==-1,:]
+        elif tipo_dato == 'Surface':
+            res = res.loc[res['Strike']!=-1,:]
 
     # Interrogo il campo deltaBp per capire se i Cap e Floor sono shiftati. Qualora il campo deltaBp
     # per tutte le componenti della superficie di volatilita Cap e Floor ad una certa data sia identico e pari
@@ -1496,19 +1519,16 @@ def CapFloor_BVol_fromDBtoXls(control):
         shift='0'
     elif res3.shape[0] > 1:
         root = Tk()
-        root.withdraw()
         tkMessageBox.showwarning('Attenzione', 'Sono presenti shift diversi')
         shift = '-999'
         root.destroy()
+        tipo_modello = 'Undefined'
     else:
         tipo_modello = 'Shifted'
         shift = res3['deltaBp'][0]
 
-    # root = Tk()
-    # app = W_SwaptionsOptionsPrint(root)
-    # root.mainloop()
 
-    write_VolCapFloor(xla, res, ref_date, currency, contributor, tipo_modello, shift)
+    write_VolCapFloor(xla, res, ref_date, currency, contributor, tipo_modello, tipo_dato, shift)
     s = xla.Cells.Columns.AutoFit()
 
 

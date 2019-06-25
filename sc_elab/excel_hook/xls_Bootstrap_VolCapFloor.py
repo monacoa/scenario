@@ -50,13 +50,9 @@ def intestazioneVCapFloor( xla, rng,  attributi, nCols = 2, title= "Cap Floor vo
     return rangeStart
 
 
-def writeVCapFloorResOnXls(data, xla, ref_date, currency, contributor, tipo_modello, shift):
+def writeVCapFloorResOnXls(data, xla, ref_date, currency, contributor, tipo_modello, tipo_dato, shift):
 
     r = findCalibrationPos(xla, nameSheetCapFloorVolatilities)
-
-    #---
-    #mi posiziono nella prima cella utile per scrivere i risultati del fitting
-    #---
 
     # if option_print == 'matrix':
     #     Attributi = \
@@ -77,14 +73,14 @@ def writeVCapFloorResOnXls(data, xla, ref_date, currency, contributor, tipo_mode
             , "4. Currency"    : currency
             , "5. Tipo Modello": tipo_modello
             , "6. Shift"       : shift
-            , "7. Tipo dato"   : 'ATM'
+            , "7. Tipo dato"   : tipo_dato
               }
 
     r = intestazioneVCapFloor(xla = xla, rng = r, attributi = Attributi)
     r = writeResultPandas(xla = xla , rng = r, df = data, flagPrintColumns = True)
 
 
-def write_VolCapFloor(xla, res, ref_date, currency , contributor, tipo_modello, shift):
+def write_VolCapFloor(xla, res, ref_date, currency , contributor, tipo_modello, tipo_dato, shift):
     # casto l'output della pandas come float
     res = res.astype('float')
     res2 = pd.DataFrame()
@@ -92,7 +88,7 @@ def write_VolCapFloor(xla, res, ref_date, currency , contributor, tipo_modello, 
     res2['Strike']=res['Strike']
     res2['Volatility (x100)'] = res['ValoreMid']
     res2['Usage'] = 'Y'
-    writeVCapFloorResOnXls(res2,  xla, ref_date, currency, contributor, tipo_modello, shift)
+    writeVCapFloorResOnXls(res2,  xla, ref_date, currency, contributor, tipo_modello, tipo_dato, shift)
 
 
 def writeBootstrapVolOnXls(xla, res, df_vols, df_curva):
