@@ -1486,6 +1486,7 @@ def CapFloor_BVol_fromDBtoXls(control):
         root=Tk()
         tkMessageBox.showwarning('Attenzione', 'Non si dispone di dati per la coppia Contributor-Currency selezionata')
         root.destroy()
+        return
 
     # Identificazione ed eventuale selezione del tipo di dato (ATM o Surface)
     if res['Strike'].nunique()== 1 and res['Strike'][0]==-1:
@@ -1544,7 +1545,7 @@ from xls_Bootstrap_VolCapFloor import writeBootstrapVolOnXls, readFeaturesDiscCu
 from DEF_intef import nameSheetCapFloorVolatilities, nameSheetBootstrap
 from W_calibration import readSheetObject, readFeaturesObject
 from sc_elab.core.anagrafica_dati import MaturityFromStringToYear
-from sc_elab.core.funzioni_boot_cap_floor import Bootstrap_CapFloor_ATM
+from sc_elab.core.funzioni_boot_cap_floor import Bootstrap_CapFloor_ATM, Bootstrap_CapFloor_Surface
 import tkMessageBox
 
 @xl_func
@@ -1640,7 +1641,16 @@ def BootstrapCapFloorVol_on_xls(control):
     discount['discount times'] = discount['discount times'] - discount['discount times'][0]
     discount['discount times'] = np.array([(d.days) / 365.2425 for d in discount['discount times']])
 
-    bootstrapped_volatilities = Bootstrap_CapFloor_ATM(shift, discount, volatilities)
+    if volsdata[selected_vols].loc[(volsdata[selected_vols].loc[:, 0] == 'Tipo dato'), 1].values == 'ATM':
+        bootstrapped_volatilities = Bootstrap_CapFloor_ATM(shift, discount, volatilities)
+    elif volsdata[selected_vols].loc[(volsdata[selected_vols].loc[:, 0] == 'Tipo dato'), 1].values == 'Surface':
+        bootstrapped_volatilities = Bootstrap_CapFloor_Surface(shift, discount, volatilities)
+    else:
+        root = Tk()
+        ttkMessageBox.showwarning('Error', 'Bootstrap on the selected data not available')
+        root.destroy()
+        bootstrapped_volatilities = pd.DataFrame()
+
     bootstrapped_volatilities['Usage']='Y'
 
     writeBootstrapVolOnXls(xla, bootstrapped_volatilities, volsdata[selected_vols], discount_curves[selected_disc_curve])

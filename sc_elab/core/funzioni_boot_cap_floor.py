@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 from scipy.optimize import root
 from scipy.stats import norm
+import matplotlib.pyplot as plt
 
 # -------------- Valore atteso di Black con shift ------------------------------
 def BlackExpectedValue(fwdPrice,strike,TimeToReset,vol,shift,type):
@@ -127,5 +128,98 @@ def Bootstrap_CapFloor_ATM(shift, discount_curve, volsdata):
     bootstrap_result['Time']= times_list[2:]
     bootstrap_result['Strike (x100)']= StrikeATM[1:]
     bootstrap_result['Volatility (x100)']= vol_boot
+
+    return bootstrap_result
+
+
+def Bootstrap_CapFloor_Surface(shift, discount, volatilities):
+
+    df_input_data=pd.DataFrame()
+    df_input_data['Maturity'] = volatilities['Maturities']
+    df_input_data['Strike']   = volatilities['Strikes']
+    df_input_data['Volatility'] = volatilities['Volatilities']
+
+    vol_mat_list = df_input_data['Maturity'].drop_duplicates().values.astype(float)
+    strike_list = df_input_data['Strike'].drop_duplicates().values.astype(float)
+    vols_data = df_input_data.pivot_table(index='Maturity', columns='Strike', values='Volatility',fill_value = None).values.astype(float)
+    vols_data = vols_data.transpose()
+
+    # --------- Calcolo tempi di esercizio singoli Caplets -----
+    time_max = float(vol_mat_list[-1]) + 0.5
+    times_list = np.arange(time_max, step=0.5)
+
+    # ----------------------------------------------------------
+
+    # ------- Interpolazione delle volatilita' flat relative ai singoli Caplets ---------
+    # uso una semplice interpolazione lineare sulle maturita' per ogni strike (riga per riga)
+    number_strike = len(strike_list)
+    vols = []
+    for i in range(0, number_strike):
+        vols_tmp = np.interp(times_list[1:], vol_mat_list, vols_data[i])
+        vols.append(vols_tmp)
+
+    # ----------------------------------------------------------------------------------
+
+    # ----- Calcolo variabili intermedie ------------------------
+    # Tenors
+    Tenors = []
+    for i in range(1, len(times_list)):
+        tenor_tmp = times_list[i] - times_list[i - 1]
+        Tenors.append(tenor_tmp)
+
+    # fattori di sconto per i tempi di esercizio dei Caplets
+    zc_discount_list = np.exp(np.interp(times_list, discount['discount times'], np.log(discount['discount factors'])))
+
+    # tassi forward
+    forward_rates = []
+    for i in range(0, len(Tenors)):
+        P1 = zc_discount_list[i]
+        P2 = zc_discount_list[i + 1]
+        fwd_tmp = (1. / Tenors[i]) * ((P1 / P2) - 1.)
+        forward_rates.append(fwd_tmp)
+
+    # prezzi teorici Cap
+    Cap_prices = []
+    for s in range(0, number_strike):
+        Cap_prices.append([])
+        for i in range(2, len(times_list)):
+            Cap_tmp = 0
+            for j in range(0, i):
+                BlackValue = BlackExpectedValue(forward_rates[j], strike_list[s], times_list[j], vols[s][i - 1], shift,
+                                                'Call')
+                caplet_tmp = zc_discount_list[j + 1] * Tenors[j] * BlackValue
+                Cap_tmp += caplet_tmp
+            Cap_prices[s].append(Cap_tmp)
+
+    # --------------------- Ciclo di Bootstrap ---------------------
+    Caplet_prices = []
+    vol_boot = []
+    for s in range(0, number_strike):
+        Caplet_prices.append([])
+        vol_boot.append([])
+        vol_boot[s].append(vols_data[s][0])
+        for i in range(1, len(Cap_prices[s])):
+            Caplet_tmp = Cap_prices[s][i] - Cap_prices[s][i - 1]
+            Black_tmp = Caplet_tmp / (Tenors[i+1] * zc_discount_list[i + 2])
+
+            vol_boot_tmp = BlackExpectedValue_inverse(forward_rates[i+1], strike_list[s], times_list[i+1], shift,
+                                                      'Call', Black_tmp)
+
+            Caplet_prices[s].append(Caplet_tmp)
+            vol_boot[s].append(vol_boot_tmp)
+    vol_boot = np.array(vol_boot)
+
+    for s in range(len(vol_boot)):
+        plt.plot(times_list[2:], vol_boot[s])
+    plt.show()
+
+    # moltiplico per 100 le volatilita' e gli strike e ridimensiono gli output per la scrittura
+    vol_boot = np.multiply(vol_boot, 100.).flatten()
+    strike_list = np.repeat(np.multiply(strike_list, 100.),len(times_list[2:]))
+
+    bootstrap_result = pd.DataFrame()
+    bootstrap_result['Time'] = np.tile(times_list[2:],number_strike)
+    bootstrap_result['Strike (x100)'] = strike_list
+    bootstrap_result['Volatility (x100)'] = vol_boot
 
     return bootstrap_result
