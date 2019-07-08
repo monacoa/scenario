@@ -97,9 +97,9 @@ def Bootstrap_CapFloor_ATM(shift, discount_curve, volsdata):
     # prezzi teorici Cap
 
     Cap_prices = []
-    for i in range(1, len(times_list)):
-        Cap_tmp = BlackExpectedValue(forward_rates[0],StrikeATM[i-1],times_list[0],vols[i-1],shift,'Call')
-        for j in range(1, i):
+    for i in range(2, len(times_list)):
+        Cap_tmp = 0
+        for j in range(0, i):
             BlackValue = BlackExpectedValue(forward_rates[j], StrikeATM[i-1], times_list[j], vols[i-1], shift, 'Call')
             caplet_tmp = zc_discount_list[j + 1] * Tenors[j] * BlackValue
             Cap_tmp += caplet_tmp
@@ -111,11 +111,12 @@ def Bootstrap_CapFloor_ATM(shift, discount_curve, volsdata):
 
     Caplet_prices=[]
     vol_boot=[]
-    for i in range(1,len(Tenors)):
+    vol_boot.append(vols[1])
+    for i in range(1,len(Cap_prices)):
         Caplet_tmp = Cap_prices[i]-Cap_prices[i-1]
-        Black_tmp  = Caplet_tmp/(Tenors[i]*zc_discount_list[i+1])
+        Black_tmp  = Caplet_tmp/(Tenors[i+1]*zc_discount_list[i+2])
 
-        vol_boot_tmp = BlackExpectedValue_inverse(forward_rates[i - 1], StrikeATM[i], times_list[i], shift, 'Call',Black_tmp)
+        vol_boot_tmp = BlackExpectedValue_inverse(forward_rates[i+1], StrikeATM[i+1], times_list[i+1], shift, 'Call',Black_tmp)
 
         Caplet_prices.append(Caplet_tmp)
         vol_boot.append(vol_boot_tmp)
@@ -197,7 +198,7 @@ def Bootstrap_CapFloor_Surface(shift, discount, volatilities):
     for s in range(0, number_strike):
         Caplet_prices.append([])
         vol_boot.append([])
-        vol_boot[s].append(vols_data[s][0])
+        vol_boot[s].append(vols[s][1])
         for i in range(1, len(Cap_prices[s])):
             Caplet_tmp = Cap_prices[s][i] - Cap_prices[s][i - 1]
             Black_tmp = Caplet_tmp / (Tenors[i+1] * zc_discount_list[i + 2])
