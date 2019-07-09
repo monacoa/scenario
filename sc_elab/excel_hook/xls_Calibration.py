@@ -172,7 +172,7 @@ def writeTemplateCalibration(xla, nameSheet):
 
     Attributi = \
         {       "0. CurveType"           : 'Swap, Inflation'
-            ,   "1. Interest rate Type"  : 'SMP, CMP, CNT'
+            ,   "1. Interest rate Type"  : 'SMP, CMP, CNT, Discount'
             ,   "2. Date Ref"            :  datetime.datetime.now().strftime("%m/%d/%Y")
         }
 
@@ -252,16 +252,16 @@ def writeTemplateCalibration(xla, nameSheet):
 
     mat = pd.DataFrame()
 
-    mat['Times']   = np.arange(1,8,step=1)
-    mat['Value'] = np.zeros(7)
+    mat['Time']   = np.arange(1,8,step=1)
+    mat['Strike (x100)'] = np.repeat(0.9,7)
+    mat['Value (x100)'] = np.zeros(7)
     mat['Usage'] = 'Y'
 
     Attributi = {
              "0. Date Ref"           : datetime.datetime.now().strftime("%m/%d/%Y")
             ,"1. OptionType"         : 'Vol Cap Floor, Caplets'
-            ,"2. Type value"         : 'Price, Volatility'
+            # ,"2. Type value"         : 'Price, Volatility'
             ,"3. Shift"              : 0
-            ,"4. Strike"             : 0.
     }
 
     r = intestazioneCalibration(xla=xla, rng=r, attributi=Attributi, title='Template Calibration Option')
