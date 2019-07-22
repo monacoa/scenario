@@ -1038,7 +1038,6 @@ def calibration_from_xls(control):
                         orig_curve, curve, type_cap = preProcessignCurve(W1.CurveChosen, rate_time_zero=True)
 
                         # leggo le opzioni e il prezzo iniziale
-
                         options_noint = W1.OptionChosen.loc[(W1.OptionChosen.loc[:, 4] == 'Y'), [0, 1, 2, 3]]
                         market_data = pd.DataFrame()
                         market_data['maturity'] = options_noint.loc[:, 0].values.astype(float)
@@ -1046,9 +1045,12 @@ def calibration_from_xls(control):
                         market_data['market price'] = options_noint.loc[:, 2].values.astype(float)
                         market_data['type'] = options_noint.loc[:, 3].values.astype(str)
 
+                        S0 = W1.OptionChosen.loc[(W1.OptionChosen.loc[:, 0] == 'Initial Price'), 1].values.astype(float)[0]
                         # preprocessing dati
                         market_data = market_data.sort_values(by=['maturity', 'type', 'strike'])
-                        S0 = W1.OptionChosen.loc[(W1.OptionChosen.loc[:,0] == 'Initial Price'), 1].values.astype(float)[0]
+
+                        # calcolo dei dividendi impliciti nei prezzi delle opzioni
+                        dividends_data, dividends = implicit_dividends(S0,market_data, curve)
 
                         # Leggo i parametri iniziali del modello e i loro limiti superiore e inferiore
                         x0_m = []
@@ -1058,11 +1060,11 @@ def calibration_from_xls(control):
                             x0_m.append(float(W1.param_dict[p_name]['sv']))
                             x_bnd.append([float(W1.param_dict[p_name]['min']), float(W1.param_dict[p_name]['max'])])
 
-                        ff = minimize(loss_Call_VG, args=(S0, market_data, curve, loss_function_type_power, loss_function_type_absrel)
+                        ff = minimize(loss_Call_VG, args=(S0, market_data, curve, dividends, loss_function_type_power, loss_function_type_absrel)
                                       , x0=x0_m, bounds=x_bnd, method='TNC')
 
                         # creo i dataframe con i dati da modello
-                        market_data['model price'] = compute_VG_prices(ff.x, S0, curve, market_data)
+                        market_data['model price'] = compute_VG_prices(ff.x, S0, curve, dividends, market_data)
 
                         # creo le tabelle pivot con i risultati maturity x strike
                         market_call_pivot = pd.pivot_table(market_data.loc[market_data['type'] == 'CALL'], index='strike', columns='maturity',
@@ -1097,6 +1099,11 @@ def calibration_from_xls(control):
                                            type_calib='CURVE_OPT')
 
                         # scrivo su foglio Excel
+                        writeDividendsResOnXls(title='Implicit dividends',
+                                               W_class=W1,
+                                               xla=xla,
+                                               res=dividends_data)
+
                         writeCalibrationResOnXls(type_data=type_data,
                                                  model=model,
                                                  W_class=W1,
@@ -1104,7 +1111,7 @@ def calibration_from_xls(control):
                                                  chi2=chi2,
                                                  opt_dict=ff.x,
                                                  res=market_data,
-                                                 capitalization_type='')
+                                                 capitalization_type='CNT')
 
             else:
 

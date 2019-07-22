@@ -151,6 +151,39 @@ def writeCalibrationResOnXls(type_data, model, W_class, xla, chi2, opt_dict, res
 
 
 
+def writeDividendsResOnXls(title, W_class, xla, res, dividend_type = 'continuous'):
+
+    nameSheet = nameSheetCalibRes
+    try:
+        s = xla.ActiveWorkbook.Sheets(nameSheet)
+    except:
+        s = xla.ActiveWorkbook.Sheets.Add()
+        s.Name = nameSheet
+    s.Activate()
+
+    r = findCalibrationPos(xla, nameSheet)
+
+    #---
+    #mi posiziono nella prima cella utile per scrivere i risultati del fitting
+    #---
+
+    df = W_class.CurveChosen
+    ref_date = df.loc[df.loc[:, 0] == 'Date Ref',1].values[0]
+
+    Attributi = \
+        {     "1. Date ref"              : ref_date
+            , "2. Type Data Calibration" : W_class.set_mkt_ts.get()
+            , "3. Name Curve"            : W_class.NameCurve.get()
+            , "4. Name Option"           : W_class.NameOption.get()
+            , "5. Dividend rate Type"    : dividend_type
+        }
+
+    r = intestazioneCalibration(xla = xla, rng = r, attributi = Attributi , title = title)
+    r = writeResultPandas(xla = xla , rng = r, df = res, flagPrintColumns = True)
+    s = xla.Cells.Columns.AutoFit()
+
+
+
 
 def writeTemplateCalibration(xla, nameSheet):
 

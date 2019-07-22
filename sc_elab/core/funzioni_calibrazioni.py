@@ -604,7 +604,7 @@ def alpha_Madan(list_model_params):
     return alpha
 
 
-def compute_VG_prices(list_model_params, S0, curve, market_data):
+def compute_VG_prices(list_model_params, S0, curve, dividends, market_data):
 
     parameters = {}
     parameters['sigma'] = list_model_params[0]
@@ -613,18 +613,19 @@ def compute_VG_prices(list_model_params, S0, curve, market_data):
 
     times = market_data['maturity'].drop_duplicates().tolist()
     rates = np.interp(times,curve['TIME'],curve['VALUE'])
+    dividends = np.interp(times, dividends['TIME'],dividends['VALUE'])
 
     alpha = alpha_Madan(list_model_params)
 
     VG_prices = []
     for i in range(0,len(times)):
-        strikesTmp, pricesTmp = Call_Fourier_VG(parameters, S0, rates[i], times[i], alpha, 0.25, 4096)
+        strikesTmp, pricesTmp = Call_Fourier_VG(parameters, S0, rates[i]-dividends[i], times[i], alpha, 0.25, 4096)
         strikeMkt = market_data.loc[market_data['maturity']==times[i],['strike']].values.flatten()
         typeMkt = market_data.loc[market_data['maturity']==times[i],['type']].values.flatten()
         price_interp = np.interp(strikeMkt,strikesTmp,pricesTmp).flatten().tolist()
         for j in range(0,len(strikeMkt)):
             if typeMkt[j]=='PUT':
-                price_interp[j] = price_interp[j]-S0+strikeMkt[j]*np.exp(-rates[i]*times[i])
+                price_interp[j] = price_interp[j]-S0*np.exp(-dividends[i]*times[i])+strikeMkt[j]*np.exp(-rates[i]*times[i])
         VG_prices = VG_prices + price_interp
 
     return VG_prices
@@ -635,9 +636,9 @@ def compute_VG_prices(list_model_params, S0, curve, market_data):
 # se absrel='rel' viene calcolata la norma delle differenze relative
 # mkt_data e' un DataFrame contenente tre series 'maturity', 'strike' e 'market price'
 # curve e' un DataFrame contenente due series: 'time' e 'rate'
-def loss_Call_VG(list_model_params, S0, mkt_data, curve, power, absrel):
+def loss_Call_VG(list_model_params, S0, mkt_data, curve, dividends, power, absrel):
 
-    model_price_tmp = np.array(compute_VG_prices(list_model_params, S0, curve, mkt_data[['maturity','strike','type']]))
+    model_price_tmp = np.array(compute_VG_prices(list_model_params, S0, curve, dividends, mkt_data[['maturity','strike','type']]))
     diff = np.absolute(model_price_tmp - mkt_data['market price'])
     if absrel == 'rel':
         diff = diff /np.absolute(mkt_data['market price'])
@@ -688,3 +689,39 @@ def Call_VG(S0,K,T,r,sigma,nu,theta):
                  -K*np.exp(-r*T)*fattPsi_2
 
     return Call_price
+
+# -------- funzione di Calcolo dei dividendi implciti nei prezzi delle opzioni ---------
+def implicit_dividends(S0,market_data,curve):
+
+    # eseguo un reshape dei dati per aggregare i prezzi di Call e Put corrispondenti agli stessi strike e maturita'
+    base_c = market_data.loc[market_data['type'] == "CALL",['maturity','strike','market price']].rename(columns={'market price':'price CALL'})
+    base_p = market_data.loc[market_data['type'] == "PUT",['maturity','strike','market price']].rename(columns={'market price':'price PUT'})
+    reshaped_data = pd.merge(base_c,base_p, how='inner', on=['maturity','strike'])
+
+    # controlli sui dati disponibili
+    maturity_list = market_data['maturity'].drop_duplicates().tolist()
+    reshaped_maturity_list = reshaped_data['maturity'].drop_duplicates().tolist()
+    # controllo di avere dati su cui eseguire l'estrazione dei dividendi
+    if len(reshaped_maturity_list)==0:
+        print 'No data available to compute implcit dividends'
+        return
+    # controllo per quali maturita' non ho dati su cui calcolare il dividendo implicito
+    for t in maturity_list:
+        if t not in reshaped_maturity_list:
+            print 'No Call and Put options available for the maturity %.4f year \n' \
+                  'No implicit dividend available at that maturity.' %t
+
+    # aggiungo al df reshaped una colonna con il tasso risk free
+    rates = np.interp(reshaped_data['maturity'],curve['TIME'],curve['VALUE'])
+    reshaped_data['discount factor'] = np.exp(-rates*reshaped_data['maturity'])
+
+    # calcolo i dividendi impliciti
+    log_argument = np.divide(reshaped_data['price CALL']-reshaped_data['price PUT']+reshaped_data['strike']*reshaped_data['discount factor'],S0)
+    reshaped_data['dividend rate'] = -np.divide(np.log(log_argument),reshaped_data['maturity'])
+
+    # calcolo la media dei dividendi impliciti per maturita' e restituisco la curva dei dividendi impliciti
+    res = pd.DataFrame()
+    res['TIME'] = reshaped_maturity_list
+    res['VALUE'] = reshaped_data.groupby(['maturity']).mean()['dividend rate'].tolist()
+
+    return reshaped_data, res
