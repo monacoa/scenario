@@ -6,7 +6,7 @@ from scipy.stats import norm
 import datetime
 
 
-def preProcessignCurve(df):
+def preProcessignCurve(df,rate_time_zero=False, out_type='rate'):
 
     # verifico la capitalizzazione dei tassi
     capitalization = df.loc[df.loc[:, 0] == 'Interest rate Type',1].values[0]
@@ -36,7 +36,9 @@ def preProcessignCurve(df):
         out.iloc[:, 0] = out.iloc[:, 0].apply(lambda x: x.days) / 365.2425
 
     # verifico che non ci sia tempo pari a 0
-    out = out.loc[out.iloc[:, 0] != 0.,:]
+    if rate_time_zero==False:
+        out = out.loc[out.iloc[:, 0] != 0.,:]
+
     out.reset_index(drop=True, inplace=True)
     out = out.astype('float')
 
@@ -57,6 +59,11 @@ def preProcessignCurve(df):
         capitalization = ""
 
     out_to_fit = out.copy()
+    out_to_fit['VALUE'] = np.divide(out_to_fit['VALUE'],100.) # si assume che i tassi siano passati moltiplicati per 100
+
+    if out_type=='discount':
+        out_to_fit['VALUE'] = np.exp(-out_to_fit['VALUE']*out_to_fit['TIME'])
+
     return out_origin ,out_to_fit , capitalization
 
 
@@ -309,7 +316,7 @@ def generate_vsck_perc(params, data_to_fit):
 #======= Calibrazione sulle opzioni Cap Floor ================
 # Calcolo del singolo Caplet
 # I parametri del Vasicek vanno passati come dizionario {r0, k, sigma, theta}
-# Va passata la curva dei tassi come dizionario {t_zc_list, rf_rate_list}
+# Va passata la curva dei tassi come dizionario {TIME, VALUE}
 def Caplet_Vasicek(parameters, reset_time, exercise_time, nominal_amount, strike):
     r0    = float(parameters['r0'])
     k     = float(parameters['k'])
@@ -422,11 +429,11 @@ def BlackExpectedValue(fwdPrice,strike,TimeToReset,vol,shift,type):
     return ExpectedValue
 
 # ------------------- Prezzo Caplet --------------------------------------------------
-# Va passata la curva dei fattori di sconto come dizionario {t_zc_list, discount_vec}
+# Va passata la curva dei fattori di sconto come dizionario {TIME, VALUE}
 def Black_shifted_Caplet(curve, reset_time, exercise_time, nominal_amount, strike, shift, vol):
 
-    P0 = np.exp(np.interp(reset_time, curve['t_zc_list'], np.log(curve['discount_vec'])))
-    P1 = np.exp(np.interp(exercise_time, curve['t_zc_list'], np.log(curve['discount_vec'])))
+    P0 = np.exp(np.interp(reset_time, curve['TIME'], np.log(curve['VALUE'])))
+    P1 = np.exp(np.interp(exercise_time, curve['TIME'], np.log(curve['VALUE'])))
     tenor = float(exercise_time-reset_time)
     forward_rate = ((P0/P1)-1)/tenor
 
@@ -455,7 +462,7 @@ def compute_Black_prices(curve, mkt_data, nominal_amount, shift):
 # ===========================================================
 # Calcolo del singolo Caplet
 # I parametri del G2++ vanno passati come un dizionario {a, b, sigma, eta, rho}
-# Va passata la curva dei fattori di sconto come dizionario {t_zc_list, discount_vec}
+# Va passata la curva dei fattori di sconto come dataframe {TIME, VALUE}
 def Caplet_G2pp(curve,parameters,reset_time,exercise_time,nominal_amount,strike):
     a     = float(parameters['a'])
     b     = float(parameters['b'])
@@ -468,8 +475,8 @@ def Caplet_G2pp(curve,parameters,reset_time,exercise_time,nominal_amount,strike)
     N= float(nominal_amount)
     Nmod=N*(1+float(strike)*(S-T))
 
-    P1  = np.exp(np.interp(T, curve['t_zc_list'], np.log(curve['discount_vec'])))
-    P2  = np.exp(np.interp(S, curve['t_zc_list'], np.log(curve['discount_vec'])))
+    P1  = np.exp(np.interp(T, curve['TIME'], np.log(curve['VALUE'])))
+    P2  = np.exp(np.interp(S, curve['TIME'], np.log(curve['VALUE'])))
 
     if T == 0.:
         forward_rate=((P1/P2)-1)/(S-T)
@@ -525,3 +532,159 @@ def loss_G2pp(list_model_params, curve, mkt_prices, power, absrel):
     diff = np.power(diff,power)
 
     return diff.sum()
+
+
+#################################################
+#              Variance Gamma
+#################################################
+
+# --------- Fourier Transform per il prezzo Call nel Variance Gamma -----
+# parameters e' un dizionario contenenti le chiavi {sigma, nu, theta}
+def PhiCaratt(parameters, S0, r, T, u):
+
+    sigma = parameters['sigma']
+    nu = parameters['nu']
+    theta = parameters['theta']
+
+    omega = (1. / nu) * np.log(1 - theta * nu - 0.5 * sigma * sigma * nu)
+    base = 1-1j*theta*nu*u+0.5*sigma*sigma*nu*u*u
+    fatt2 = np.power(base,-T/nu)
+    fatt1 = np.exp(1j*u*(np.log(S0)+(r+omega)*T))
+
+    return fatt1*fatt2
+
+def Psi(parameters, S0, r, T, alpha, v):
+
+    arg_phi = v-(alpha+1)*1j
+    numeratore = np.exp(-r*T)*PhiCaratt(parameters, S0, r, T, arg_phi)
+    denominatore = alpha*alpha + alpha -v*v +1j*(2*alpha+1)*v
+
+    return numeratore/denominatore
+
+def Call_Fourier_VG(parameters, S0, r, T, alpha, eta, N):
+
+    lambd = 2*np.pi/(N*eta)
+    # print 'log strike spacing: %.4f' %lambd
+    vect = np.arange(N)
+    v_m = eta*vect
+    b = np.log(S0)-N*lambd/2
+    nodes_1 = np.exp(-1j*b*v_m)
+    nodes_2 = Psi(parameters, S0, r, T, alpha, v_m)
+    w = np.ones(N)*4.
+    w[0:N:2] = 2.
+    w[0] = 1.
+    w[N-1] = 1.
+    w = eta*w/3.
+    nodes = nodes_1*nodes_2*w
+    FFT = np.real(np.fft.fft(nodes))
+    k_vect = b + lambd*vect
+
+    prices = np.exp(-alpha*k_vect)*FFT/np.pi
+    strikes = np.exp(k_vect)
+
+    return strikes, prices
+
+# --------------- funzioni per la calibrazione ----------------------
+def alpha_Madan(list_model_params):
+
+    sigma = list_model_params[0]
+    nu = list_model_params[1]
+    theta = list_model_params[2]
+
+    alphaUpBound = np.sqrt(np.power(theta, 2) / np.power(sigma, 4) + 2 / (np.power(sigma, 2) * nu)) - theta / np.power(
+        sigma, 2) - 1
+    flag = 0
+    while alphaUpBound > 2.1:
+        flag = 1
+        alphaUpBound = alphaUpBound / 2
+    if alphaUpBound > 1.1:
+        alphaUpBound -= 0.1
+    alpha = alphaUpBound
+
+    return alpha
+
+
+def compute_VG_prices(list_model_params, S0, curve, market_data):
+
+    parameters = {}
+    parameters['sigma'] = list_model_params[0]
+    parameters['nu'] = list_model_params[1]
+    parameters['theta'] = list_model_params[2]
+
+    times = market_data['maturity'].drop_duplicates().tolist()
+    rates = np.interp(times,curve['TIME'],curve['VALUE'])
+
+    alpha = alpha_Madan(list_model_params)
+
+    VG_prices = []
+    for i in range(0,len(times)):
+        strikesTmp, pricesTmp = Call_Fourier_VG(parameters, S0, rates[i], times[i], alpha, 0.25, 4096)
+        strikeMkt = market_data.loc[market_data['maturity']==times[i],['strike']].values.flatten()
+        typeMkt = market_data.loc[market_data['maturity']==times[i],['type']].values.flatten()
+        price_interp = np.interp(strikeMkt,strikesTmp,pricesTmp).flatten().tolist()
+        for j in range(0,len(strikeMkt)):
+            if typeMkt[j]=='PUT':
+                price_interp[j] = price_interp[j]-S0+strikeMkt[j]*np.exp(-rates[i]*times[i])
+        VG_prices = VG_prices + price_interp
+
+    return VG_prices
+
+# ---------- Funzione di calcolo norma da ottimizzare ------------------------------------
+# power=1 metrica di Manhattan
+# power=2 metrica euclidea
+# se absrel='rel' viene calcolata la norma delle differenze relative
+# mkt_data e' un DataFrame contenente tre series 'maturity', 'strike' e 'market price'
+# curve e' un DataFrame contenente due series: 'time' e 'rate'
+def loss_Call_VG(list_model_params, S0, mkt_data, curve, power, absrel):
+
+    model_price_tmp = np.array(compute_VG_prices(list_model_params, S0, curve, mkt_data[['maturity','strike','type']]))
+    diff = np.absolute(model_price_tmp - mkt_data['market price'])
+    if absrel == 'rel':
+        diff = diff /np.absolute(mkt_data['market price'])
+
+    diff = np.power(diff,power)
+
+    return diff.sum()
+
+# ---- Prezzo analitico Call nel Variance Gamma --------
+# non viene utilizzato nella calibrazione perche' presenta dei problemi numerici quando il
+# rapporto T/nu e' molto grande. Tuttavia la formula funziona per la maggiorparte delle maturita' a breve.
+def funcPsi(a,b,gam):
+
+    c = np.absolute(a)*np.sqrt(2.+np.power(b,2))
+    u = b/np.sqrt(2.+np.power(b,2))
+    v1 = np.sign(a)*c
+    v2 = np.power(c,gam+0.5)*np.exp(v1)/(np.sqrt(2*np.pi)*special.gamma(gam))
+
+    integrand1 = lambda s: np.power(s, gam - 1.) * np.power(1. - 0.5 * s * (1. + u), gam - 1.) * np.exp(
+        -s * v1 * (1. + u))
+    x_values = np.arange(0,1.01,0.01)
+    integral1 = integrate.simps(integrand1(x_values),x_values)
+    Phi1 = gam*integral1
+    integrand2 = lambda s: np.power(s, gam) * np.power(1. - 0.5 * s * (1. + u), gam - 1.) * np.exp(-s * v1 * (1. + u))
+    integral2 = integrate.simps(integrand2(x_values),x_values)
+    Phi2 = (1.+gam)*integral2
+
+    Psi = v2*np.power(1.+u,gam)/gam*special.kv(gam+0.5,c)*Phi1 - \
+          np.sign(a)*v2*np.power(1.+u,1.+gam)/(1.+gam)*special.kv(gam-0.5,c)*Phi2 +\
+          np.sign(a)*v2*np.power(1.+u,gam)/gam*special.kv(gam-0.5,c)*Phi1
+
+    return Psi
+
+def Call_VG(S0,K,T,r,sigma,nu,theta):
+
+    gamm = T/nu
+    omega = (1/nu)*np.log(1-nu*theta-0.5*sigma*sigma*nu)
+    zeta = (np.log(S0/K)+omega*T)/sigma
+    vartheta = 1-nu*(theta+0.5*sigma*sigma)
+    a_1 = zeta*np.sqrt(vartheta/nu)
+    b_1 = (1./sigma)*(theta + sigma*sigma)*np.sqrt(nu/vartheta)
+    a_2 = zeta*np.sqrt(1./nu)
+    b_2 = (1./sigma)*theta*np.sqrt(nu)
+
+    fattPsi_1 = funcPsi(a_1,b_1,gamm)
+    fattPsi_2 = funcPsi(a_2,b_2,gamm)
+    Call_price = S0*np.exp(-r*T)*fattPsi_1 \
+                 -K*np.exp(-r*T)*fattPsi_2
+
+    return Call_price

@@ -167,12 +167,12 @@ def writeTemplateCalibration(xla, nameSheet):
     mat = pd.DataFrame()
 
     mat['Date']  = pd.date_range(start=datetime.datetime.now().date() - datetime.timedelta(7), periods=7)
-    mat['Value'] = np.zeros(7)
+    mat['Value (x100)'] = np.zeros(7)
     mat['Usage'] = 'Y'
 
     Attributi = \
         {       "0. CurveType"           : 'Swap, Inflation'
-            ,   "1. Interest rate Type"  : 'SMP, CMP, CNT, Discount'
+            ,   "1. Interest rate Type"  : 'SMP, CMP, CNT'
             ,   "2. Date Ref"            :  datetime.datetime.now().strftime("%m/%d/%Y")
         }
 
@@ -188,7 +188,7 @@ def writeTemplateCalibration(xla, nameSheet):
     mat = pd.DataFrame()
 
     mat['Times']  = np.arange(1,4.5,step=0.5)
-    mat['Value'] = np.zeros(7)
+    mat['Value (x100)'] = np.zeros(7)
     mat['Usage'] = 'Y'
 
     Attributi = \
@@ -247,7 +247,7 @@ def writeTemplateCalibration(xla, nameSheet):
 
 
     ##########################
-    ## OPTION - Opzione
+    ## Cap Floor
     ##########################
 
     mat = pd.DataFrame()
@@ -262,6 +262,29 @@ def writeTemplateCalibration(xla, nameSheet):
             ,"1. OptionType"         : 'Vol Cap Floor, Caplets'
             # ,"2. Type value"         : 'Price, Volatility'
             ,"3. Shift"              : 0
+    }
+
+    r = intestazioneCalibration(xla=xla, rng=r, attributi=Attributi, title='Template Calibration Cap Floor')
+    r = writeResultPandas(xla=xla, rng=r, df=mat, flagPrintColumns=True)
+    xla.Cells.ColumnWidth = 18
+
+ ##########################
+    ## OPTION - Opzione
+    ##########################
+
+    mat = pd.DataFrame()
+
+    mat['Maturity']   = np.arange(1,8,step=1)
+    mat['Strike'] = np.repeat(0.9,7)
+    mat['Price'] = np.zeros(7)
+    mat['Type'] = 'CALL'
+    mat['Usage'] = 'Y'
+
+    Attributi = {
+             "0. Date Ref"           : datetime.datetime.now().strftime("%m/%d/%Y")
+            ,"1. OptionType"         : 'PUT / CALL'
+            # ,"2. Type value"         : 'Price, Volatility'
+            ,"3. Initial Price"              : 100
     }
 
     r = intestazioneCalibration(xla=xla, rng=r, attributi=Attributi, title='Template Calibration Option')

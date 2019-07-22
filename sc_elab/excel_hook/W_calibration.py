@@ -54,6 +54,14 @@ def model_parameters(value):
         names = ['a', 'sigma', 'b', 'eta', 'rho']
         attribute = ['sv', 'min', 'max', 'fix']
 
+    elif value == 'Variance Gamma':
+        dict ={'sigma'   :{'sv':'0.1', 'min': '0.0001', 'max': '5.0' , 'fix':0},
+               'nu': {'sv': '0.1', 'min': '0.0001', 'max': '2.0', 'fix': 0},
+               'theta': {'sv': '0.1', 'min': '-0.7', 'max': '0.7', 'fix': 0}
+               }
+        names = ['sigma', 'nu', 'theta']
+        attribute = ['sv', 'min', 'max', 'fix']
+
     else:
         dict ={}
         names = []
@@ -84,7 +92,8 @@ class W_calib_models(Frame):
         self.calib_avaible = ['CIR',
                          'VSCK',
                          'Jarrow Yildirim',
-                         'G2++']
+                         'G2++',
+                         'Variance Gamma']
 
         for name_calib in self.calib_avaible:
             Radiobutton(self,
@@ -224,7 +233,7 @@ class W_calib_menu(LabelFrame):
             self.rb_calib1.config(state = "disabled")
             # self.rb_calib3.config(state = "disabled")
             self.mkt_calibration_type.set('CURVE')
-        elif model in ['G2++']:
+        elif model in ['G2++','Variance Gamma']:
             self.rb_calib1.config(state = 'disabled')
             self.rb_calib2.config(state = 'disabled')
             self.mkt_calibration_type.set('CURVE_OPT')

@@ -966,13 +966,7 @@ def calibration_from_xls(control):
                     if model in ['G2++','VSCK']:
 
                         # leggo la curva dei fattori di sconto
-                        curve_noint = W1.CurveChosen.loc[(W1.CurveChosen.loc[:, 2] == 'Y'), [0, 1]]
-                        curve = {}
-                        curve['t_zc_list'] = curve_noint.loc[:, 0].values
-                        curve['discount_vec'] = curve_noint.loc[:, 1].values.astype(float)
-                        # converto le date dei fattori di sconto in intervalli in termini di giorni
-                        curve['t_zc_list'] = curve['t_zc_list'] - curve['t_zc_list'][0]
-                        curve['t_zc_list'] = np.array([(d.days) / 365.2425 for d in curve['t_zc_list']])
+                        orig_curve, curve, type_cap = preProcessignCurve(W1.CurveChosen, rate_time_zero=True, out_type='discount')
 
                         # leggo le opzioni distinguendo fra Volatilita' e prezzi Caplet
 
@@ -1027,6 +1021,80 @@ def calibration_from_xls(control):
                         chi2 = computeCHI2(mkt=market_data['market price'], mdl=market_data['model price'],type_calib='CURVE_OPT')
 
                         # market_data=pd.DataFrame(market_data)
+
+                        # scrivo su foglio Excel
+                        writeCalibrationResOnXls(type_data=type_data,
+                                                 model=model,
+                                                 W_class=W1,
+                                                 xla=xla,
+                                                 chi2=chi2,
+                                                 opt_dict=ff.x,
+                                                 res=market_data,
+                                                 capitalization_type='')
+
+                    if model == 'Variance Gamma':
+
+                        # leggo la curva dei tassi di interesse (vanno passati nel regime continuo)
+                        orig_curve, curve, type_cap = preProcessignCurve(W1.CurveChosen, rate_time_zero=True)
+
+                        # leggo le opzioni e il prezzo iniziale
+
+                        options_noint = W1.OptionChosen.loc[(W1.OptionChosen.loc[:, 4] == 'Y'), [0, 1, 2, 3]]
+                        market_data = pd.DataFrame()
+                        market_data['maturity'] = options_noint.loc[:, 0].values.astype(float)
+                        market_data['strike'] = options_noint.loc[:, 1].values.astype(float)
+                        market_data['market price'] = options_noint.loc[:, 2].values.astype(float)
+                        market_data['type'] = options_noint.loc[:, 3].values.astype(str)
+
+                        # preprocessing dati
+                        market_data = market_data.sort_values(by=['maturity', 'type', 'strike'])
+                        S0 = W1.OptionChosen.loc[(W1.OptionChosen.loc[:,0] == 'Initial Price'), 1].values.astype(float)[0]
+
+                        # Leggo i parametri iniziali del modello e i loro limiti superiore e inferiore
+                        x0_m = []
+                        x_bnd = []
+
+                        for p_name in W1.params_names:
+                            x0_m.append(float(W1.param_dict[p_name]['sv']))
+                            x_bnd.append([float(W1.param_dict[p_name]['min']), float(W1.param_dict[p_name]['max'])])
+
+                        ff = minimize(loss_Call_VG, args=(S0, market_data, curve, loss_function_type_power, loss_function_type_absrel)
+                                      , x0=x0_m, bounds=x_bnd, method='TNC')
+
+                        # creo i dataframe con i dati da modello
+                        market_data['model price'] = compute_VG_prices(ff.x, S0, curve, market_data)
+
+                        # creo le tabelle pivot con i risultati maturity x strike
+                        market_call_pivot = pd.pivot_table(market_data.loc[market_data['type'] == 'CALL'], index='strike', columns='maturity',
+                                                           values='market price', fill_value=np.nan)
+                        model_call_pivot = pd.pivot_table(market_data.loc[market_data['type'] == 'CALL'], index='strike', columns='maturity',
+                                                          values='model price', fill_value=np.nan)
+
+                        market_put_pivot = pd.pivot_table(market_data.loc[market_data['type'] == 'PUT'], index='strike',
+                                                          columns='maturity', values='market price', fill_value=np.nan)
+                        model_put_pivot = pd.pivot_table(market_data.loc[market_data['type'] == 'PUT'], index='strike',
+                                                         columns='maturity', values='model price', fill_value=np.nan)
+
+                        # produco i grafici
+                        for i in range(0, len(market_call_pivot.keys())):
+                            plt.plot(market_call_pivot.index, market_call_pivot[market_call_pivot.keys()[i]], '^',label='market price')
+                            plt.plot(market_call_pivot.index, model_call_pivot[model_call_pivot.keys()[i]], 'o-',label='model price')
+                            plt.title('Call prices maturity %s year' % market_call_pivot.keys()[i])
+                            plt.xlabel('Strike')
+                            plt.legend()
+                            plt.show()
+
+                        for i in range(0, len(market_put_pivot.keys())):
+                            plt.plot(market_put_pivot.index, market_put_pivot[market_put_pivot.keys()[i]], '^',label='market price')
+                            plt.plot(market_put_pivot.index, model_put_pivot[model_put_pivot.keys()[i]], 'o-',label='model price')
+                            plt.title('Put prices maturity %s year' % market_put_pivot.keys()[i])
+                            plt.xlabel('Strike')
+                            plt.legend()
+                            plt.show()
+
+                        # Calcolo il chi quadro
+                        chi2 = computeCHI2(mkt=market_data['market price'], mdl=market_data['model price'],
+                                           type_calib='CURVE_OPT')
 
                         # scrivo su foglio Excel
                         writeCalibrationResOnXls(type_data=type_data,
