@@ -487,6 +487,42 @@ class W_calib_menu(LabelFrame):
                 self.master.destroy()
 
 
+class W_dividends(LabelFrame):
+
+    def close_window(self):
+        self.master.destroy()
+
+    def choose_dvd(self):
+        self.res = 1
+        self.master.destroy()
+
+    def __init__(self, parent = None):
+        self.res = 0
+
+        # inizializzo l'oggetto
+        LabelFrame.__init__(self, parent)
+        self.grid()
+        self.master = parent
+        self.master.title("Choose dividend rate")
+
+        # label di istruzioni
+        self.label = Label(parent,text="No data available to compute dividends, choose a constant rate.")
+        self.label.grid(column=0,row=0,columnspan=2)
+
+        # form entry
+        self.dvd = StringVar()
+        self.dvd.set('0.0')
+        dividend = Entry(parent, textvariable=self.dvd)
+        dividend.grid(column=0, row=1, columnspan=2)
+
+        # Select button
+        btn1 = Button(parent, text="Select", command=lambda: self.choose_dvd())
+        btn1.grid(column=0,row=2)
+        # Cancel button
+        btn2 = Button(parent, text="Cancel", command=lambda: self.close_window())
+        btn2.grid(column=1,row=2)
+
+
 def readSheetObject_clearRows(input_dict = None):
 
     k = 0

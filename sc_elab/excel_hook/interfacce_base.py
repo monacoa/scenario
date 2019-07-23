@@ -835,7 +835,7 @@ def bootstrap_cds_from_xls(control):
 # punto d'ingresso per CALIBRAZIONE
 # ==========================================
 
-from sc_elab.excel_hook.W_calibration import W_calib_models
+from sc_elab.excel_hook.W_calibration import W_calib_models, W_dividends
 from scipy.optimize import minimize
 import matplotlib.pyplot as plt
 from sc_elab.core.funzioni_calibrazioni import *
@@ -996,15 +996,34 @@ def calibration_from_xls(control):
                             x_bnd.append([float(W1.param_dict[p_name]['min']), float(W1.param_dict[p_name]['max'])])
 
                         if model=='G2++':
+
+                            root = Tk()
+                            root.grid()
+                            message = Label(root, text='Calibrazione in corso')
+                            message.grid(column=0, row=1)
+                            root.update()
+
                             ff = minimize(loss_G2pp,
                                       args=(curve, market_data, loss_function_type_power, loss_function_type_absrel),
                                       x0=x0_m, bounds=x_bnd, method='TNC')
 
+                            root.destroy()
+
                             market_data['model price'] = compute_G2pp_prices(ff.x, curve, market_data['time'],
                                                                market_data['strike'])
                         elif model=='VSCK':
+
+                            root = Tk()
+                            root.grid()
+                            message = Label(root, text='Calibrazione in corso')
+                            message.grid(column=0, row=1)
+                            root.update()
+
                             ff = minimize(loss_caplets_Vasicek,args=(market_data, 2, 'abs'), x0=x0_m,
                                           bounds=x_bnd, method='TNC')
+
+                            root.destroy()
+
                             market_data['model price'] = compute_Vasicek_prices(ff.x, market_data['time'],
                                                                              market_data['strike'])
 
@@ -1051,6 +1070,20 @@ def calibration_from_xls(control):
 
                         # calcolo dei dividendi impliciti nei prezzi delle opzioni
                         dividends_data, dividends = implicit_dividends(S0,market_data, curve)
+                        # gestisco il caso in cui non ci siano dati disponibili per calcolare i dividendi impliciti
+                        if len(dividends['VALUE']) == 0:
+
+                            root = Tk()
+                            W_dvd = W_dividends(root)
+                            root.mainloop()
+
+                            if W_dvd.res==0:
+                                return
+                            elif W_dvd.res==1:
+                                dividends = pd.DataFrame()
+                                dividends['TIME'] = [0.,10.]
+                                dividends['VALUE'] = [float(W_dvd.dvd.get()),float(W_dvd.dvd.get())]
+                                dividends_data = dividends
 
                         # Leggo i parametri iniziali del modello e i loro limiti superiore e inferiore
                         x0_m = []
@@ -1060,8 +1093,16 @@ def calibration_from_xls(control):
                             x0_m.append(float(W1.param_dict[p_name]['sv']))
                             x_bnd.append([float(W1.param_dict[p_name]['min']), float(W1.param_dict[p_name]['max'])])
 
+                        root = Tk()
+                        root.grid()
+                        message = Label(root, text='Calibrazione in corso, potrebbe richiedere un minutino.')
+                        message.grid(column=0, row=1)
+                        root.update()
+
                         ff = minimize(loss_Call_VG, args=(S0, market_data, curve, dividends, loss_function_type_power, loss_function_type_absrel)
                                       , x0=x0_m, bounds=x_bnd, method='TNC')
+
+                        root.destroy()
 
                         # creo i dataframe con i dati da modello
                         market_data['model price'] = compute_VG_prices(ff.x, S0, curve, dividends, market_data)

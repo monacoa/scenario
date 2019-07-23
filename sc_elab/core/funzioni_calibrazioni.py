@@ -704,7 +704,9 @@ def implicit_dividends(S0,market_data,curve):
     # controllo di avere dati su cui eseguire l'estrazione dei dividendi
     if len(reshaped_maturity_list)==0:
         print 'No data available to compute implcit dividends'
-        return
+        reshaped_data = pd.DataFrame({'TIME':[],'VALUE':[]})
+        res = reshaped_data
+        return reshaped_data, res
     # controllo per quali maturita' non ho dati su cui calcolare il dividendo implicito
     for t in maturity_list:
         if t not in reshaped_maturity_list:

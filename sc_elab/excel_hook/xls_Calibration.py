@@ -204,7 +204,7 @@ def writeTemplateCalibration(xla, nameSheet):
     mat['Usage'] = 'Y'
 
     Attributi = \
-        {       "0. CurveType"           : 'Swap, Inflation'
+        {       "0. CurveType"           : 'Zero coupon RF, Inflation'
             ,   "1. Interest rate Type"  : 'SMP, CMP, CNT'
             ,   "2. Date Ref"            :  datetime.datetime.now().strftime("%m/%d/%Y")
         }
@@ -225,7 +225,7 @@ def writeTemplateCalibration(xla, nameSheet):
     mat['Usage'] = 'Y'
 
     Attributi = \
-        {       "0. CurveType"           : 'Swap, Inflation'
+        {       "0. CurveType"           : 'Zero coupon RF, Inflation'
             ,   "1. Interest rate Type"  : 'SMP, CMP, CNT'
             ,   "2. Date Ref"            :  datetime.datetime.now().strftime("%m/%d/%Y")
         }
