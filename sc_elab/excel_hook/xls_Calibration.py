@@ -183,6 +183,35 @@ def writeDividendsResOnXls(title, W_class, xla, res, dividend_type = 'continuous
     s = xla.Cells.Columns.AutoFit()
 
 
+def writeVolResOnXls(title, W_class, xla, strike, maturity, vol):
+
+    nameSheet = nameSheetCalibRes
+    try:
+        s = xla.ActiveWorkbook.Sheets(nameSheet)
+    except:
+        s = xla.ActiveWorkbook.Sheets.Add()
+        s.Name = nameSheet
+    s.Activate()
+
+    r = findCalibrationPos(xla, nameSheet)
+
+    #---
+    #mi posiziono nella prima cella utile per scrivere i risultati del fitting
+    #---
+
+    df = W_class.CurveChosen
+    ref_date = df.loc[df.loc[:, 0] == 'Date Ref',1].values[0]
+
+    Attributi = \
+        {     "1. Date ref"              : ref_date
+            , "2. Type Volatility"       : 'Black-Scholes vol'
+            , "3. Strike"                : strike
+            , "4. Maturity"              : maturity
+            , "5. Volatility"            : vol
+        }
+
+    r = intestazioneCalibration(xla = xla, rng = r, attributi = Attributi , title = title)
+    s = xla.Cells.Columns.AutoFit()
 
 
 def writeTemplateCalibration(xla, nameSheet):
@@ -316,8 +345,9 @@ def writeTemplateCalibration(xla, nameSheet):
     Attributi = {
              "0. Date Ref"           : datetime.datetime.now().strftime("%m/%d/%Y")
             ,"1. OptionType"         : 'PUT / CALL'
-            # ,"2. Type value"         : 'Price, Volatility'
-            ,"3. Initial Price"              : 100
+            ,"2. Initial Price"      : 100
+            ,"3. Strike"             : 100
+            ,"4. Maturity"           : 2
     }
 
     r = intestazioneCalibration(xla=xla, rng=r, attributi=Attributi, title='Template Calibration Option')

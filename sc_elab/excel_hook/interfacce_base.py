@@ -1056,7 +1056,7 @@ def calibration_from_xls(control):
                         # leggo la curva dei tassi di interesse (vanno passati nel regime continuo)
                         orig_curve, curve, type_cap = preProcessignCurve(W1.CurveChosen, rate_time_zero=True)
 
-                        # leggo le opzioni e il prezzo iniziale
+                        # leggo le opzioni il prezzo iniziale e strike e maturity da cui estrarre la volatilita' di Black-Scholes
                         options_noint = W1.OptionChosen.loc[(W1.OptionChosen.loc[:, 4] == 'Y'), [0, 1, 2, 3]]
                         market_data = pd.DataFrame()
                         market_data['maturity'] = options_noint.loc[:, 0].values.astype(float)
@@ -1065,6 +1065,9 @@ def calibration_from_xls(control):
                         market_data['type'] = options_noint.loc[:, 3].values.astype(str)
 
                         S0 = W1.OptionChosen.loc[(W1.OptionChosen.loc[:, 0] == 'Initial Price'), 1].values.astype(float)[0]
+
+                        strike = W1.OptionChosen.loc[(W1.OptionChosen.loc[:,0]== 'Strike'),1].values.astype(float)[0]
+                        maturity = W1.OptionChosen.loc[(W1.OptionChosen.loc[:,0]== 'Mat'),1].values.astype(float)[0]
                         # preprocessing dati
                         market_data = market_data.sort_values(by=['maturity', 'type', 'strike'])
 
@@ -1122,7 +1125,7 @@ def calibration_from_xls(control):
                         for i in range(0, len(market_call_pivot.keys())):
                             plt.plot(market_call_pivot.index, market_call_pivot[market_call_pivot.keys()[i]], '^',label='market price')
                             plt.plot(market_call_pivot.index, model_call_pivot[model_call_pivot.keys()[i]], 'o-',label='model price')
-                            plt.title('Call prices maturity %s year' % market_call_pivot.keys()[i])
+                            plt.title('Call prices maturity %.2f year' % market_call_pivot.keys()[i])
                             plt.xlabel('Strike')
                             plt.legend()
                             plt.show()
@@ -1130,10 +1133,23 @@ def calibration_from_xls(control):
                         for i in range(0, len(market_put_pivot.keys())):
                             plt.plot(market_put_pivot.index, market_put_pivot[market_put_pivot.keys()[i]], '^',label='market price')
                             plt.plot(market_put_pivot.index, model_put_pivot[model_put_pivot.keys()[i]], 'o-',label='model price')
-                            plt.title('Put prices maturity %s year' % market_put_pivot.keys()[i])
+                            plt.title('Put prices maturity %.2f year' % market_put_pivot.keys()[i])
                             plt.xlabel('Strike')
                             plt.legend()
                             plt.show()
+
+                        # Trovo la volatilita' Black-Scholes associata a strike e maturita' date in input tale che il prezzo
+                        # Black-Scholes e quello Variance Gamma coincidano
+                        parameters = {'sigma': ff.x[0], 'nu': ff.x[1], 'theta': ff.x[2]}
+                        r = np.interp(maturity, curve['TIME'], curve['VALUE'])
+                        q = np.interp(maturity, dividends['TIME'], dividends['VALUE'])
+                        alpha = alpha_Madan(ff.x)
+                        strike_list, price_list = Call_Fourier_VG(parameters, S0, r, q, maturity, alpha, 0.25, np.power(2, 12))
+                        priceFourier = np.interp(strike, strike_list, price_list)
+                        vol = fromPriceToVol(priceFourier, S0, strike, maturity, r, q)
+                        print 'Prezzo: %.4f \tVol: %.4f' % (priceFourier, vol)
+                        prezzoBS = Call_BS(S0, strike, maturity, r, q, vol)
+                        print 'prezzo BS: %.4f' % prezzoBS
 
                         # Calcolo il chi quadro
                         chi2 = computeCHI2(mkt=market_data['market price'], mdl=market_data['model price'],
@@ -1144,6 +1160,13 @@ def calibration_from_xls(control):
                                                W_class=W1,
                                                xla=xla,
                                                res=dividends_data)
+
+                        writeVolResOnXls(title='Volatility from surface',
+                                         W_class=W1,
+                                         xla=xla,
+                                         strike=strike,
+                                         maturity=maturity,
+                                         vol=vol)
 
                         writeCalibrationResOnXls(type_data=type_data,
                                                  model=model,

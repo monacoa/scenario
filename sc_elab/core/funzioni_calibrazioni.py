@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 from scipy.special import ive
 from scipy.stats import norm
+from scipy.optimize import root
 import datetime
 
 
@@ -540,7 +541,7 @@ def loss_G2pp(list_model_params, curve, mkt_prices, power, absrel):
 
 # --------- Fourier Transform per il prezzo Call nel Variance Gamma -----
 # parameters e' un dizionario contenenti le chiavi {sigma, nu, theta}
-def PhiCaratt(parameters, S0, r, T, u):
+def PhiCaratt(parameters, S0, r, q, T, u):
 
     sigma = parameters['sigma']
     nu = parameters['nu']
@@ -549,19 +550,19 @@ def PhiCaratt(parameters, S0, r, T, u):
     omega = (1. / nu) * np.log(1 - theta * nu - 0.5 * sigma * sigma * nu)
     base = 1-1j*theta*nu*u+0.5*sigma*sigma*nu*u*u
     fatt2 = np.power(base,-T/nu)
-    fatt1 = np.exp(1j*u*(np.log(S0)+(r+omega)*T))
+    fatt1 = np.exp(1j*u*(np.log(S0)+(r-q+omega)*T))
 
     return fatt1*fatt2
 
-def Psi(parameters, S0, r, T, alpha, v):
+def Psi(parameters, S0, r, q, T, alpha, v):
 
     arg_phi = v-(alpha+1)*1j
-    numeratore = np.exp(-r*T)*PhiCaratt(parameters, S0, r, T, arg_phi)
+    numeratore = np.exp(-r*T)*PhiCaratt(parameters, S0, r, q, T, arg_phi)
     denominatore = alpha*alpha + alpha -v*v +1j*(2*alpha+1)*v
 
     return numeratore/denominatore
 
-def Call_Fourier_VG(parameters, S0, r, T, alpha, eta, N):
+def Call_Fourier_VG(parameters, S0, r, q, T, alpha, eta, N):
 
     lambd = 2*np.pi/(N*eta)
     # print 'log strike spacing: %.4f' %lambd
@@ -569,7 +570,7 @@ def Call_Fourier_VG(parameters, S0, r, T, alpha, eta, N):
     v_m = eta*vect
     b = np.log(S0)-N*lambd/2
     nodes_1 = np.exp(-1j*b*v_m)
-    nodes_2 = Psi(parameters, S0, r, T, alpha, v_m)
+    nodes_2 = Psi(parameters, S0, r, q, T, alpha, v_m)
     w = np.ones(N)*4.
     w[0:N:2] = 2.
     w[0] = 1.
@@ -619,7 +620,7 @@ def compute_VG_prices(list_model_params, S0, curve, dividends, market_data):
 
     VG_prices = []
     for i in range(0,len(times)):
-        strikesTmp, pricesTmp = Call_Fourier_VG(parameters, S0, rates[i]-dividends[i], times[i], alpha, 0.25, 4096)
+        strikesTmp, pricesTmp = Call_Fourier_VG(parameters, S0, rates[i], dividends[i], times[i], alpha, 0.25, 4096)
         strikeMkt = market_data.loc[market_data['maturity']==times[i],['strike']].values.flatten()
         typeMkt = market_data.loc[market_data['maturity']==times[i],['type']].values.flatten()
         price_interp = np.interp(strikeMkt,strikesTmp,pricesTmp).flatten().tolist()
@@ -704,9 +705,10 @@ def implicit_dividends(S0,market_data,curve):
     # controllo di avere dati su cui eseguire l'estrazione dei dividendi
     if len(reshaped_maturity_list)==0:
         print 'No data available to compute implcit dividends'
-        reshaped_data = pd.DataFrame({'TIME':[],'VALUE':[]})
-        res = reshaped_data
-        return reshaped_data, res
+        dividend = pd.DataFrame()
+        dividend['TIME']  = []
+        dividend['VALUE'] = []
+        return reshaped_data , dividend
     # controllo per quali maturita' non ho dati su cui calcolare il dividendo implicito
     for t in maturity_list:
         if t not in reshaped_maturity_list:
@@ -727,3 +729,15 @@ def implicit_dividends(S0,market_data,curve):
     res['VALUE'] = reshaped_data.groupby(['maturity']).mean()['dividend rate'].tolist()
 
     return reshaped_data, res
+
+# -------- Call Black-Scholes e inversione -------------------------------------------
+def Call_BS(S0,K,T,r,q,sigma):
+    d1 = (np.log(S0/K)+(r-q+0.5*np.power(sigma,2))*T)/(sigma*np.sqrt(T))
+    d2 = d1 - sigma*np.sqrt(T)
+    Call = np.exp(-q*T)*S0*norm.cdf(d1)-K*np.exp(-r*T)*norm.cdf(d2)
+    return Call
+
+def fromPriceToVol(Price,S0,K,T,r,q):
+    diff = lambda s: Call_BS(S0,K,T,r,q,s)-Price
+    vol = root(diff,x0=0.10)
+    return vol.x[0]
