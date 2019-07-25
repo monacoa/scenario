@@ -839,6 +839,7 @@ from sc_elab.excel_hook.W_calibration import W_calib_models, W_dividends
 from scipy.optimize import minimize
 import matplotlib.pyplot as plt
 from sc_elab.core.funzioni_calibrazioni import *
+from sc_elab.core.utils_g2pp_newton import Pt_MKT,found_opt,price_swaption
 from sc_elab.excel_hook.xls_Calibration import *
 import pandas as pd
 
@@ -904,7 +905,7 @@ def calibration_from_xls(control):
                 if W1.mkt_calibration_type.get() == 'CURVE':
 
                     if (model in ['CIR','VSCK']):
-                        mkt_value, mkt_to_fit, type_cap = preProcessignCurve(W1.CurveChosen)
+                        mkt_value, mkt_to_fit, type_cap = preProcessingCurve(W1.CurveChosen)
 
                         x0_m  = []
                         x_bnd = []
@@ -931,17 +932,17 @@ def calibration_from_xls(control):
                         list_model_params_opt.append(ff.x[3])
 
                         if W.model.get() == 'CIR':
-                            mkt_value['VALUE_OPT'] = compute_zc_cir_rate(list_model_params_opt, mkt_value["TIME"])
+                            mkt_value['MODEL VALUE'] = compute_zc_cir_rate(list_model_params_opt, mkt_value["TIME"])
                         else:
-                            mkt_value['VALUE_OPT'] = compute_zc_vsck_rate(list_model_params_opt, mkt_value["TIME"])
+                            mkt_value['MODEL VALUE'] = compute_zc_vsck_rate(list_model_params_opt, mkt_value["TIME"])
 
 
                         # converto i risultati in composto nel caso in cui in input lo siano
                         if type_cap == 'CMP':
-                            mkt_value['VALUE_OPT'] = fromContinuousToCompost(mkt_value['VALUE_OPT'])
+                            mkt_value['MODEL VALUE'] = fromContinuousToCompost(mkt_value['MODEL VALUE'])
 
                         # calcolo il chi quadro
-                        chi2 = computeCHI2(mkt=mkt_value["VALUE"], mdl=mkt_value['VALUE_OPT'])
+                        chi2 = computeCHI2(mkt=mkt_value["VALUE"], mdl=mkt_value['MODEL VALUE'])
 
                         # scrivo su foglio Excel
                         writeCalibrationResOnXls(type_data = type_data,
@@ -965,27 +966,7 @@ def calibration_from_xls(control):
 
                     if model in ['G2++','VSCK']:
 
-                        # leggo la curva dei fattori di sconto
-                        orig_curve, curve, type_cap = preProcessignCurve(W1.CurveChosen, rate_time_zero=True, out_type='discount')
-
-                        # leggo le opzioni distinguendo fra Volatilita' e prezzi Caplet
-
-                        volsdata_noint = W1.OptionChosen.loc[(W1.OptionChosen.loc[:,3] == 'Y'), [0, 1, 2]]
-                        market_data = pd.DataFrame()
-                        market_data['time'] = volsdata_noint.loc[:,0].values.astype(float)
-                        market_data['strike'] = np.divide(volsdata_noint.loc[:,1].values.astype(float),100.)
-
-                        if W1.OptionChosen.loc[(W1.OptionChosen.loc[:,0] == 'OptionType'), 1].values[0] == 'Vol Cap Floor':
-
-                            shift = float(W1.OptionChosen.loc[W1.OptionChosen[0] == 'Shift', 1])
-                            market_data['vols_data'] = np.divide(volsdata_noint.loc[:,2].values.astype(float),100.)
-
-                            # Calcolo i prezzi di mercato dei Caplet
-                            market_data['market price'] = np.array(compute_Black_prices(curve, market_data, 1, shift))
-
-                        # Ipotizzo che se non vengono passate le volatilita' vengano passati i prezzi dei Caplet
-                        else:
-                            market_data['market price'] = volsdata_noint.loc[:,2].values.astype(float)
+                        option_type = W1.OptionChosen.loc[(W1.OptionChosen.loc[:, 0] == 'OptionType'), 1].values[0]
 
                         # Leggo i parametri iniziali del modello e i loro limiti superiore e inferiore
                         x0_m = []
@@ -995,7 +976,42 @@ def calibration_from_xls(control):
                             x0_m.append(float(W1.param_dict[p_name]['sv']))
                             x_bnd.append([float(W1.param_dict[p_name]['min']), float(W1.param_dict[p_name]['max'])])
 
-                        if model=='G2++':
+                        if model=='G2++' and option_type=='Swaption':
+
+                            # leggo la curva dei tassi risk free
+                            orig_curve, curve, type_cap = preProcessingCurve(W1.CurveChosen, rate_time_zero=True)
+                            curve_times  = curve['TIME'].values
+                            curve_values = curve['VALUE'].values
+                            # leggo e processo i dati sulle opzioni
+                            market_data, tenr, call_flag = preProcessingOptions(W1, curve)
+
+                            root = Tk()
+                            root.grid()
+                            message = Label(root, text='Calibrazione in corso, potrebbe richiedere qualche minuto.')
+                            message.grid(column=0, row=1)
+                            root.update()
+
+                            ff = found_opt(np.array(x0_m), x_bnd, market_data['expiry'].values,
+                                           market_data['maturity'].values, market_data['swap'].values,
+                                           market_data['market price'].values, curve_times, curve_values, tenr, call_flag)
+
+                            root.destroy()
+
+                            for i in range(0, int(market_data.shape[0])):
+                                t_exp = market_data.loc[i, 'expiry']
+                                t_mat = market_data.loc[i, 'maturity']
+                                swp_atm_d = market_data.loc[i, 'swap']
+                                market_data.loc[i, 'model price'] = price_swaption(np.array(ff.x), t_exp, t_mat,
+                                                                               tenr, swp_atm_d, curve_times,
+                                                                               curve_values, call_flag, n_max=50)
+
+                        elif model=='G2++' and option_type in ['Vol Cap Floor','Caplets']:
+
+                            # leggo la curva dei tassi risk free
+                            orig_curve, curve, type_cap = preProcessingCurve(W1.CurveChosen, rate_time_zero=True,
+                                                                             out_type='discount')
+                            # leggo e processo i dati sulle opzioni
+                            market_data = preProcessingOptions(W1,curve)
 
                             root = Tk()
                             root.grid()
@@ -1013,6 +1029,12 @@ def calibration_from_xls(control):
                                                                market_data['strike'])
                         elif model=='VSCK':
 
+                            # leggo la curva dei tassi risk free
+                            orig_curve, curve, type_cap = preProcessingCurve(W1.CurveChosen, rate_time_zero=True,
+                                                                             out_type='discount')
+                            # leggo e processo i dati sulle opzioni
+                            market_data = preProcessingOptions(W1, curve)
+
                             root = Tk()
                             root.grid()
                             message = Label(root, text='Calibrazione in corso')
@@ -1026,20 +1048,34 @@ def calibration_from_xls(control):
 
                             market_data['model price'] = compute_Vasicek_prices(ff.x, market_data['time'],
                                                                              market_data['strike'])
+                        else :
+                            root = Tk()
+                            tkMessageBox.showwarning(title='Errore', message='Campo OptionType compilato male')
+                            root.destroy()
+                            return
 
-                        # Produco il grafico della calibrazione
-                        plt.plot(market_data['time'], market_data['market price'], 'b^', label='Market Prices')
-                        plt.plot(market_data['time'], market_data['model price'], 'r--o', label='Model Prices')
-                        plt.title('Calibration results')
-                        plt.xlabel('Time')
-                        plt.ylabel('Caplet price')
-                        plt.legend()
-                        plt.show()
+                        if model=='G2++' and option_type=='Swaption':
+                            # Produco il grafico della calibrazione
+                            plt.plot(market_data['expiry'], market_data['market price'], 'b^', label='Market Prices')
+                            plt.plot(market_data['expiry'], market_data['model price'], 'ro', label='Model Prices')
+                            plt.title('Calibration results')
+                            plt.xlabel('Time')
+                            plt.ylabel('Swaption price')
+                            plt.legend()
+                            plt.show()
+
+                        else:
+                            # Produco il grafico della calibrazione
+                            plt.plot(market_data['time'], market_data['market price'], 'b^', label='Market Prices')
+                            plt.plot(market_data['time'], market_data['model price'], 'ro', label='Model Prices')
+                            plt.title('Calibration results')
+                            plt.xlabel('Time')
+                            plt.ylabel('Caplet price')
+                            plt.legend()
+                            plt.show()
 
                         # Calcolo il chi quadro
                         chi2 = computeCHI2(mkt=market_data['market price'], mdl=market_data['model price'],type_calib='CURVE_OPT')
-
-                        # market_data=pd.DataFrame(market_data)
 
                         # scrivo su foglio Excel
                         writeCalibrationResOnXls(type_data=type_data,
@@ -1054,39 +1090,10 @@ def calibration_from_xls(control):
                     if model == 'Variance Gamma':
 
                         # leggo la curva dei tassi di interesse (vanno passati nel regime continuo)
-                        orig_curve, curve, type_cap = preProcessignCurve(W1.CurveChosen, rate_time_zero=True)
+                        orig_curve, curve, type_cap = preProcessingCurve(W1.CurveChosen, rate_time_zero=True)
 
-                        # leggo le opzioni il prezzo iniziale e strike e maturity da cui estrarre la volatilita' di Black-Scholes
-                        options_noint = W1.OptionChosen.loc[(W1.OptionChosen.loc[:, 4] == 'Y'), [0, 1, 2, 3]]
-                        market_data = pd.DataFrame()
-                        market_data['maturity'] = options_noint.loc[:, 0].values.astype(float)
-                        market_data['strike'] = options_noint.loc[:, 1].values.astype(float)
-                        market_data['market price'] = options_noint.loc[:, 2].values.astype(float)
-                        market_data['type'] = options_noint.loc[:, 3].values.astype(str)
-
-                        S0 = W1.OptionChosen.loc[(W1.OptionChosen.loc[:, 0] == 'Initial Price'), 1].values.astype(float)[0]
-
-                        strike = W1.OptionChosen.loc[(W1.OptionChosen.loc[:,0]== 'Strike'),1].values.astype(float)[0]
-                        maturity = W1.OptionChosen.loc[(W1.OptionChosen.loc[:,0]== 'Mat'),1].values.astype(float)[0]
-                        # preprocessing dati
-                        market_data = market_data.sort_values(by=['maturity', 'type', 'strike'])
-
-                        # calcolo dei dividendi impliciti nei prezzi delle opzioni
-                        dividends_data, dividends = implicit_dividends(S0,market_data, curve)
-                        # gestisco il caso in cui non ci siano dati disponibili per calcolare i dividendi impliciti
-                        if len(dividends['VALUE']) == 0:
-
-                            root = Tk()
-                            W_dvd = W_dividends(root)
-                            root.mainloop()
-
-                            if W_dvd.res==0:
-                                return
-                            elif W_dvd.res==1:
-                                dividends = pd.DataFrame()
-                                dividends['TIME'] = [0.,10.]
-                                dividends['VALUE'] = [float(W_dvd.dvd.get()),float(W_dvd.dvd.get())]
-                                dividends_data = dividends
+                        # leggo e processo i dati sulle opzioni
+                        market_data, S0, strike, maturity, dividends_data, dividends = preProcessingOptions(W1,curve)
 
                         # Leggo i parametri iniziali del modello e i loro limiti superiore e inferiore
                         x0_m = []
@@ -1107,7 +1114,7 @@ def calibration_from_xls(control):
 
                         root.destroy()
 
-                        # creo i dataframe con i dati da modello
+                        #  aggiungo al dataframe di dati i prezzi da modello
                         market_data['model price'] = compute_VG_prices(ff.x, S0, curve, dividends, market_data)
 
                         # creo le tabelle pivot con i risultati maturity x strike
@@ -1124,7 +1131,7 @@ def calibration_from_xls(control):
                         # produco i grafici
                         for i in range(0, len(market_call_pivot.keys())):
                             plt.plot(market_call_pivot.index, market_call_pivot[market_call_pivot.keys()[i]], '^',label='market price')
-                            plt.plot(market_call_pivot.index, model_call_pivot[model_call_pivot.keys()[i]], 'o-',label='model price')
+                            plt.plot(market_call_pivot.index, model_call_pivot[model_call_pivot.keys()[i]], 'o',label='model price')
                             plt.title('Call prices maturity %.2f year' % market_call_pivot.keys()[i])
                             plt.xlabel('Strike')
                             plt.legend()
@@ -1132,24 +1139,14 @@ def calibration_from_xls(control):
 
                         for i in range(0, len(market_put_pivot.keys())):
                             plt.plot(market_put_pivot.index, market_put_pivot[market_put_pivot.keys()[i]], '^',label='market price')
-                            plt.plot(market_put_pivot.index, model_put_pivot[model_put_pivot.keys()[i]], 'o-',label='model price')
+                            plt.plot(market_put_pivot.index, model_put_pivot[model_put_pivot.keys()[i]], 'o',label='model price')
                             plt.title('Put prices maturity %.2f year' % market_put_pivot.keys()[i])
                             plt.xlabel('Strike')
                             plt.legend()
                             plt.show()
 
-                        # Trovo la volatilita' Black-Scholes associata a strike e maturita' date in input tale che il prezzo
-                        # Black-Scholes e quello Variance Gamma coincidano
-                        parameters = {'sigma': ff.x[0], 'nu': ff.x[1], 'theta': ff.x[2]}
-                        r = np.interp(maturity, curve['TIME'], curve['VALUE'])
-                        q = np.interp(maturity, dividends['TIME'], dividends['VALUE'])
-                        alpha = alpha_Madan(ff.x)
-                        strike_list, price_list = Call_Fourier_VG(parameters, S0, r, q, maturity, alpha, 0.25, np.power(2, 12))
-                        priceFourier = np.interp(strike, strike_list, price_list)
-                        vol = fromPriceToVol(priceFourier, S0, strike, maturity, r, q)
-                        print 'Prezzo: %.4f \tVol: %.4f' % (priceFourier, vol)
-                        prezzoBS = Call_BS(S0, strike, maturity, r, q, vol)
-                        print 'prezzo BS: %.4f' % prezzoBS
+                        # Inverto il prezzo VG relativo a strike e maturity date per ottenere una volatilita' BS
+                        vol = fromPriceVGtoVolBS(ff.x,S0,strike,maturity,curve,dividends)
 
                         # Calcolo il chi quadro
                         chi2 = computeCHI2(mkt=market_data['market price'], mdl=market_data['model price'],

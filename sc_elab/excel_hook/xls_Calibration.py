@@ -291,14 +291,14 @@ def writeTemplateCalibration(xla, nameSheet):
     mat['Maturity'] = 10. * 360.
     mat['Expiry']   = mat['Expiry'].map(MaturityFromIntToString)
     mat['Maturity'] = mat['Maturity'].map(MaturityFromIntToString)
-    mat['Value'] = np.zeros(7)
+    mat['Value (x100)'] = np.zeros(7)
     mat['Usage'] = 'Y'
 
     Attributi = {
              "0. Date Ref"    : datetime.datetime.now().strftime("%m/%d/%Y")
             ,"1. OptionType"  : 'Swaption'
             ,"2. SwaptionType": 'Payer, Receiver'
-            ,"3. Type value"  : 'Price, Volatility'
+            ,"3. Type value"  : 'Volatility'
             ,"4. Type model"  : 'No Shifted'
             ,"5. Tenor swap"  : '6M'
     }

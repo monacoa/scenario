@@ -1,13 +1,16 @@
+from Tkinter import *
 import tkMessageBox
 import numpy as np
 import pandas as pd
 from scipy.special import ive
 from scipy.stats import norm
-from scipy.optimize import root
+from scipy import optimize
 import datetime
+from anagrafica_dati import *
+from sc_elab.excel_hook.W_calibration import W_dividends
 
 
-def preProcessignCurve(df,rate_time_zero=False, out_type='rate'):
+def preProcessingCurve(df, rate_time_zero=False, out_type='rate'):
 
     # verifico la capitalizzazione dei tassi
     capitalization = df.loc[df.loc[:, 0] == 'Interest rate Type',1].values[0]
@@ -61,6 +64,7 @@ def preProcessignCurve(df,rate_time_zero=False, out_type='rate'):
 
     out_to_fit = out.copy()
     out_to_fit['VALUE'] = np.divide(out_to_fit['VALUE'],100.) # si assume che i tassi siano passati moltiplicati per 100
+    out_to_fit.sort_values(by='TIME',inplace=True)
 
     if out_type=='discount':
         out_to_fit['VALUE'] = np.exp(-out_to_fit['VALUE']*out_to_fit['TIME'])
@@ -98,6 +102,120 @@ def preProcessignTimeSeries(df,dt_min,dt_max):
 
     return out_to_fit
 
+
+def preProcessingOptions(W_calib, curve):
+
+    optiontype = W_calib.OptionChosen.loc[(W_calib.OptionChosen[0] == 'OptionType'), 1].values[0]
+
+    if optiontype == 'Swaption':
+        # leggo le opzioni
+        volsdata_noint = W_calib.OptionChosen.loc[(W_calib.OptionChosen[3] == 'Y'), [0, 1, 2]]
+        market_data = pd.DataFrame()
+        market_data['expiry'] = volsdata_noint.loc[:, 0].map(MaturityFromStringToYear).values.astype(float)
+        market_data['maturity'] = volsdata_noint.loc[:, 1].map(MaturityFromStringToYear).values.astype(float)
+        market_data['value'] = np.divide(volsdata_noint.loc[:, 2].values.astype(float), 100.)
+
+        # leggo il tipo di contratto e il tenor
+        if W_calib.OptionChosen.loc[W_calib.OptionChosen[0] == 'SwaptionType', 1].values[0] == 'Payer':
+            call_flag = 1.
+        elif W_calib.OptionChosen.loc[W_calib.OptionChosen[0] == 'SwaptionType', 1].values[0] == 'Receiver':
+            call_flag = -1.
+        else:
+            root = Tk()
+            tkMessageBox.showerror(title='Errore', message='Tipo di opzione non valido')
+            root.destroy()
+            return
+        tenr = float(MaturityFromStringToYear[W_calib.OptionChosen.loc[W_calib.OptionChosen[0] == 'Tenor swap', 1].values[0]])
+
+        curve_times = curve['TIME'].values
+        curve_values = curve['VALUE'].values
+        # calcolo i prezzi delle Swaptions
+        market_data.reset_index(drop=True, inplace=True)
+        for i in xrange(0, int(market_data.shape[0])):
+            t = market_data.at[i, "expiry"]
+            T = market_data.at[i, "maturity"]
+            srate, annuity = forwardSwap(tenr, curve_times, curve_values, 0, t, T)
+            market_data.at[i, "swap"] = srate
+            if market_data.at[i, "swap"] > 0:
+                market_data.at[i, "market price"] = fromVolaToPrice(t, T, tenr, market_data.at[i, "value"], curve_times,
+                                                                    curve_values, call_flag)
+
+        # per calibrare seleziono i dati con swap positivo
+        market_data = market_data.loc[market_data['swap'] >= 0]
+        market_data.reset_index(drop=True, inplace=True)
+        print market_data
+
+        return market_data, tenr, call_flag
+
+    elif optiontype == 'Vol Cap Floor':
+
+        # leggo le opzioni
+        volsdata_noint = W_calib.OptionChosen.loc[(W_calib.OptionChosen[3] == 'Y'), [0, 1, 2]]
+        market_data = pd.DataFrame()
+        market_data['time'] = volsdata_noint.loc[:, 0].values.astype(float)
+        market_data['strike'] = np.divide(volsdata_noint.loc[:, 1].values.astype(float), 100.)
+
+        shift = float(W_calib.OptionChosen.loc[W_calib.OptionChosen[0] == 'Shift', 1])
+        market_data['vols_data'] = np.divide(volsdata_noint.loc[:, 2].values.astype(float), 100.)
+
+        # Calcolo i prezzi di mercato dei Caplet
+        market_data['market price'] = np.array(compute_Black_prices(curve, market_data, 1, shift))
+
+        return market_data
+
+    elif optiontype == 'Caplets':
+
+        # leggo le opzioni
+        volsdata_noint = W_calib.OptionChosen.loc[(W_calib.OptionChosen[3] == 'Y'), [0, 1, 2]]
+        market_data = pd.DataFrame()
+        market_data['time'] = volsdata_noint.loc[:, 0].values.astype(float)
+        market_data['strike'] = np.divide(volsdata_noint.loc[:, 1].values.astype(float), 100.)
+
+        market_data['market price'] = volsdata_noint.loc[:, 2].values.astype(float)
+
+        return market_data
+
+    elif optiontype == 'PUT / CALL':
+
+        # leggo le opzioni il prezzo iniziale e strike e maturity da cui estrarre la volatilita' di Black-Scholes
+        options_noint = W_calib.OptionChosen.loc[(W_calib.OptionChosen[4] == 'Y'), [0, 1, 2, 3]]
+        market_data = pd.DataFrame()
+        market_data['maturity'] = options_noint.loc[:, 0].values.astype(float)
+        market_data['strike'] = options_noint.loc[:, 1].values.astype(float)
+        market_data['market price'] = options_noint.loc[:, 2].values.astype(float)
+        market_data['type'] = options_noint.loc[:, 3].values.astype(str)
+
+        S0 = W_calib.OptionChosen.loc[(W_calib.OptionChosen.loc[:, 0] == 'Initial Price'), 1].values.astype(float)[0]
+
+        strike = W_calib.OptionChosen.loc[(W_calib.OptionChosen[0] == 'Strike'), 1].values.astype(float)[0]
+        maturity = W_calib.OptionChosen.loc[(W_calib.OptionChosen[0] == 'Mat'), 1].values.astype(float)[0]
+        # preprocessing dati
+        market_data = market_data.sort_values(by=['maturity', 'type', 'strike'])
+
+        # calcolo dei dividendi impliciti nei prezzi delle opzioni
+        dividends_data, dividends = implicit_dividends(S0, market_data, curve)
+        # gestisco il caso in cui non ci siano dati disponibili per calcolare i dividendi impliciti
+        if len(dividends['VALUE']) == 0:
+
+            root = Tk()
+            W_dvd = W_dividends(root)
+            root.mainloop()
+
+            if W_dvd.res == 0:
+                return
+            elif W_dvd.res == 1:
+                dividends = pd.DataFrame()
+                dividends['TIME'] = [0., 10.]
+                dividends['VALUE'] = [float(W_dvd.dvd.get()), float(W_dvd.dvd.get())]
+                dividends_data = dividends
+
+        return market_data, S0, strike, maturity, dividends_data, dividends
+
+    else:
+        root = Tk()
+        tkMessageBox.showerror(message='Tipo opzione non valido')
+        root.destroy()
+        return
 
 ############################################################
 #       CIR
@@ -398,7 +516,7 @@ def computeCHI2(mkt, mdl,type_calib='CURVE'):
 
 
 ####################################################
-#       G2++
+#       G2++ su Cap e Floor
 ####################################################
 
 # ====================================================================
@@ -534,6 +652,65 @@ def loss_G2pp(list_model_params, curve, mkt_prices, power, absrel):
 
     return diff.sum()
 
+#################################################
+#   G2++ su Swaptions
+#################################################
+from utils_g2pp_newton import Pt_MKT,found_opt,price_swaption
+
+def forwardSwap(tenor, rf_times,rf_values, t, t_exp, t_mat):
+    T = t_exp + t_mat
+    P_0_t = Pt_MKT(t, rf_times,rf_values)
+    P_0_exp = Pt_MKT(t_exp, rf_times,rf_values)
+    P_0_T = Pt_MKT(T, rf_times,rf_values)
+
+    P_t_exp = P_0_exp / P_0_t
+    P_t_T = P_0_T / P_0_t
+
+    n = int(t_mat / tenor)
+
+    ForwardAnnuityPrice = 0.0
+
+    for i in range(1, n + 1):
+        ti = t_exp + i * tenor
+        P_0_ti = Pt_MKT(ti, rf_times,rf_values)
+        ForwardAnnuityPrice = ForwardAnnuityPrice + (P_0_ti / P_0_t) * tenor
+
+    swap = (P_t_exp - P_t_T) / ForwardAnnuityPrice
+    return swap, ForwardAnnuityPrice
+
+
+def CurveFromDictToList(rf_Curve):
+    rf_times = rf_Curve.keys()
+    rf_times.sort()
+    rf_values = []
+
+    for j in xrange(0, len(rf_times)):
+        rf_values.append(rf_Curve[rf_times[j]])
+    return np.array(rf_times), np.array(rf_values)
+
+
+def fromVolaToPrice(t_exp, t_mat, tenor, vol, rf_times,rf_values,call_type):
+    if (vol <= 0.0) or (vol >= 2.0):
+        print "in swaption: it takes 0 < vol < 2; found ", vol
+
+    srate, ForwardAnnuityPrice = forwardSwap(tenor, rf_times,rf_values, 0, t_exp, t_mat)
+    call = srate * call_type * (2.0 * norm.cdf(call_type * 0.5 * vol * np.sqrt(t_exp)) - 1.0)
+
+    price = ForwardAnnuityPrice * call
+
+    return price
+
+
+def fromPriceToVola(t_exp, t_mat, tenor,price, curve_dict,call_type):
+
+    srate, ForwardAnnuityPrice = forwardSwap(tenor, curve_dict, 0, t_exp, t_mat)
+
+    z = 0.5* ( price / (srate * call_type * ForwardAnnuityPrice) + 1)
+    p = norm.ppf(z)
+    v = 2*p/call_type
+    vol = v / np.sqrt(t_exp)
+
+    return vol
 
 #################################################
 #              Variance Gamma
@@ -737,7 +914,26 @@ def Call_BS(S0,K,T,r,q,sigma):
     Call = np.exp(-q*T)*S0*norm.cdf(d1)-K*np.exp(-r*T)*norm.cdf(d2)
     return Call
 
-def fromPriceToVol(Price,S0,K,T,r,q):
+def fromPriceBSToVol(Price, S0, K, T, r, q):
     diff = lambda s: Call_BS(S0,K,T,r,q,s)-Price
-    vol = root(diff,x0=0.10)
+    vol = optimize.root(diff,x0=0.10)
     return vol.x[0]
+
+# Trovo la volatilita' Black-Scholes associata a strike e maturita' date in input tale che il prezzo
+# Black-Scholes e quello Variance Gamma coincidano
+def fromPriceVGtoVolBS(parameters_list,S0,strike,maturity,curve,dividends):
+
+    parameters = {'sigma': parameters_list[0], 'nu': parameters_list[1], 'theta': parameters_list[2]}
+    r = np.interp(maturity, curve['TIME'], curve['VALUE'])
+    q = np.interp(maturity, dividends['TIME'], dividends['VALUE'])
+    alpha = alpha_Madan(parameters_list)
+    strike_list, price_list = Call_Fourier_VG(parameters, S0, r, q, maturity, alpha, 0.25, np.power(2, 12))
+    priceFourier = np.interp(strike, strike_list, price_list)
+    vol = fromPriceBSToVol(priceFourier, S0, strike, maturity, r, q)
+    priceBS = Call_BS(S0, strike, maturity, r, q, vol)
+    if np.abs(priceFourier-priceBS) > 2.*priceFourier/100. :
+        root = Tk()
+        tkMessageBox.showwarning(title='Attenzione',message='Inversione del prezzo non riuscita, BS volatility non attendibile')
+        root.mainloop()
+
+    return vol
