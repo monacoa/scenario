@@ -1242,22 +1242,25 @@ def inflationOptionJY(list_model_params, param, schedule):
     return price
 
 #--------- funzioni loss -------------------------------------------
-def loss_jy_model(list_model_params , param , mkt_prices):
+def loss_jy_model(list_model_params , param , mkt_prices, power, absrel):
     diff_sum = 0.0
     time_mkt_list = mkt_prices['time'].tolist()
 
+    diff = []
     for t in range(0,len(time_mkt_list)):
         schedule = np.arange(0.0, time_mkt_list[t],  param["tenorOplet"]/12.).tolist()
         schedule.append(time_mkt_list[t])
         model_price_tmp = inflationOptionJY(list_model_params , param , schedule)
         mkt_price_tmp = mkt_prices['market value'][t]
-        diff = abs(model_price_tmp - mkt_price_tmp)
-        diff = diff * diff
-        diff_sum = diff_sum + diff
+        diff.append(np.absolute(model_price_tmp - mkt_price_tmp))
+    if absrel == 'rel':
+        diff = diff/np.absolute(mkt_prices['market value'])
 
-    return diff_sum
+    diff = np.power(diff,power)
 
-def loss_jy_model_var(list_model_params , wishVol):
+    return diff.sum()
+
+def loss_jy_model_var(list_model_params , wishVol, power, absrel):
 
     aN	    = list_model_params[0]
     aR	    = list_model_params[1]
@@ -1268,17 +1271,20 @@ def loss_jy_model_var(list_model_params , wishVol):
     rhoNI   = list_model_params[6]
     rhoRI   = list_model_params[7]
 
-    diff_sum = 0.0
     time_mkt_list = wishVol['time'].tolist()
 
+    diff = []
     for t in range(0,len(time_mkt_list)):
         model_vol_tmp = np.sqrt(VarInfIndex(time_mkt_list[t], aN, aR, sigmaR, sigmaN, sigmaI, rhoNR, rhoNI, rhoRI))
         mkt_vol_tmp = wishVol['market value'][t]
-        diff = abs(model_vol_tmp - mkt_vol_tmp)
-        diff = diff * diff
-        diff_sum = diff_sum + diff
+        diff.append(np.absolute(model_vol_tmp - mkt_vol_tmp))
+    if absrel=='rel':
+        diff = diff / np.absolute(wishVol['market value'])
 
-    return diff_sum
+    diff = np.power(diff, power)
+
+    return diff.sum()
+
 
 # ---------- funzione post calibrazione ---------------------
 def compute_values_post_calib_JY(flag_optim, param, market_data, calib_result_list):

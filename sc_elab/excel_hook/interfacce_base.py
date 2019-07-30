@@ -1189,10 +1189,10 @@ def calibration_from_xls(control):
 
                         # avvio la calibrazione
                         if flag_optim:
-                            ff = optimize.minimize(fun=loss_jy_model, args=(param, market_data), x0=x0_m,
+                            ff = optimize.minimize(fun=loss_jy_model, args=(param, market_data,loss_function_type_power, loss_function_type_absrel), x0=x0_m,
                                                    method='TNC', bounds=x_bnd)
                         else:
-                            ff = optimize.minimize(fun=loss_jy_model_var, args=market_data, x0=x0_m,
+                            ff = optimize.minimize(fun=loss_jy_model_var, args=(market_data,loss_function_type_power, loss_function_type_absrel), x0=x0_m,
                                                    method='TNC', bounds=x_bnd)
 
                         root.destroy()
