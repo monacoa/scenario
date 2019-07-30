@@ -964,17 +964,17 @@ def calibration_from_xls(control):
 
                 elif W1.mkt_calibration_type.get() == 'CURVE_OPT':
 
+                    # Leggo i parametri iniziali del modello e i loro limiti superiore e inferiore
+                    x0_m = []
+                    x_bnd = []
+
+                    for p_name in W1.params_names:
+                        x0_m.append(float(W1.param_dict[p_name]['sv']))
+                        x_bnd.append([float(W1.param_dict[p_name]['min']), float(W1.param_dict[p_name]['max'])])
+
                     if model in ['G2++','VSCK']:
 
                         option_type = W1.OptionChosen.loc[(W1.OptionChosen.loc[:, 0] == 'OptionType'), 1].values[0]
-
-                        # Leggo i parametri iniziali del modello e i loro limiti superiore e inferiore
-                        x0_m = []
-                        x_bnd = []
-
-                        for p_name in W1.params_names:
-                            x0_m.append(float(W1.param_dict[p_name]['sv']))
-                            x_bnd.append([float(W1.param_dict[p_name]['min']), float(W1.param_dict[p_name]['max'])])
 
                         if model=='G2++' and option_type=='Swaption':
 
@@ -1063,6 +1063,11 @@ def calibration_from_xls(control):
                             plt.ylabel('Swaption price')
                             plt.legend()
                             plt.show()
+                            # Mapping delle expiry e maturity da intero a stringa
+                            # market_data['expiry']   = 360*market_data['expiry'].values
+                            # market_data['expiry'] = market_data['expiry'].map(MaturityFromIntToString)
+                            # market_data['maturity'] = 360*market_data['maturity'].values
+                            # market_data['maturity'] = market_data['maturity'].map(MaturityFromIntToString)
 
                         else:
                             # Produco il grafico della calibrazione
@@ -1089,19 +1094,11 @@ def calibration_from_xls(control):
 
                     if model == 'Variance Gamma':
 
-                        # leggo la curva dei tassi di interesse (vanno passati nel regime continuo)
+                        # leggo la curva dei tassi di interesse
                         orig_curve, curve, type_cap = preProcessingCurve(W1.CurveChosen, rate_time_zero=True)
 
                         # leggo e processo i dati sulle opzioni
                         market_data, S0, strike, maturity, dividends_data, dividends = preProcessingOptions(W1,curve)
-
-                        # Leggo i parametri iniziali del modello e i loro limiti superiore e inferiore
-                        x0_m = []
-                        x_bnd = []
-
-                        for p_name in W1.params_names:
-                            x0_m.append(float(W1.param_dict[p_name]['sv']))
-                            x_bnd.append([float(W1.param_dict[p_name]['min']), float(W1.param_dict[p_name]['max'])])
 
                         root = Tk()
                         root.grid()
@@ -1165,6 +1162,59 @@ def calibration_from_xls(control):
                                          maturity=maturity,
                                          vol=vol)
 
+                        writeCalibrationResOnXls(type_data=type_data,
+                                                 model=model,
+                                                 W_class=W1,
+                                                 xla=xla,
+                                                 chi2=chi2,
+                                                 opt_dict=ff.x,
+                                                 res=market_data,
+                                                 capitalization_type='CNT')
+
+                    if model == 'Jarrow Yildirim':
+
+                        # leggo la curva dei tassi nominali
+                        orig_curve_nom, curve_nom, type_cap = preProcessingCurve(W1.CurveChosen, rate_time_zero=True)
+                        # leggo la curva dei tassi reali
+                        origin_real_curve, real_curve, type_real_curve = preProcessingCurve(W1.InflationChosen, rate_time_zero=True, curve_nom= curve_nom)
+
+                        # leggo i dati di mercato
+                        param, flag_optim, market_data = preProcessingDataJY(W1, curve_nom, real_curve)
+
+                        root = Tk()
+                        root.grid()
+                        message = Label(root, text='Calibrazione in corso, potrebbe richiedere qualche minuto.')
+                        message.grid(column=0, row=1)
+                        root.update()
+
+                        # avvio la calibrazione
+                        if flag_optim:
+                            ff = optimize.minimize(fun=loss_jy_model, args=(param, market_data), x0=x0_m,
+                                                   method='TNC', bounds=x_bnd)
+                        else:
+                            ff = optimize.minimize(fun=loss_jy_model_var, args=market_data, x0=x0_m,
+                                                   method='TNC', bounds=x_bnd)
+
+                        root.destroy()
+
+                        # calcolo i prezzi da modello secondo i parametri calibrati
+                        market_data['model value'] = compute_values_post_calib_JY(flag_optim, param, market_data, ff.x)
+
+                        # produco il grafico con l'evidenza della calibrazione
+                        plt.plot(market_data['time'], market_data['market value'], 'o', market_data['time'], market_data['model value'], '-')
+                        plt.title('Fitting results')
+                        plt.xlabel('Time')
+                        if flag_optim:
+                            plt.ylabel('OPZ price (bps)')
+                        else:
+                            plt.ylabel('Volatility')
+                        plt.show()
+
+                        # Calcolo il chi quadro
+                        chi2 = computeCHI2(mkt=market_data['market value'], mdl=market_data['model value'],
+                                           type_calib='CURVE_OPT')
+
+                        # scrivo su foglio Excel
                         writeCalibrationResOnXls(type_data=type_data,
                                                  model=model,
                                                  W_class=W1,

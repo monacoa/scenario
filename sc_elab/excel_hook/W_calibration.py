@@ -171,6 +171,7 @@ class W_calib_menu(LabelFrame):
         else:
             objectOnSheet = readFeaturesObject(objectOnSheetDictionary)
             tmpCurve = objectOnSheet.loc[objectOnSheet.TypeObject == 'Curve', 'Name'].tolist()
+            tmpInflCurve = objectOnSheet.loc[objectOnSheet.TypeObject == 'Inflation/Real Curve', 'Name'].tolist()
             tmpOptions = objectOnSheet.loc[objectOnSheet.TypeObject == 'Option', 'Name'].tolist()
             tmpTS = objectOnSheet.loc[objectOnSheet.TypeObject == 'TS', 'Name'].tolist()
 
@@ -193,6 +194,9 @@ class W_calib_menu(LabelFrame):
         self.rb_type2.grid(row = 1, column = 2, rowspan = 1, columnspan = 1, pady = 5, sticky = W+E+N+S)
         self.set_mkt_ts.set('MKT')
 
+        if model in ['Jarrow Yildirim','G2++','Variance Gamma']:
+            self.rb_type2.config(state = 'disabled')
+
         #########################################################################
         # Inizilizzo l'area dei TAB: MKT, TS, PARAMS
         #########################################################################
@@ -208,6 +212,10 @@ class W_calib_menu(LabelFrame):
 
         self.nb_t2 = Frame(self.nb)
         self.nb.add(self.nb_t2, text="PARAMS",compound="left")
+
+        if model == 'Jarrow Yildirim':
+            self.nb_t3 = Frame(self.nb)
+            self.nb.add(self.nb_t3, text='SETTINGS', compound='left')
 
         #########################################################################
         # Area MKT
@@ -229,11 +237,15 @@ class W_calib_menu(LabelFrame):
         self.rb_calib3 = Radiobutton(self.nb_t0,text='Curve + Options',justify='left',variable=self.mkt_calibration_type,value='CURVE_OPT')
         self.rb_calib3.grid(row = 3, column = 1, rowspan = 1, columnspan = 1, pady =2, sticky = W+N+S)
 
-        if model in ['CIR','VSCK']:
+        if model =='VSCK':
             self.rb_calib1.config(state = "disabled")
             # self.rb_calib3.config(state = "disabled")
             self.mkt_calibration_type.set('CURVE')
-        elif model in ['G2++','Variance Gamma']:
+        elif model=='CIR':
+            self.rb_calib1.config(state = 'disabled')
+            self.rb_calib3.config(state = 'disabled')
+            self.mkt_calibration_type.set('CURVE')
+        elif model in ['G2++','Variance Gamma','Jarrow Yildirim']:
             self.rb_calib1.config(state = 'disabled')
             self.rb_calib2.config(state = 'disabled')
             self.mkt_calibration_type.set('CURVE_OPT')
@@ -287,6 +299,16 @@ class W_calib_menu(LabelFrame):
         self.cb_options.config(textvariable = self.NameOption, state = "readonly", values = tmpOptions)
         self.cb_options.grid(row = 7, column = 2, rowspan = 1, columnspan = 3, pady =2, sticky = W+E+N+S)
 
+        #### Alimentazione della curva dei tassi di inflazione o reale
+        if model == 'Jarrow Yildirim':
+            Label5 = Label(self.nb_t0, text='Inflation/Real Curve')
+            Label5.grid(row=8, column=1, rowspan=1, columnspan=1, pady=2, sticky=W + E + N + S)
+
+            self.cb_inflcurve = ttk.Combobox(self.nb_t0)
+            self.NameInflation = StringVar()
+            self.cb_inflcurve.config(textvariable=self.NameInflation, state="readonly", values=tmpInflCurve)
+            self.cb_inflcurve.grid(row=8, column=2, rowspan=1, columnspan=3, pady=2, sticky=W + E + N + S)
+
         #########################################################################
         # Area TS
         #########################################################################
@@ -332,13 +354,46 @@ class W_calib_menu(LabelFrame):
         # creo la tabella in base al modello
         self.create_range_parameter(self.nb_t2, self.params_names, self.params_attribute)
 
+        ######################################
+        # Area SETTINGS
+        ######################################
+        if model == 'Jarrow Yildirim':
+
+            self.setting_I0 = StringVar()
+            self.setting_I0.set('100')
+            I0_label = Label(self.nb_t3,text='I0')
+            I0_label.grid(row=1,column=1, rowspan=1, columnspan=1, pady=2, sticky=E + N + S)
+            I0_entry = Entry(self.nb_t3,textvariable=self.setting_I0)
+            I0_entry.grid(row=1,column=2, rowspan=1, columnspan=1, pady=2, sticky=W + N + S)
+
+            self.setting_strike_scale = StringVar()
+            self.setting_strike_scale.set('100')
+            strike_scale_label = Label(self.nb_t3, text='Strike scale')
+            strike_scale_label.grid(row=2, column=1, rowspan=1, columnspan=1, pady=2, sticky=E + N + S)
+            strike_scale_entry = Entry(self.nb_t3, textvariable=self.setting_strike_scale)
+            strike_scale_entry.grid(row=2,column=2, rowspan=1, columnspan=1, pady=2, sticky=W + N + S)
+
+            self.setting_K = StringVar()
+            self.setting_K.set('0')
+            K_label = Label(self.nb_t3, text='K')
+            K_label.grid(row=3, column=1, rowspan=1, columnspan=1, pady=2, sticky=E + N + S)
+            K_entry = Entry(self.nb_t3, textvariable=self.setting_K)
+            K_entry.grid(row=3, column=2, rowspan=1, columnspan=1, pady=2, sticky=W + N + S)
+
+            self.setting_Noz = StringVar()
+            self.setting_Noz.set('10000')
+            Noz_label = Label(self.nb_t3, text='Noz')
+            Noz_label.grid(row=4, column=1, rowspan=1, columnspan=1, pady=2, sticky=E + N + S)
+            Noz_entry = Entry(self.nb_t3, textvariable=self.setting_Noz)
+            Noz_entry.grid(row=4,column=2, rowspan=1, columnspan=1, pady=2, sticky=W + N + S)
+
         #########################################################################
         # Bottoni finali
         #########################################################################
         self.res = 1
 
         self.bSubmit = Button(self, text='Submit', command=lambda: self.go_to_calib(dictObject=objectOnSheetDictionary,
-                                                                                    tableObject=objectOnSheet))
+                                                                                    tableObject=objectOnSheet,model=model))
         self.bSubmit.grid(row=10, column=4, rowspan=2, columnspan=1, sticky=W + E + N + S)
 
         self.bCancel = Button(self, text='Cancel', command=lambda: self.close_window())
@@ -437,7 +492,7 @@ class W_calib_menu(LabelFrame):
             self.te_dateMax.current(0)
 
 
-    def go_to_calib(self, dictObject, tableObject):
+    def go_to_calib(self, dictObject, tableObject, model):
         # recupero la calibrazione selezionata
         self.update_param()
         print 'Letto tutte le configurazioni'
@@ -462,6 +517,8 @@ class W_calib_menu(LabelFrame):
             else:
                 if self.NameCurve.get() == "":
                     tkMessageBox.showinfo("Error", "Nessuna curva selezionata.")
+                elif model=='Jarrow Yildirim' and self.NameInflation.get() == '':
+                    tkMessageBox.showinfo("Error", "Nessuna curva d'inflazione/reale selezionata.")
                 elif self.NameOption.get() == "":
                     tkMessageBox.showinfo("Error", "Nessuna opzione selezionata.")
                 else:
@@ -469,6 +526,9 @@ class W_calib_menu(LabelFrame):
                     self.CurveChosen = dictObject[tmp_curve]
                     tmp_opt = tableObject.loc[tableObject.Name == self.NameOption.get(), 'keys'].values[0]
                     self.OptionChosen = dictObject[tmp_opt]
+                    if model == 'Jarrow Yildirim':
+                        tmp_inflation = tableObject.loc[tableObject.Name == self.NameInflation.get(), 'keys'].values[0]
+                        self.InflationChosen = dictObject[tmp_inflation]
                     self.master.destroy()
 
 
@@ -623,9 +683,14 @@ def readFeaturesObject(input_dict):
     for k in input_dict.keys():
         item = input_dict[k]
         if u'CurveType' in item.loc[:, 0].values:
-            element_on_sheet = element_on_sheet.append({'keys': k,
-                                                        'TypeObject': 'Curve',
-                                                        'Name': item.loc[0, 0]}, ignore_index=True)
+            if item.loc[item[0]==u'CurveType',1].values[0]==u'Inflation' or item.loc[item[0]==u'CurveType',1].values[0]==u'Real':
+                element_on_sheet = element_on_sheet.append({'keys': k,
+                                                            'TypeObject': 'Inflation/Real Curve',
+                                                            'Name': item.loc[0, 0]}, ignore_index=True)
+            else:
+                element_on_sheet = element_on_sheet.append({'keys': k,
+                                                            'TypeObject': 'Curve',
+                                                            'Name': item.loc[0, 0]}, ignore_index=True)
 
         elif u'OptionType' in item.loc[:, 0].values:
             element_on_sheet = element_on_sheet.append({'keys': k,

@@ -10,7 +10,7 @@ from anagrafica_dati import *
 from sc_elab.excel_hook.W_calibration import W_dividends
 
 
-def preProcessingCurve(df, rate_time_zero=False, out_type='rate'):
+def preProcessingCurve(df, rate_time_zero=False, out_type='rate', curve_nom=None):
 
     # verifico la capitalizzazione dei tassi
     capitalization = df.loc[df.loc[:, 0] == 'Interest rate Type',1].values[0]
@@ -68,6 +68,9 @@ def preProcessingCurve(df, rate_time_zero=False, out_type='rate'):
 
     if out_type=='discount':
         out_to_fit['VALUE'] = np.exp(-out_to_fit['VALUE']*out_to_fit['TIME'])
+
+    if df.loc[df[0]==u'CurveType',1].values[0]==u'Inflation':
+        out_to_fit = createRealCurve(curve_nom,out_to_fit)
 
     return out_origin ,out_to_fit , capitalization
 
@@ -937,3 +940,366 @@ def fromPriceVGtoVolBS(parameters_list,S0,strike,maturity,curve,dividends):
         root.mainloop()
 
     return vol
+
+###############################################
+#  Jarrow Yildirim
+###############################################
+
+# Preprocessing data
+def preProcessingDataJY(W_calib,curve_nom,real_curve):
+
+    flag_error = False
+    data = W_calib.OptionChosen
+
+    param = {}
+    param['I0']=float(W_calib.setting_I0.get())
+    param['Strike_scale']=float(W_calib.setting_strike_scale.get())
+    param['K']=float(W_calib.setting_K.get())
+    param['Noz']=float(W_calib.setting_Noz.get())
+    param['curve_n']=curve_nom
+    param['curve_r']=real_curve
+    param['tenorOplet']=data.loc[data[0]=='tenorOplet',1].values.astype(float)[0]
+
+    if data.loc[data[0]=='OptionType',1].values[0]=='Floor':
+        param['w']='floor'
+    elif data.loc[data[0]=='OptionType',1].values[0]=='Cap':
+        param['w']='cap'
+    else:
+        flag_error = True
+
+    if data.loc[data[0]=='Type value',1].values[0]=='Price':
+        flag_optim = True # Se True la calibrazione avviene sui prezzi di mercato delle opzioni
+    elif data.loc[data[0]=='Type value',1].values[0]=='Volatility':
+        flag_optim = False # Se False la calibrazione avviene sulla volatilita' delle opzioni
+    else:
+        flag_error = True
+
+    market_data = data.loc[data[2]=='Y',[0,1]].sort_values(by=0).astype(float).reset_index(drop=True)
+    market_data.rename(columns={0:'time',1:'market value'},inplace=True)
+
+    if flag_error == True:
+        root=Tk()
+        tkMessageBox.showwarning(title='Error',message='Dati opzioni non validi, ricontrollare.')
+        root.destroy()
+        return
+
+    return param, flag_optim, market_data
+
+# -----------------------------------------------------
+# Funzioni per curva reale
+# -----------------------------------------------------
+
+# fattori di sconto CONTINUI
+def computeDfCurve(rf_Curve, time):
+    rf_times = rf_Curve['TIME'].tolist()
+    rf_values = rf_Curve['VALUE'].tolist()
+
+    RateTime = np.interp(time, rf_times, rf_values)
+    dfCurveTime = np.exp(- RateTime * time)
+
+    return dfCurveTime
+
+# Curva reale al tasso di interesse CONTINUO
+def createRealCurve(curve_n, curve_i):
+
+    last_time_n = curve_n['TIME'].values[-1]
+    last_time_i = curve_i['TIME'].values[-1]
+
+    if last_time_n >= last_time_i:
+        times_r = curve_i['TIME'].values
+        rates_n = np.interp(times_r,curve_n['TIME'],curve_n['VALUE'])
+        rates_r = rates_n-curve_i['VALUE'].values
+    else:
+        times_r = curve_n['TIME'].values
+        rates_i = np.interp(times_r, curve_i['TIME'], curve_i['VALUE'])
+        rates_r = curve_n['VALUE'].values - rates_i
+
+    curve_r = pd.DataFrame()
+    curve_r['TIME'] = times_r
+    curve_r['VALUE']= rates_r
+
+    return curve_r
+
+
+# -----------------------------------------------------
+# no fixing Index
+# -----------------------------------------------------
+
+def A(ts, te, alpha):
+    return (1. - np.exp(-alpha * (te - ts))) / alpha
+
+
+# ----
+def C(t0, ts, te, aN, aR, sigmaR, sigmaN, sigmaI, rhoNR, rhoNI, rhoRI):
+    cc = sigmaR * A(ts, te, aR)
+    tmp = rhoRI * sigmaI - .5 * sigmaR * A(t0, ts, aR)
+    tmp += (rhoNR * sigmaN) / (aN + aR) * (1. + aR * A(t0, ts, aN))
+    tmp *= A(t0, ts, aR)
+    tmp -= A(t0, ts, aN) * (rhoNR * sigmaN) / (aN + aR)
+    cc *= tmp
+
+    return cc
+
+
+# ----
+
+def VarYoY(t0, ts, te, aN, aR, sigmaR, sigmaN, sigmaI, rhoNR, rhoNI, rhoRI):
+    Dt1 = ts - t0
+    Dt2 = te - ts
+    exp1N = np.exp(- aN * Dt2)
+    exp2N = np.exp(- 2. * aN * Dt2)
+    num1N = 1. - exp1N
+
+    exp1R = np.exp(- aR * Dt2)
+    exp2R = np.exp(- 2. * aR * Dt2)
+    num1R = 1. - exp1R
+
+    vv = sigmaN * sigmaN / (2. * pow(aN, 3.)) * num1N * num1N * (1. - np.exp(-2. * aN * Dt1)) + sigmaI * sigmaI * Dt2
+
+    vv += sigmaR * sigmaR / (2. * pow(aR, 3.)) * num1R * num1R * (1. - np.exp(-2. * aR * Dt1))
+    vv += - 2. * rhoNR * (sigmaN * sigmaR) / (aR * aN * (aN + aR)) * num1N * num1R * (1 - np.exp(-(aN + aR) * Dt1))
+
+    vv += sigmaN * sigmaN / (aN * aN) * (Dt2 + 2. / aN * exp1N - .5 / aN * exp2N - 3. / (2. * aN))
+
+    vv += sigmaR * sigmaR / (aR * aR) * (Dt2 + 2. / aR * exp1R - .5 / aR * exp2R - 3. / (2. * aR))
+    vv += - 2. * rhoNR * (sigmaN * sigmaR) / (aR * aN) * (
+                Dt2 - num1N / aN - num1R / aR + (1. - np.exp(-(aN + aR) * Dt2)) / (aN + aR))
+    vv += 2. * rhoNI * (sigmaN * sigmaI) / aN * (Dt2 - num1N / aN) - 2. * rhoRI * (sigmaR * sigmaI) / aR * (
+                Dt2 - num1R / aR)
+    return vv
+
+
+# ----
+
+def VarInfIndex(t, aN, aR, sigmaR, sigmaN, sigmaI, rhoNR, rhoNI, rhoRI):
+    dN = (np.exp(- aN * t) - 1.) / aN
+    dR = (np.exp(- aR * t) - 1.) / aR
+
+    eta2N = (sigmaN * sigmaN) / (aN * aN) * (t + 2. * dN + (1 - np.exp(- 2. * aN * t)) / (2. * aN))
+    eta2R = (sigmaR * sigmaR) / (aR * aR) * (t + 2. * dR + (1 - np.exp(- 2. * aR * t)) / (2. * aR))
+
+    eta2NR = (sigmaN * sigmaR * rhoNR * 2.) / (aN * aR)
+    eta2NR = eta2NR * (t + dN + dR + (1. - np.exp(-(aN + aR) * t)) / (aN + aR))
+
+    eta2NI = (sigmaN * sigmaI * rhoNI * 2.) / aN * (t + dN)
+    eta2RI = (sigmaR * sigmaI * rhoRI * 2.) / aR * (t + dR)
+    eta2I = (sigmaI * sigmaI) * t
+    eta2 = eta2N + eta2R - eta2NR + eta2NI - eta2RI + eta2I
+    return eta2
+
+
+# ----
+
+# -----------------------------------------------------
+# no fixing Index
+# -----------------------------------------------------
+
+def analitical_oplet_jy(vals, curve_n, curve_r, Verbose=False):
+    aN = vals['aN']
+    aR = vals['aR']
+    sigmaR = vals['sigmaR']
+    sigmaN = vals['sigmaN']
+    sigmaI = vals['sigmaI']
+    rhoNR = vals['rhoNR']
+    rhoNI = vals['rhoNI']
+    rhoRI = vals['rhoRI']
+
+    Pn_s = computeDfCurve(curve_n, vals['ts'])
+    Pn_e = computeDfCurve(curve_n, vals['te'])
+    Pr_s = computeDfCurve(curve_r, vals['ts'])
+    Pr_e = computeDfCurve(curve_r, vals['te'])
+
+    # Calcolo media
+    cc = C(vals['t0'], vals['ts'], vals['te'], aN, aR, sigmaR, sigmaN, sigmaI, rhoNR, rhoNI, rhoRI)
+    m = (Pn_s * Pr_e) / (Pn_e * Pr_s) * np.exp(cc)
+    # print m
+
+    # Calcolo varianza
+    vv = VarYoY(vals['t0'], vals['ts'], vals['te'], aN, aR, sigmaR, sigmaN, sigmaI, rhoNR, rhoNI, rhoRI)
+
+    if vv < 1.e-8:
+        print "@" * 20
+        return max(vals['omega'] * (m - vals['Strike']), 0.)
+
+    # Calcolo oplet
+    d1 = vals['omega'] * (np.log(m / vals['Strike']) + .5 * vv) / np.sqrt(vv)
+    d2 = vals['omega'] * (np.log(m / vals['Strike']) - .5 * vv) / np.sqrt(vv)
+    expValue = vals['omega'] * (m * norm.cdf(d1) - vals['Strike'] * norm.cdf(d2))
+
+    if expValue < 0.:
+        print "@" * 20
+        if expValue < -1.e-8:
+            raise Exception("%s bruttissimo valore per un'opzione" % expValue)
+        else:
+            expValue = 0.
+
+    if Verbose:
+        print "%12.10f %12.10f %12.10f %12.10f %12.10f %12.10f %12.10f %12.10f %12.10f %12.10f" % (
+        cc, vals['ts'], vals['te'], m, vv, d1, d2, expValue, Pn_e, (Pn_e * expValue))
+
+    return expValue
+
+
+# -----------------------------------------------------
+# fixing Index a ts
+# -----------------------------------------------------
+def analytical_option_jy(vals, curve_n, curve_r):
+    I0 = vals['I0']
+    K = vals['Strike']
+    t = vals['te']
+
+    Pn = computeDfCurve(curve_n, t)
+    Pr = computeDfCurve(curve_r, t)
+
+    # Calcolo il forward dell'indice d'inflazione
+    fwdI = I0 * Pr / Pn
+
+    # Calcolo la volatility flat
+    eta2 = VarInfIndex(t, vals['aN'], vals['aR'], vals['sigmaR'], vals['sigmaN'], vals['sigmaI'], vals['rhoNR'],
+                       vals['rhoNI'], vals['rhoRI'])
+
+    if eta2 < 1.e-8:
+        print "@" * 20
+        return max(vals['omega'] * (fwdI - K), 0.)
+
+    d1 = vals['omega'] * (np.log(fwdI / K) + eta2 * .5) / np.sqrt(eta2)
+    d2 = vals['omega'] * (np.log(fwdI / K) - eta2 * .5) / np.sqrt(eta2)
+
+    expValue = vals['omega'] * (I0 * Pr * norm.cdf(d1) - K * Pn * norm.cdf(d2)) / Pn
+    # print Pr, I0, Pn, eta2
+    if expValue < 0.:
+        print "@" * 20
+        if expValue < -1.e-8:
+            raise Exception("%s bruttissimo valore per un'opzione" % expValue)
+        else:
+            expValue = 0.
+    return expValue
+
+
+def inflationOptionJY(list_model_params, param, schedule):
+    curve_n = param['curve_n']
+    curve_r = param['curve_r']
+
+    noz = param['Noz']
+    I0 = param['I0']
+
+    if param['w'] == 'cap':
+        w = 1.0
+    elif param['w'] == 'floor':
+        w = -1.0
+    else:
+        print "skipping option type %s" % param['w']
+
+    # scale = param['Strike_scale']
+    strike = param['K'] / param['Strike_scale']
+
+    vals = {"t0": 0
+        , "I0": I0
+        , "aN": list_model_params[0]
+        , "aR": list_model_params[1]
+        , "sigmaR": list_model_params[2]
+        , "sigmaN": list_model_params[3]
+        , "sigmaI": list_model_params[4]
+        , "rhoNR": list_model_params[5]
+        , "rhoNI": list_model_params[6]
+        , "rhoRI": list_model_params[7]
+        , "omega": w
+            }
+
+    first = True
+    price = 0.0
+
+    if vals['sigmaR'] < 1.e-8 or vals['sigmaN'] < 1.e-8 or vals['sigmaI'] < 1.e-8:
+        print '*********** bruttissimo ***************'
+        return 0.
+
+    for i in range(len(schedule)):
+        if i == 0:
+            continue
+        if first:
+            # richiamo analytical_call_jy(I0, K, t, Pn, Pr, param)
+            t = schedule[i]
+            vals['te'] = t
+            Dt = t - schedule[i - 1]
+            vals['Strike'] = I0 * (1.0 + strike)
+
+            price = noz * computeDfCurve(curve_n, t) * Dt * analytical_option_jy(vals, curve_n, curve_r) / I0
+            first = False
+        # return price
+        else:
+            # richiamo analitical_caplet_jy
+            ts = schedule[i - 1]
+            te = schedule[i]
+            Dt = te - ts
+            vals['ts'] = ts
+            vals['te'] = te
+            vals['Strike'] = (1.0 + strike)
+            jy = noz * computeDfCurve(curve_n, te) * Dt * analitical_oplet_jy(vals, curve_n, curve_r)
+            price += jy
+    return price
+
+#--------- funzioni loss -------------------------------------------
+def loss_jy_model(list_model_params , param , mkt_prices):
+    diff_sum = 0.0
+    time_mkt_list = mkt_prices['time'].tolist()
+
+    for t in range(0,len(time_mkt_list)):
+        schedule = np.arange(0.0, time_mkt_list[t],  param["tenorOplet"]/12.).tolist()
+        schedule.append(time_mkt_list[t])
+        model_price_tmp = inflationOptionJY(list_model_params , param , schedule)
+        mkt_price_tmp = mkt_prices['market value'][t]
+        diff = abs(model_price_tmp - mkt_price_tmp)
+        diff = diff * diff
+        diff_sum = diff_sum + diff
+
+    return diff_sum
+
+def loss_jy_model_var(list_model_params , wishVol):
+
+    aN	    = list_model_params[0]
+    aR	    = list_model_params[1]
+    sigmaR  = list_model_params[2]
+    sigmaN  = list_model_params[3]
+    sigmaI  = list_model_params[4]
+    rhoNR   = list_model_params[5]
+    rhoNI   = list_model_params[6]
+    rhoRI   = list_model_params[7]
+
+    diff_sum = 0.0
+    time_mkt_list = wishVol['time'].tolist()
+
+    for t in range(0,len(time_mkt_list)):
+        model_vol_tmp = np.sqrt(VarInfIndex(time_mkt_list[t], aN, aR, sigmaR, sigmaN, sigmaI, rhoNR, rhoNI, rhoRI))
+        mkt_vol_tmp = wishVol['market value'][t]
+        diff = abs(model_vol_tmp - mkt_vol_tmp)
+        diff = diff * diff
+        diff_sum = diff_sum + diff
+
+    return diff_sum
+
+# ---------- funzione post calibrazione ---------------------
+def compute_values_post_calib_JY(flag_optim, param, market_data, calib_result_list):
+
+    mdl_opt_list = []
+
+    if flag_optim:
+        t_ref_list = market_data['time'].tolist()
+
+        for tt in range(0,len(t_ref_list)):
+            schedule = np.arange(0.0, t_ref_list[tt], param["tenorOplet"] / 12.).tolist()
+            schedule.append(t_ref_list[tt])
+            mdl_tmp = inflationOptionJY(calib_result_list, param, schedule)
+
+            mdl_opt_list.append(float(mdl_tmp))
+
+    else:
+        t_ref_list = market_data['time'].tolist()
+
+        for tt in t_ref_list:
+            mdl_tmp = VarInfIndex(float(tt), calib_result_list[0], calib_result_list[1], calib_result_list[2],
+                                  calib_result_list[3], calib_result_list[4], calib_result_list[5],
+                                  calib_result_list[6], calib_result_list[7])
+
+            mdl_opt_list.append(float(mdl_tmp))
+
+    return mdl_opt_list

@@ -233,7 +233,7 @@ def writeTemplateCalibration(xla, nameSheet):
     mat['Usage'] = 'Y'
 
     Attributi = \
-        {       "0. CurveType"           : 'Zero coupon RF, Inflation'
+        {       "0. CurveType"           : 'Zero coupon RF, Inflation, Real'
             ,   "1. Interest rate Type"  : 'SMP, CMP, CNT'
             ,   "2. Date Ref"            :  datetime.datetime.now().strftime("%m/%d/%Y")
         }
@@ -254,7 +254,7 @@ def writeTemplateCalibration(xla, nameSheet):
     mat['Usage'] = 'Y'
 
     Attributi = \
-        {       "0. CurveType"           : 'Zero coupon RF, Inflation'
+        {       "0. CurveType"           : 'Zero coupon RF, Inflation, Real'
             ,   "1. Interest rate Type"  : 'SMP, CMP, CNT'
             ,   "2. Date Ref"            :  datetime.datetime.now().strftime("%m/%d/%Y")
         }
@@ -330,7 +330,7 @@ def writeTemplateCalibration(xla, nameSheet):
     r = writeResultPandas(xla=xla, rng=r, df=mat, flagPrintColumns=True)
     xla.Cells.ColumnWidth = 18
 
- ##########################
+    #######################
     ## OPTION - Opzione
     ##########################
 
@@ -351,5 +351,26 @@ def writeTemplateCalibration(xla, nameSheet):
     }
 
     r = intestazioneCalibration(xla=xla, rng=r, attributi=Attributi, title='Template Calibration Option')
+    r = writeResultPandas(xla=xla, rng=r, df=mat, flagPrintColumns=True)
+    xla.Cells.ColumnWidth = 18
+
+    #######################
+    ## INFLATION OPTION
+    ##########################
+
+    mat = pd.DataFrame()
+
+    mat['Maturity'] = np.arange(1, 8, step=1)
+    mat['Value'] = np.zeros(7)
+    mat['Usage'] = 'Y'
+
+    Attributi = {
+        "0. Date Ref": datetime.datetime.now().strftime("%m/%d/%Y")
+        , "1. OptionType": 'Cap/Floor'
+        , "2. Type value": 'Price/Volatility'
+        , "3. tenorOplet": 12
+    }
+
+    r = intestazioneCalibration(xla=xla, rng=r, attributi=Attributi, title='Template Calibration Inflation Option')
     r = writeResultPandas(xla=xla, rng=r, df=mat, flagPrintColumns=True)
     xla.Cells.ColumnWidth = 18
