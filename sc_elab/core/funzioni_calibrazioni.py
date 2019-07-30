@@ -1002,24 +1002,27 @@ def computeDfCurve(rf_Curve, time):
 # Curva reale al tasso di interesse CONTINUO
 def createRealCurve(curve_n, curve_i):
 
-    last_time_n = curve_n['TIME'].values[-1]
-    last_time_i = curve_i['TIME'].values[-1]
+    times_n = curve_n['TIME'].tolist()
+    times_i = curve_i['TIME'].tolist()
 
-    if last_time_n >= last_time_i:
-        times_r = curve_i['TIME'].values
-        rates_n = np.interp(times_r,curve_n['TIME'],curve_n['VALUE'])
-        rates_r = rates_n-curve_i['VALUE'].values
+    if len(times_n)>0:
+        times_r = times_n
+    elif len(times_i)>0:
+        times_r = times_i
     else:
-        times_r = curve_n['TIME'].values
-        rates_i = np.interp(times_r, curve_i['TIME'], curve_i['VALUE'])
-        rates_r = curve_n['VALUE'].values - rates_i
+        root = Tk()
+        tkMessageBox.showwarning(title = 'Curve error', message = 'Lunghezza curve in input non valida')
+        root.destroy()
+        return
+
+    rates_n = np.interp(times_r,curve_n['TIME'],curve_n['VALUE'])
+    rates_i = np.interp(times_r,curve_i['TIME'],curve_i['VALUE'])
 
     curve_r = pd.DataFrame()
-    curve_r['TIME'] = times_r
-    curve_r['VALUE']= rates_r
+    curve_r['TIME']  = times_r
+    curve_r['VALUE'] = rates_n - rates_i
 
     return curve_r
-
 
 # -----------------------------------------------------
 # no fixing Index
@@ -1193,7 +1196,7 @@ def inflationOptionJY(list_model_params, param, schedule):
     # scale = param['Strike_scale']
     strike = param['K'] / param['Strike_scale']
 
-    vals = {"t0": 0
+    vals = {"t0": 0.
         , "I0": I0
         , "aN": list_model_params[0]
         , "aR": list_model_params[1]

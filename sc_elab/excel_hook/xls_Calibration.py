@@ -34,7 +34,7 @@ def intestazioneCalibration( xla, rng,  attributi, nCols = 2, title= 'Calibratio
     return rangeStart
 
 
-def writeParameterCalibration( xla, rng , v_name , v_value,  dict, nCols = 4):
+def writeParameterCalibration( xla, rng , v_name , v_value,  dict, nCols = 5):
 
     nRows           = len(v_name)
     topLeftRow      = rng.Row
@@ -43,15 +43,17 @@ def writeParameterCalibration( xla, rng , v_name , v_value,  dict, nCols = 4):
 
     xla.Cells(topLeftRow , topLeftCol + 0).Value = 'Parameter'
     xla.Cells(topLeftRow , topLeftCol + 1).Value = 'Value'
-    xla.Cells(topLeftRow , topLeftCol + 2).Value = 'Min'
-    xla.Cells(topLeftRow , topLeftCol + 3).Value = 'Max'
+    xla.Cells(topLeftRow , topLeftCol + 2).Value = 'Initial guess'
+    xla.Cells(topLeftRow , topLeftCol + 3).Value = 'Min'
+    xla.Cells(topLeftRow , topLeftCol + 4).Value = 'Max'
 
     i = 0
     for k in v_name:
         xla.Cells(topLeftRow + 1+ i, topLeftCol+0).Value   = k
         xla.Cells(topLeftRow + 1+ i, topLeftCol+1).Value = v_value[i]
-        xla.Cells(topLeftRow + 1+ i, topLeftCol+2).Value = dict[k]['min']
-        xla.Cells(topLeftRow + 1+ i, topLeftCol+3).Value = dict[k]['max']
+        xla.Cells(topLeftRow + 1+ i, topLeftCol+2).Value = dict[k]['sv']
+        xla.Cells(topLeftRow + 1+ i, topLeftCol+3).Value = dict[k]['min']
+        xla.Cells(topLeftRow + 1+ i, topLeftCol+4).Value = dict[k]['max']
         i+=1
 
     rangeStart = xla.Range(xla.Cells(topLeftRow + nRows + 1, topLeftCol),xla.Cells(topLeftRow + nRows + 1, topLeftCol))
