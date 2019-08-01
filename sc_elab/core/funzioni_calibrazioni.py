@@ -47,6 +47,7 @@ def preProcessingCurve(df, rate_time_zero=False, out_type='rate', curve_nom=None
     out = out.astype('float')
 
     out_origin = out.copy()
+    out['VALUE'] = np.divide(out['VALUE'],100.) # si assume che i tassi siano passati moltiplicati per 100
 
     if capitalization == 'SMP':
         timeTmp = out.iloc[:, 0]
@@ -63,7 +64,6 @@ def preProcessingCurve(df, rate_time_zero=False, out_type='rate', curve_nom=None
         capitalization = ""
 
     out_to_fit = out.copy()
-    out_to_fit['VALUE'] = np.divide(out_to_fit['VALUE'],100.) # si assume che i tassi siano passati moltiplicati per 100
     out_to_fit.sort_values(by='TIME',inplace=True)
 
     if out_type=='discount':

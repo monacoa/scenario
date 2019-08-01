@@ -1833,7 +1833,7 @@ def BootstrapCapFloorVol_on_xls(control):
         bootstrapped_volatilities = Bootstrap_CapFloor_Surface(shift, discount, volatilities)
     else:
         root = Tk()
-        ttkMessageBox.showwarning('Error', 'Bootstrap on the selected data not available')
+        tkMessageBox.showwarning('Error', 'Bootstrap on the selected data not available')
         root.destroy()
         bootstrapped_volatilities = pd.DataFrame()
 
