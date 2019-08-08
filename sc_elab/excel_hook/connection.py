@@ -1,6 +1,6 @@
 import sys
 import os
-import pyodbc
+# import pyodbc
 
 import pymysql
 

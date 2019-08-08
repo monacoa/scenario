@@ -3,7 +3,7 @@ from Tkinter import *
 
 import tkMessageBox
 #import mysql.connector
-import pyodbc
+# import pyodbc
 
 from sc_elab.core.db_tipodato_censimento import tipologia_dict
 from sc_elab.core.table_traslation import from_bond_table_to_datastream
