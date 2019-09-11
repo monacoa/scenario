@@ -150,7 +150,7 @@ def preProcessingOptions(W_calib, curve):
 
         return market_data, tenr, call_flag
 
-    elif optiontype == 'Vol Cap Floor':
+    elif optiontype == 'Vol Caplets':
 
         # leggo le opzioni
         volsdata_noint = W_calib.OptionChosen.loc[(W_calib.OptionChosen[3] == 'Y'), [0, 1, 2]]
@@ -162,11 +162,27 @@ def preProcessingOptions(W_calib, curve):
         market_data['vols_data'] = np.divide(volsdata_noint.loc[:, 2].values.astype(float), 100.)
 
         # Calcolo i prezzi di mercato dei Caplet
-        market_data['market price'] = np.array(compute_Black_prices(curve, market_data, 1, shift))
+        market_data['market price'] = np.array(compute_Black_prices(curve, market_data, 1., shift))
 
         return market_data
 
-    elif optiontype == 'Caplets':
+    elif optiontype == 'Vol Caps':
+
+        # leggo le opzioni
+        volsdata_noint = W_calib.OptionChosen.loc[(W_calib.OptionChosen[3] == 'Y'), [0, 1, 2]]
+        market_data = pd.DataFrame()
+        market_data['time'] = volsdata_noint.loc[:, 0].values.astype(float)
+        market_data['strike'] = np.divide(volsdata_noint.loc[:, 1].values.astype(float), 100.)
+
+        shift = float(W_calib.OptionChosen.loc[W_calib.OptionChosen[0] == 'Shift', 1])
+        market_data['vols_data'] = np.divide(volsdata_noint.loc[:, 2].values.astype(float), 100.)
+
+        # Calcolo i prezzi di mercato dei Cap
+        market_data['market price'] = np.array(compute_black_cap_list(curve, market_data, 1., shift))
+
+        return market_data
+
+    elif optiontype == 'Caplets' or 'Caps':
 
         # leggo le opzioni
         volsdata_noint = W_calib.OptionChosen.loc[(W_calib.OptionChosen[3] == 'Y'), [0, 1, 2]]
@@ -578,6 +594,19 @@ def compute_Black_prices(curve, mkt_data, nominal_amount, shift):
 
     return caplet_prices
 
+# ------- Lista prezzi di mercato dei Cap ATM ---------------------------
+def compute_black_cap_list(curve, mkt_data, nominal_amount, shift):
+
+    cap_prices=[]
+    for i in range(0, len(mkt_data['time'])):
+        time = mkt_data['time'][i]
+        strike = mkt_data['strike'][i]
+        volatility = mkt_data['vols_data'][i]
+        cap_tmp=0.
+        for t in np.arange(0,time,step=0.5):
+            cap_tmp += Black_shifted_Caplet(curve,t,t+0.5,nominal_amount,strike,shift,volatility)
+        cap_prices.append(cap_tmp)
+    return cap_prices
 
 # ===========================================================
 #     Funzioni di calcolo prezzo dei Caplet nel modello G2++
@@ -638,6 +667,44 @@ def compute_G2pp_prices(parameters_list, curve, times, strikes):
         caplet_prices.append(caplet_tmp)
 
     return caplet_prices
+
+# ---------- Lista prezzi dei Cap ATM da modello G2++ -----------------------------
+# i parametri del modello vengono passati tramite una lista [a,b,sigma,eta,rho]
+def compute_G2pp_cap_prices(parameters_list, curve, mkt_data):
+    parameters_dict={}
+    parameters_dict['a']=parameters_list[0]
+    parameters_dict['sigma'] = parameters_list[1]
+    parameters_dict['b'] = parameters_list[2]
+    parameters_dict['eta'] = parameters_list[3]
+    parameters_dict['rho'] = parameters_list[4]
+
+    cap_prices=[]
+
+    for i in range(0, len(mkt_data['time'])):
+        time = mkt_data['time'][i]
+        strike = mkt_data['strike'][i]
+        cap_tmp=0.
+        for t in np.arange(0,time,step=0.5):
+            cap_tmp += Caplet_G2pp(curve,parameters_dict,t,t+0.5,1.,strike)
+        cap_prices.append(cap_tmp)
+
+    return cap_prices
+
+# ---------- Funzione di calcolo norma da ottimizzare nel caso ATM ------------------------------------
+# power=1 metrica di Manhattan
+# power=2 metrica euclidea
+# se absrel='rel' viene calcolata la norma delle differenze relative
+# mkt_data e' un DataFrame contenente tre series 'time', 'strike' e 'market price'
+def loss_G2pp_caps(list_model_params, curve, mkt_prices, power, absrel):
+
+    model_price_tmp = np.array(compute_G2pp_cap_prices(list_model_params, curve, mkt_prices))
+    diff = np.absolute(model_price_tmp - mkt_prices['market price'])
+    if absrel == 'rel':
+        diff = diff /np.absolute(mkt_prices['market price'])
+
+    diff = np.power(diff,power)
+
+    return diff.sum()
 
 # ---------- Funzione di calcolo norma da ottimizzare ------------------------------------
 # power=1 metrica di Manhattan

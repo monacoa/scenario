@@ -1005,7 +1005,7 @@ def calibration_from_xls(control):
                                                                                tenr, swp_atm_d, curve_times,
                                                                                curve_values, call_flag, n_max=50)
 
-                        elif model=='G2++' and option_type in ['Vol Cap Floor','Caplets']:
+                        elif model=='G2++' and option_type in ['Vol Caplets','Caplets']:
 
                             # leggo la curva dei tassi risk free
                             orig_curve, curve, type_cap = preProcessingCurve(W1.CurveChosen, rate_time_zero=True,
@@ -1027,6 +1027,30 @@ def calibration_from_xls(control):
 
                             market_data['model price'] = compute_G2pp_prices(ff.x, curve, market_data['time'],
                                                                market_data['strike'])
+
+                        elif model == 'G2++' and option_type in ['Vol Caps', 'Caps']:
+
+                            # leggo la curva dei tassi risk free
+                            orig_curve, curve, type_cap = preProcessingCurve(W1.CurveChosen, rate_time_zero=True,
+                                                                             out_type='discount')
+                            # leggo e processo i dati sulle opzioni
+                            market_data = preProcessingOptions(W1, curve)
+
+                            root = Tk()
+                            root.grid()
+                            message = Label(root, text='Calibrazione in corso')
+                            message.grid(column=0, row=1)
+                            root.update()
+
+                            ff = minimize(loss_G2pp_caps,
+                                          args=(
+                                              curve, market_data, loss_function_type_power, loss_function_type_absrel),
+                                          x0=x0_m, bounds=x_bnd, method='TNC')
+
+                            root.destroy()
+
+                            market_data['model price'] = compute_G2pp_cap_prices(ff.x, curve, market_data)
+
                         elif model=='VSCK':
 
                             # leggo la curva dei tassi risk free

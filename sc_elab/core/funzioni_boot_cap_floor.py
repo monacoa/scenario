@@ -36,9 +36,20 @@ def BlackExpectedValue_inverse(fwdPrice,strike,TimeToReset,shift,type,price):
     vol=root(fun=BlackExpectedValue_tobe_inverted,args=(fwdPrice,strike,TimeToReset,shift,type,price),x0=0.10)
     return vol.x[0]
 
+# --------- Funzione di calcolo di diversi Caplet sullo stesso strike ---------------
+def Multiple_Caplets_Price(zc_df_list, fwd_list, strike, times_list, sigma, shift):
+    if len(fwd_list) != len(times_list): raise Exception('lunghezza lista tempi e lunghezza lista forward diverse!')
+    price_sum = 0.
+    for i in range(0,len(fwd_list)):
+        BlackValueTmp = BlackExpectedValue(fwd_list[i], strike, times_list[i], sigma, shift,
+                                        'Call')
+        caplet_tmp = zc_df_list[i] * 0.5 * BlackValueTmp
+        price_sum += caplet_tmp
+    return price_sum
+
+
 # Procedura di Bootstrap delle volatilita' dei Caplets dalle volatilita' flat implicite nei Cap quotati
 # tasso di riferimento Euribor 6 mesi
-
 def Bootstrap_CapFloor_ATM(shift, discount_curve, volsdata):
 
     # ----- import delle volatilita' su cui eseguire il bootstrap -----
@@ -76,11 +87,6 @@ def Bootstrap_CapFloor_ATM(shift, discount_curve, volsdata):
         StrikeATM_tmp = numerator / denominator
         StrikeATM.append(StrikeATM_tmp)
 
-    #==========================================================================
-    # Interpolazione lineare delle volatilita' flat relative ai singoli Caplets
-    # =========================================================================
-    vols = np.interp(times_list[1:],vol_mat_list,vols_data)
-
     # ============================
     # Calcolo variabili intermedie
     # ============================
@@ -90,17 +96,20 @@ def Bootstrap_CapFloor_ATM(shift, discount_curve, volsdata):
     for i in range(0,len(Tenors)):
         P1=zc_discount_list[i]
         P2=zc_discount_list[i+1]
-        fwd_tmp=(1/Tenors[i])*((P1/P2)-1)
+        fwd_tmp=(1./Tenors[i])*((P1/P2)-1.)
         forward_rates.append(fwd_tmp)
 
 
     # prezzi teorici Cap
 
     Cap_prices = []
-    for i in range(2, len(times_list)):
+    idx = 1
+    for i in range(0, len(vol_mat_list)):
+        while times_list[idx] != vol_mat_list[i]:
+            idx+=1
         Cap_tmp = 0
-        for j in range(0, i):
-            BlackValue = BlackExpectedValue(forward_rates[j], StrikeATM[i-1], times_list[j], vols[i-1], shift, 'Call')
+        for j in range(0, idx):
+            BlackValue = BlackExpectedValue(forward_rates[j], StrikeATM[idx-1], times_list[j], vols_data[i], shift, 'Call')
             caplet_tmp = zc_discount_list[j + 1] * Tenors[j] * BlackValue
             Cap_tmp += caplet_tmp
         Cap_prices.append(Cap_tmp)
@@ -111,23 +120,30 @@ def Bootstrap_CapFloor_ATM(shift, discount_curve, volsdata):
 
     Caplet_prices=[]
     vol_boot=[]
-    vol_boot.append(vols[1])
+    idx = 1
+    vol_boot.append(vols_data[0])
+    while vol_mat_list[0]!= times_list[idx]:
+        vol_boot.append(vols_data[0])
+        idx += 1
+
+    idx_n = idx
     for i in range(1,len(Cap_prices)):
-        Caplet_tmp = Cap_prices[i]-Cap_prices[i-1]
-        Black_tmp  = Caplet_tmp/(Tenors[i+1]*zc_discount_list[i+2])
+        diff_tmp = Cap_prices[i]-Cap_prices[i-1]
+        while times_list[idx_n] != vol_mat_list[i]:
+            idx_n += 1
+        caplets_prices_tmp = lambda sigma : Multiple_Caplets_Price(zc_discount_list[idx+1:idx_n+1], forward_rates[idx:idx_n], StrikeATM[idx_n-1], times_list[idx:idx_n], sigma, shift) - diff_tmp
+        vol_boot_tmp = root(fun=caplets_prices_tmp,x0=0.10).x[0]
+        for j in range(0,idx_n-idx):
+            vol_boot.append(vol_boot_tmp)
+        idx = idx_n
 
-        vol_boot_tmp = BlackExpectedValue_inverse(forward_rates[i+1], StrikeATM[i+1], times_list[i+1], shift, 'Call',Black_tmp)
-
-        Caplet_prices.append(Caplet_tmp)
-        vol_boot.append(vol_boot_tmp)
-
-    # moltiplico per 100 le volatilita' e gli strike
+    # moltiplico per 100 le volatilita' e i forward
     vol_boot  = np.multiply(vol_boot,100)
-    StrikeATM = np.multiply(StrikeATM,100)
+    forward_rates = np.multiply(forward_rates,100)
 
     bootstrap_result = pd.DataFrame()
-    bootstrap_result['Time']= times_list[2:]
-    bootstrap_result['Strike (x100)']= StrikeATM[1:]
+    bootstrap_result['Time']= times_list[1:]
+    bootstrap_result['Fwd rate (x100)']= forward_rates
     bootstrap_result['Volatility (x100)']= vol_boot
 
     return bootstrap_result

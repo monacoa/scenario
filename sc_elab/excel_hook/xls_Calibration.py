@@ -323,7 +323,7 @@ def writeTemplateCalibration(xla, nameSheet):
 
     Attributi = {
              "0. Date Ref"           : datetime.datetime.now().strftime("%m/%d/%Y")
-            ,"1. OptionType"         : 'Vol Cap Floor, Caplets'
+            ,"1. OptionType"         : 'Vol Caps, Vol Caplets, Caplets, Caps'
             # ,"2. Type value"         : 'Price, Volatility'
             ,"3. Shift"              : 0
     }
