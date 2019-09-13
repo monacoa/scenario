@@ -349,7 +349,7 @@ def writeTemplateCalibration(xla, nameSheet):
             ,"1. OptionType"         : 'PUT / CALL'
             ,"2. Initial Price"      : 100
             ,"3. Strike"             : 100
-            ,"4. Maturity"           : 2
+            ,"4. Mat"                : 2
     }
 
     r = intestazioneCalibration(xla=xla, rng=r, attributi=Attributi, title='Template Calibration Option')

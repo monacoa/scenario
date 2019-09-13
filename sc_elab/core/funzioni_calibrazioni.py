@@ -182,7 +182,7 @@ def preProcessingOptions(W_calib, curve):
 
         return market_data
 
-    elif optiontype == 'Caplets' or 'Caps':
+    elif optiontype in ['Caplets','Caps']:
 
         # leggo le opzioni
         volsdata_noint = W_calib.OptionChosen.loc[(W_calib.OptionChosen[3] == 'Y'), [0, 1, 2]]
