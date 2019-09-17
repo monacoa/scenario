@@ -1177,7 +1177,7 @@ def calibration_from_xls(control):
                         writeDividendsResOnXls(title='Implicit dividends',
                                                W_class=W1,
                                                xla=xla,
-                                               res=dividends_data)
+                                               res=dividends)
 
                         writeVolResOnXls(title='Volatility from surface',
                                          W_class=W1,
