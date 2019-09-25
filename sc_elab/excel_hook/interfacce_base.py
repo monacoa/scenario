@@ -1149,21 +1149,46 @@ def calibration_from_xls(control):
                         model_put_pivot = pd.pivot_table(market_data.loc[market_data['type'] == 'PUT'], index='strike',
                                                          columns='maturity', values='model price', fill_value=np.nan)
 
-                        # produco i grafici
-                        for i in range(0, len(market_call_pivot.keys())):
-                            plt.plot(market_call_pivot.index, market_call_pivot[market_call_pivot.keys()[i]], '^',label='market price')
-                            plt.plot(market_call_pivot.index, model_call_pivot[model_call_pivot.keys()[i]], 'o',label='model price')
-                            plt.title('Call prices maturity %.2f year' % market_call_pivot.keys()[i])
-                            plt.xlabel('Strike')
-                            plt.legend()
-                            plt.show()
+                        # # produco i grafici
+                        # for i in range(0, len(market_call_pivot.keys())):
+                        #     plt.plot(market_call_pivot.index, market_call_pivot[market_call_pivot.keys()[i]], '^',label='market price')
+                        #     plt.plot(market_call_pivot.index, model_call_pivot[model_call_pivot.keys()[i]], 'o',label='model price')
+                        #     plt.title('Call prices maturity %.2f year' % market_call_pivot.keys()[i])
+                        #     plt.xlabel('Strike')
+                        #     plt.legend()
+                        #     plt.show()
+                        #
+                        # for i in range(0, len(market_put_pivot.keys())):
+                        #     plt.plot(market_put_pivot.index, market_put_pivot[market_put_pivot.keys()[i]], '^',label='market price')
+                        #     plt.plot(market_put_pivot.index, model_put_pivot[model_put_pivot.keys()[i]], 'o',label='model price')
+                        #     plt.title('Put prices maturity %.2f year' % market_put_pivot.keys()[i])
+                        #     plt.xlabel('Strike')
+                        #     plt.legend()
+                        #     plt.show()
 
-                        for i in range(0, len(market_put_pivot.keys())):
-                            plt.plot(market_put_pivot.index, market_put_pivot[market_put_pivot.keys()[i]], '^',label='market price')
-                            plt.plot(market_put_pivot.index, model_put_pivot[model_put_pivot.keys()[i]], 'o',label='model price')
-                            plt.title('Put prices maturity %.2f year' % market_put_pivot.keys()[i])
-                            plt.xlabel('Strike')
-                            plt.legend()
+                        # produco i grafici in subplots contenenti grafico fitting Call e grafico fitting Put
+                        graphics_keys = market_data['maturity'].unique()
+                        for i in graphics_keys:
+                            plt.rcParams['figure.figsize'] = [8, 4]
+                            plt.subplot(1,2,1)
+                            if i in market_call_pivot.keys():
+                                plt.plot(market_call_pivot.index, market_call_pivot[i], '^',
+                                         label='market price')
+                                plt.plot(market_call_pivot.index, model_call_pivot[i], 'o',
+                                         label='model price')
+                                plt.title('Call prices maturity %.2f year' % i)
+                                plt.xlabel('Strike')
+                                plt.legend()
+                            plt.subplot(1,2,2)
+                            if i in market_put_pivot.keys():
+                                plt.plot(market_put_pivot.index, market_put_pivot[i], '^',
+                                         label='market price')
+                                plt.plot(market_put_pivot.index, model_put_pivot[i], 'o',
+                                         label='model price')
+                                plt.title('Put prices maturity %.2f year' % i)
+                                plt.xlabel('Strike')
+                                plt.legend()
+                            plt.tight_layout()
                             plt.show()
 
                         # Inverto il prezzo VG relativo a strike e maturity date per ottenere una volatilita' BS

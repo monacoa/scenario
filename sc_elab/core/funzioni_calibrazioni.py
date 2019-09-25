@@ -236,6 +236,13 @@ def preProcessingOptions(W_calib, curve):
         root.destroy()
         return
 
+def P_0t(t,curve_times,curve_values):
+    if t == 0.:
+        return 1.
+    if t > curve_times[len(curve_times)-1]:
+        last_forward = np.log(curve_values[len(curve_values)-2] / curve_values[len(curve_values)-1]) / (curve_times[len(curve_times)-1] - curve_times[len(curve_times)-2])
+        return np.exp(-last_forward * (t - curve_times[len(curve_times)-1])) * curve_values[len(curve_values)-1]
+
 ############################################################
 #       CIR
 ############################################################
@@ -995,7 +1002,11 @@ def fromPriceVGtoVolBS(parameters_list,S0,strike,maturity,curve,dividends):
 
     parameters = {'sigma': parameters_list[0], 'nu': parameters_list[1], 'theta': parameters_list[2]}
     r = np.interp(maturity, curve['TIME'], curve['VALUE'])
-    q = np.interp(maturity, dividends['TIME'], dividends['VALUE'])
+    q = np.interp(maturity, dividends['TIME'], dividends['VALUE']) # interpolazione lineare sui tassi
+    # dividends['VALUE'] = np.exp(-dividends['TIME'] * dividends['VALUE'])
+    # q = np.interp(maturity, dividends['TIME'], dividends['VALUE']) # interpolazione esponenziale sui fattori di sconto
+    # q = P_0t(maturity, dividends['TIME'], dividends['VALUE']) # interpolazione con il forward costante a tratti
+    # q = -np.log(q) / maturity
     alpha = alpha_Madan(parameters_list)
     strike_list, price_list = Call_Fourier_VG(parameters, S0, r, q, maturity, alpha, 0.25, np.power(2, 12))
     priceFourier = np.interp(strike, strike_list, price_list)
