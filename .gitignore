@@ -92,6 +92,7 @@ ENV/
 .pydevproject
 
 # File di test
+test/
 
 .idea/
 sc_elab/excel_hook/scenario_ribbon.xml

@@ -402,7 +402,7 @@ class Curve(object):
             for record in res3:
                 blm_tkr_list_str_n += sep + "'" + record[0] + "'"
                 sep = ","
-            
+
 
         #print 'blm_tkr_list_str_n: ', blm_tkr_list_str_n
         blm_tckrs_lst_str = blm_tkr_list_str_n
@@ -421,6 +421,7 @@ class Curve(object):
                  DATA = '%s'
                 )
             ''' % (blm_tkr_list_str_n, str(self.ref_date).replace("-", ""))
+
         c_d.execute(qry)
         res = c_d.fetchall()
         self.curr = res[0][0]
@@ -497,6 +498,7 @@ class Curve(object):
                         AND         DProCurve.BloombergTicker in (%s)
                         ORDER BY    DProCurve.maturityInt
                         ''' % (quotazione, str(self.ref_date).replace("-", ""), segm, blm_tckrs_lst_str)
+
 
             c_d.execute(qry)
             res = c_d.fetchall()
@@ -856,6 +858,7 @@ class CdsCurve(Curve):
                         DATA = '%s'
                      )
               ''' % (blm_tckrs_lst_str, str(self.ref_date).replace("-",""))
+        #print qry
         c_d.execute(qry)
         res = c_d.fetchall()
         if len(res) <> 1: 'AAAA'
@@ -1043,10 +1046,10 @@ class CdsCurve(Curve):
 
         for record in res:
             #print "record:", record
-            mat = float(record[0])/365.0
+            mat = float(record[0])/360.
             #if (mat-int(mat)) < 1.e-2: mat = int(mat)
             mat = round(mat, 1)
-            tag = str(mat)+"Y"
+            tag = MaturityFromIntToString[record[0]]
             val = float(record[1])
             #print mat, tag, val
             self.mats.append(mat)
@@ -1054,7 +1057,7 @@ class CdsCurve(Curve):
             self.values.append(val)
             #print self.mats, self.tags, self.values
 
-        self.show()
+        #self.show()
 
 
 

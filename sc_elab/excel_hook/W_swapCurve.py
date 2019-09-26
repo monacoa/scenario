@@ -112,7 +112,11 @@ class W_curveSelection (LabelFrame):
         self.bar = Scrollbar(self)
 
         # create mylist
-        self.mylist = Listbox(self, yscrollcommand=self.bar.set)
+        if type == "SWP":
+            self.mylist = Listbox(self, yscrollcommand=self.bar.set)
+        elif type == "CDS":
+            self.mylist = Listbox(self, yscrollcommand=self.bar.set, selectmode = EXTENDED)
+
         dl = getCurvesListFromDb(curve_date, type)
         for l in dl:
             crv = l[0]
@@ -124,10 +128,10 @@ class W_curveSelection (LabelFrame):
         self.mylist.config(yscrollcommand=self.bar.set)
         self.bar.config(command=self.mylist.yview)
         # -----------
-        # cretae button
+        # create button
         self.btn2 = Button(self, text="Cancel", command=self.close_window)
         self.btn2.pack(side=BOTTOM, fill='x')
-        # cretae button
+        # create button
         self.btn1 = Button(self, text="Select", command=lambda:self.selected_curve(type))
         self.btn1.pack(side=BOTTOM, fill='x')
 
@@ -136,12 +140,19 @@ class W_curveSelection (LabelFrame):
 
     def selected_curve(self, type):
         #recupero la data selezionata
-        curve_des = str((self.mylist.get(ACTIVE)))
-        self.curve = curve_des
         if type == "SWP":
+            curve_des = str((self.mylist.get(ACTIVE)))
+            self.curve = curve_des
             self.close_window()
         elif type == "CDS":
-            print "XXXXXXXXXXXXXX caso CDS!!!!!!!!!"
+            print "Caso CDS"
+
+            curve_pos = self.mylist.curselection()
+            self.curve = [self.mylist.get(i) for i in curve_pos]
+
+            #print 'curve:', self.curve
+            print 'pos:', curve_pos
+
             self.new_window = W_settoreRatingSelection(parent=self, type = type)
 
 

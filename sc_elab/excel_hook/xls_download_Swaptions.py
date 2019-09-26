@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import datetime
 from win32com.client import constants as const
 
@@ -86,7 +87,9 @@ def write_Swaptions(xla, res, ref_date, currency , contributor, tipo_modello, op
         writeSwaptionsResOnXls(res3, xla, ref_date, option_print,currency,  contributor, tipo_modello)
 
     else:
-        res['Tenor']=res['Tenor'].map(MaturityFromIntToString)
-        res['MaturityInt'] = res['MaturityInt'].map(MaturityFromIntToString)
-        res['Usage'] = 'Y'
-        writeSwaptionsResOnXls(res,  xla, ref_date, option_print,currency, contributor, tipo_modello)
+        res2 = pd.DataFrame()
+        res2['Expiry']=res['Tenor'].map(MaturityFromIntToString)
+        res2['Maturity'] = res['MaturityInt'].map(MaturityFromIntToString)
+        res2['Value'] = res['ValoreMid']
+        res2['Usage'] = 'Y'
+        writeSwaptionsResOnXls(res2,  xla, ref_date, option_print,currency, contributor, tipo_modello)

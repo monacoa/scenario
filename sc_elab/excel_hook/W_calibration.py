@@ -23,8 +23,8 @@ def model_parameters(value):
     elif value == 'VSCK':
         dict = {'r0'    :{'sv':'0.03', 'min': '-0.5'  , 'max':'0.5'  ,'fix':0},
                 'k'     :{'sv':'0.03', 'min': '0.0001', 'max':'10.0' ,'fix':0},
-                'sigma' :{'sv':'0.1' , 'min': '0.0001', 'max': '10.0','fix':0},
-                'theta' :{'sv':'0.03', 'min': '0.0001', 'max': '10.0','fix':0}
+                'theta' :{'sv':'0.03', 'min': '0.0001', 'max': '10.0','fix':0},
+                'sigma' :{'sv':'0.1' , 'min': '0.0001', 'max': '10.0','fix':0}
                 }
 
         # mi servono ordinati
@@ -46,12 +46,20 @@ def model_parameters(value):
 
     elif value == 'G2++':
         dict ={'a'      :{'sv':'0.1'  , 'min': '0.0001', 'max': '5.0','fix':0},
-              'sigma'   :{'sv':'0.1'  , 'min': '0.0001', 'max': '0.7','fix':0},
-              'b'       :{'sv': '0.01', 'min': '0.0001', 'max': '5.0','fix':0},
+              'sigma'   :{'sv':'0.01'  , 'min': '0.0001', 'max': '0.7','fix':0},
+              'b'       :{'sv': '0.1', 'min': '0.0001', 'max': '5.0','fix':0},
               'eta'     :{'sv': '0.01', 'min': '0.0001', 'max': '0.7','fix':0},
               'rho'     :{'sv': '0.1' , 'min': '-0.7'  , 'max': '0.7','fix':0}
               }
         names = ['a', 'sigma', 'b', 'eta', 'rho']
+        attribute = ['sv', 'min', 'max', 'fix']
+
+    elif value == 'Variance Gamma':
+        dict ={'sigma'   :{'sv':'0.1', 'min': '0.0001', 'max': '5.0' , 'fix':0},
+               'nu': {'sv': '0.1', 'min': '0.0001', 'max': '2.0', 'fix': 0},
+               'theta': {'sv': '0.1', 'min': '-0.7', 'max': '0.7', 'fix': 0}
+               }
+        names = ['sigma', 'nu', 'theta']
         attribute = ['sv', 'min', 'max', 'fix']
 
     else:
@@ -84,7 +92,8 @@ class W_calib_models(Frame):
         self.calib_avaible = ['CIR',
                          'VSCK',
                          'Jarrow Yildirim',
-                         'G2++']
+                         'G2++',
+                         'Variance Gamma']
 
         for name_calib in self.calib_avaible:
             Radiobutton(self,
@@ -162,6 +171,7 @@ class W_calib_menu(LabelFrame):
         else:
             objectOnSheet = readFeaturesObject(objectOnSheetDictionary)
             tmpCurve = objectOnSheet.loc[objectOnSheet.TypeObject == 'Curve', 'Name'].tolist()
+            tmpInflCurve = objectOnSheet.loc[objectOnSheet.TypeObject == 'Inflation/Real Curve', 'Name'].tolist()
             tmpOptions = objectOnSheet.loc[objectOnSheet.TypeObject == 'Option', 'Name'].tolist()
             tmpTS = objectOnSheet.loc[objectOnSheet.TypeObject == 'TS', 'Name'].tolist()
 
@@ -184,6 +194,9 @@ class W_calib_menu(LabelFrame):
         self.rb_type2.grid(row = 1, column = 2, rowspan = 1, columnspan = 1, pady = 5, sticky = W+E+N+S)
         self.set_mkt_ts.set('MKT')
 
+        if model in ['Jarrow Yildirim','G2++','Variance Gamma']:
+            self.rb_type2.config(state = 'disabled')
+
         #########################################################################
         # Inizilizzo l'area dei TAB: MKT, TS, PARAMS
         #########################################################################
@@ -199,6 +212,10 @@ class W_calib_menu(LabelFrame):
 
         self.nb_t2 = Frame(self.nb)
         self.nb.add(self.nb_t2, text="PARAMS",compound="left")
+
+        if model == 'Jarrow Yildirim':
+            self.nb_t3 = Frame(self.nb)
+            self.nb.add(self.nb_t3, text='SETTINGS', compound='left')
 
         #########################################################################
         # Area MKT
@@ -220,10 +237,18 @@ class W_calib_menu(LabelFrame):
         self.rb_calib3 = Radiobutton(self.nb_t0,text='Curve + Options',justify='left',variable=self.mkt_calibration_type,value='CURVE_OPT')
         self.rb_calib3.grid(row = 3, column = 1, rowspan = 1, columnspan = 1, pady =2, sticky = W+N+S)
 
-        if model in ['CIR','VSCK']:
+        if model =='VSCK':
             self.rb_calib1.config(state = "disabled")
-            self.rb_calib3.config(state = "disabled")
+            # self.rb_calib3.config(state = "disabled")
             self.mkt_calibration_type.set('CURVE')
+        elif model=='CIR':
+            self.rb_calib1.config(state = 'disabled')
+            self.rb_calib3.config(state = 'disabled')
+            self.mkt_calibration_type.set('CURVE')
+        elif model in ['G2++','Variance Gamma','Jarrow Yildirim']:
+            self.rb_calib1.config(state = 'disabled')
+            self.rb_calib2.config(state = 'disabled')
+            self.mkt_calibration_type.set('CURVE_OPT')
         else:
             self.mkt_calibration_type.set('OPT')
 
@@ -274,6 +299,16 @@ class W_calib_menu(LabelFrame):
         self.cb_options.config(textvariable = self.NameOption, state = "readonly", values = tmpOptions)
         self.cb_options.grid(row = 7, column = 2, rowspan = 1, columnspan = 3, pady =2, sticky = W+E+N+S)
 
+        #### Alimentazione della curva dei tassi di inflazione o reale
+        if model == 'Jarrow Yildirim':
+            Label5 = Label(self.nb_t0, text='Inflation/Real Curve')
+            Label5.grid(row=8, column=1, rowspan=1, columnspan=1, pady=2, sticky=W + E + N + S)
+
+            self.cb_inflcurve = ttk.Combobox(self.nb_t0)
+            self.NameInflation = StringVar()
+            self.cb_inflcurve.config(textvariable=self.NameInflation, state="readonly", values=tmpInflCurve)
+            self.cb_inflcurve.grid(row=8, column=2, rowspan=1, columnspan=3, pady=2, sticky=W + E + N + S)
+
         #########################################################################
         # Area TS
         #########################################################################
@@ -319,13 +354,46 @@ class W_calib_menu(LabelFrame):
         # creo la tabella in base al modello
         self.create_range_parameter(self.nb_t2, self.params_names, self.params_attribute)
 
+        ######################################
+        # Area SETTINGS
+        ######################################
+        if model == 'Jarrow Yildirim':
+
+            self.setting_I0 = StringVar()
+            self.setting_I0.set('100')
+            I0_label = Label(self.nb_t3,text='I0')
+            I0_label.grid(row=1,column=1, rowspan=1, columnspan=1, pady=2, sticky=E + N + S)
+            I0_entry = Entry(self.nb_t3,textvariable=self.setting_I0)
+            I0_entry.grid(row=1,column=2, rowspan=1, columnspan=1, pady=2, sticky=W + N + S)
+
+            self.setting_strike_scale = StringVar()
+            self.setting_strike_scale.set('100')
+            strike_scale_label = Label(self.nb_t3, text='Strike scale')
+            strike_scale_label.grid(row=2, column=1, rowspan=1, columnspan=1, pady=2, sticky=E + N + S)
+            strike_scale_entry = Entry(self.nb_t3, textvariable=self.setting_strike_scale)
+            strike_scale_entry.grid(row=2,column=2, rowspan=1, columnspan=1, pady=2, sticky=W + N + S)
+
+            self.setting_K = StringVar()
+            self.setting_K.set('0')
+            K_label = Label(self.nb_t3, text='K')
+            K_label.grid(row=3, column=1, rowspan=1, columnspan=1, pady=2, sticky=E + N + S)
+            K_entry = Entry(self.nb_t3, textvariable=self.setting_K)
+            K_entry.grid(row=3, column=2, rowspan=1, columnspan=1, pady=2, sticky=W + N + S)
+
+            self.setting_Noz = StringVar()
+            self.setting_Noz.set('10000')
+            Noz_label = Label(self.nb_t3, text='Noz')
+            Noz_label.grid(row=4, column=1, rowspan=1, columnspan=1, pady=2, sticky=E + N + S)
+            Noz_entry = Entry(self.nb_t3, textvariable=self.setting_Noz)
+            Noz_entry.grid(row=4,column=2, rowspan=1, columnspan=1, pady=2, sticky=W + N + S)
+
         #########################################################################
         # Bottoni finali
         #########################################################################
         self.res = 1
 
         self.bSubmit = Button(self, text='Submit', command=lambda: self.go_to_calib(dictObject=objectOnSheetDictionary,
-                                                                                    tableObject=objectOnSheet))
+                                                                                    tableObject=objectOnSheet,model=model))
         self.bSubmit.grid(row=10, column=4, rowspan=2, columnspan=1, sticky=W + E + N + S)
 
         self.bCancel = Button(self, text='Cancel', command=lambda: self.close_window())
@@ -424,34 +492,45 @@ class W_calib_menu(LabelFrame):
             self.te_dateMax.current(0)
 
 
-    def go_to_calib(self, dictObject, tableObject):
+    def go_to_calib(self, dictObject, tableObject, model):
         # recupero la calibrazione selezionata
         self.update_param()
         print 'Letto tutte le configurazioni'
-        # print 'Parametri:', self.param_dict
 
         if self.set_mkt_ts.get() == 'MKT':
             print 'Calibratore per il mercato'
 
-            if self.NameCurve.get() == "":
-                tkMessageBox.showinfo("Error", "Nessuna curva selezionata.")
+            if self.mkt_calibration_type.get() == 'CURVE':
+                if self.NameCurve.get() == "":
+                    tkMessageBox.showinfo("Error", "Nessuna curva selezionata.")
+                else:
+                    tmp = tableObject.loc[tableObject.Name == self.NameCurve.get(), 'keys'].values[0]
+                    self.CurveChosen = dictObject[tmp]
+                    self.master.destroy()
+            elif self.mkt_calibration_type.get() == 'OPT':
+                if self.NameOption.get() == "":
+                    tkMessageBox.showinfo("Error", "Nessuna opzione selezionata.")
+                else:
+                    tmp = tableObject.loc[tableObject.Name == self.NameOption.get(), 'keys'].values[0]
+                    self.OptionChosen = dictObject[tmp]
+                    self.master.destroy()
             else:
-
-                tmp = tableObject.loc[tableObject.Name == self.NameCurve.get(), 'keys'].values[0]
-                self.CurveChosen = dictObject[tmp]
-                # print 'Curva selezionata:', self.CurveChosen
-
-                if self.mkt_calibration_type.get() == 'CURVE':
+                if self.NameCurve.get() == "":
+                    tkMessageBox.showinfo("Error", "Nessuna curva selezionata.")
+                elif model=='Jarrow Yildirim' and self.NameInflation.get() == '':
+                    tkMessageBox.showinfo("Error", "Nessuna curva d'inflazione/reale selezionata.")
+                elif self.NameOption.get() == "":
+                    tkMessageBox.showinfo("Error", "Nessuna opzione selezionata.")
+                else:
+                    tmp_curve = tableObject.loc[tableObject.Name == self.NameCurve.get(), 'keys'].values[0]
+                    self.CurveChosen = dictObject[tmp_curve]
+                    tmp_opt = tableObject.loc[tableObject.Name == self.NameOption.get(), 'keys'].values[0]
+                    self.OptionChosen = dictObject[tmp_opt]
+                    if model == 'Jarrow Yildirim':
+                        tmp_inflation = tableObject.loc[tableObject.Name == self.NameInflation.get(), 'keys'].values[0]
+                        self.InflationChosen = dictObject[tmp_inflation]
                     self.master.destroy()
 
-                else:
-                    if self.NameOption.get() == "":
-                        tkMessageBox.showinfo("Error", "Nessuna opzione selezionata.")
-                    else:
-                        tmp = tableObject.loc[tableObject.Name == self.NameOption.get(), 'keys'].values[0]
-                        self.OptionChosen = dictObject[tmp]
-                        # print 'Opzione selezionata:', self.OptionChosen
-                        self.master.destroy()
 
         if self.set_mkt_ts.get() == 'TS':
             print 'Calibratore per il TS'
@@ -466,6 +545,42 @@ class W_calib_menu(LabelFrame):
                 self.TS_dateMAX = datetime.datetime.strptime(self.te_dateMax.get(), "%d/%m/%Y")
 
                 self.master.destroy()
+
+
+class W_dividends(LabelFrame):
+
+    def close_window(self):
+        self.master.destroy()
+
+    def choose_dvd(self):
+        self.res = 1
+        self.master.destroy()
+
+    def __init__(self, parent = None):
+        self.res = 0
+
+        # inizializzo l'oggetto
+        LabelFrame.__init__(self, parent)
+        self.grid()
+        self.master = parent
+        self.master.title("Choose dividend rate")
+
+        # label di istruzioni
+        self.label = Label(parent,text="No data available to compute dividends, choose a constant rate.")
+        self.label.grid(column=0,row=0,columnspan=2)
+
+        # form entry
+        self.dvd = StringVar()
+        self.dvd.set('0.0')
+        dividend = Entry(parent, textvariable=self.dvd)
+        dividend.grid(column=0, row=1, columnspan=2)
+
+        # Select button
+        btn1 = Button(parent, text="Select", command=lambda: self.choose_dvd())
+        btn1.grid(column=0,row=2)
+        # Cancel button
+        btn2 = Button(parent, text="Cancel", command=lambda: self.close_window())
+        btn2.grid(column=1,row=2)
 
 
 def readSheetObject_clearRows(input_dict = None):
@@ -568,9 +683,14 @@ def readFeaturesObject(input_dict):
     for k in input_dict.keys():
         item = input_dict[k]
         if u'CurveType' in item.loc[:, 0].values:
-            element_on_sheet = element_on_sheet.append({'keys': k,
-                                                        'TypeObject': 'Curve',
-                                                        'Name': item.loc[0, 0]}, ignore_index=True)
+            if item.loc[item[0]==u'CurveType',1].values[0]==u'Inflation' or item.loc[item[0]==u'CurveType',1].values[0]==u'Real':
+                element_on_sheet = element_on_sheet.append({'keys': k,
+                                                            'TypeObject': 'Inflation/Real Curve',
+                                                            'Name': item.loc[0, 0]}, ignore_index=True)
+            else:
+                element_on_sheet = element_on_sheet.append({'keys': k,
+                                                            'TypeObject': 'Curve',
+                                                            'Name': item.loc[0, 0]}, ignore_index=True)
 
         elif u'OptionType' in item.loc[:, 0].values:
             element_on_sheet = element_on_sheet.append({'keys': k,

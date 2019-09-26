@@ -13,6 +13,7 @@ nameSheetCDSBootHazard = 'Hazard rate'
 nameSheetCDSBootSpread = 'Spread CDS'
 nameSheetCDSBootZcSpread = 'ZC Spread CDS'
 nameSheetCDSBootPySpread = 'PY Spread CDS'
+nameSheetBVolBoot       = 'Spot volatilities'
 
 nameSheetBondSurv = 'Surv Prob BOND'
 nameSheetBondSpread = 'Spread BOND'
@@ -20,6 +21,7 @@ nameSheetBondResults = 'Bond results'
 nameSheetBondFittig    = 'Bond fitting'
 nameSheetResBondFittig    = 'Results Bond fitting'
 nameSheetBondOptPrms = 'Opt prms'
+
 
 nameSheetCDS      = 'CDS'
 nameSheetBond     = 'Bond data'
@@ -36,3 +38,6 @@ nameSheetScaricoSwaption='Matrix_Swaption'
 #INSERITA PER L'ELABORAZIONE DELLE MATRICI
 nameSheetElabMatrix = 'Matrix_Elab'
 nameSheetElabMatrixResult = 'Matrix_Elab_Result'
+
+#INSERITA PER LO SCARICO DELLE VOLATILITA FLAT IMPLICITE NEI CAP E FLOOR
+nameSheetCapFloorVolatilities = 'Cap Floor Vols'

@@ -5,25 +5,25 @@
             <tab id="CustomTab" label="Pytho Simviewer" >
                 <group id="ContentGroup" label="Session">
                     <button id="textButton" label="Connect to Pytho"
-                        image="C:\Users\pettinaril\SimViewer\Miniconda\login.png" onAction="gsf.simviewer.core.connect_form"/>
+                        image="C:\Users\sgarabottoloa\SimViewer\Miniconda\ribbon\login.png" onAction="gsf.simviewer.core.connect_form"/>
                     <button id="openReport" label="Open Report on Browser"
-                        image="C:\Users\pettinaril\SimViewer\Miniconda\link.png" onAction="gsf.simviewer.core.go_to_report"/>
+                        image="C:\Users\sgarabottoloa\SimViewer\Miniconda\ribbon\link.png" onAction="gsf.simviewer.core.go_to_report"/>
                 </group>
                 <group id="Report" label="Report">
                     <button id="openreport" label="Sync with Pytho"
-                        image="C:\Users\pettinaril\SimViewer\Miniconda\update.png" onAction="gsf.simviewer.core.load_report"/>
+                        image="C:\Users\sgarabottoloa\SimViewer\Miniconda\ribbon\update.png" onAction="gsf.simviewer.core.load_report"/>
                     <button id="savereport" label="Save Report"
-                        image="C:\Users\pettinaril\SimViewer\Miniconda\save.png" onAction="gsf.simviewer.core.save_report"/>
+                        image="C:\Users\sgarabottoloa\SimViewer\Miniconda\ribbon\save.png" onAction="gsf.simviewer.core.save_report"/>
                     <button id="savereportas" label="Save Report As"
-                        image="C:\Users\pettinaril\SimViewer\Miniconda\saveas.png" onAction="gsf.simviewer.core.create_report"/>
+                        image="C:\Users\sgarabottoloa\SimViewer\Miniconda\ribbon\saveas.png" onAction="gsf.simviewer.core.create_report"/>
                 </group>
                 <group id="Tools" label="Tools">
                     <button id="logs" label="Open Logs"
-                        image="C:\Users\pettinaril\SimViewer\Miniconda\logs.png" onAction="gsf.simviewer.core.on_open_logfile"/>
+                        image="C:\Users\sgarabottoloa\SimViewer\Miniconda\ribbon\logs.png" onAction="gsf.simviewer.core.on_open_logfile"/>
                     <button id="update" label="Check for updates"
-                        image="C:\Users\pettinaril\SimViewer\Miniconda\download.png" onAction="gsf.simviewer.core.check_updates"/>
+                        image="C:\Users\sgarabottoloa\SimViewer\Miniconda\ribbon\download.png" onAction="gsf.simviewer.core.check_updates"/>
                     <button id="reload" label="Reset Simviewer session"
-                        image="C:\Users\pettinaril\SimViewer\Miniconda\reload.png" onAction="gsf.simviewer.core.on_empty_cache"/>
+                        image="C:\Users\sgarabottoloa\SimViewer\Miniconda\ribbon\reload.png" onAction="gsf.simviewer.core.on_empty_cache"/>
                 </group>
             </tab>
             <tab id="CustomTabScenarioManager" label="Scenario Manager" >
@@ -47,9 +47,12 @@
                 </group>
                 <group id="Downloading" label="Option Surface">
                     <button id="Downloading_data" label="Swaptions" image=".\fig\Swaptions.png" onAction="sc_elab.excel_hook.interfacce_base.writeSwaptions" />
+                    <button id="Downloading_vols" label="Cap Floor" image=".\fig\CapFloor.png" onAction="sc_elab.excel_hook.interfacce_base.CapFloor_BVol_fromDBtoXls" />
+                    <button id="Bootstrap_vols" label="Bootstrap" image=".\fig\Bootstrap.png" onAction="sc_elab.excel_hook.interfacce_base.BootstrapCapFloorVol_on_xls"/>
                 </group>
                 <group id="Calibrate_" label="Elaborate">
                     <button id="menu_calibration" label="Calibrate" image=".\fig\Calibrate.png" onAction="sc_elab.excel_hook.interfacce_base.calibration_from_xls" />
+                    <button id="tmp_calibration" label="Template Calibrate" image=".\fig\template.png" onAction="sc_elab.excel_hook.interfacce_base.template_elaborate_calibration" />
                 </group>
                 <group id="Elaborate_Matrix" label="Elaborate Matrix">
                     <button id="temp_matrix" label="Template Input Matrix" image=".\fig\template.png" onAction="sc_elab.excel_hook.interfacce_base.template_elaborate_matrix" />

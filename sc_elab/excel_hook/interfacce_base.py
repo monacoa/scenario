@@ -93,22 +93,27 @@ def load_cds_curve_from_db(control):
     # creo foglio nameSheetCurve se non esiste
     # -----
     nameSheet = nameSheetCDS
-    try:
-        s = book.Sheets(nameSheet)
-        s.Activate()
-    except:
+
+    allSheetInBook = allSheet(book)
+    # -------------- controllo l'esistenza del foglio  ----------------
+    if not (nameSheetElabMatrix in allSheetInBook):
         s = book.Sheets.Add()
         s.Name = nameSheet
-        # ------------------
-    cc = CdsCurve()
+    else:
+        s = book.Sheets(nameSheet)
+        s.Activate()
+    # -----------------------------------------------------------------
 
-    cc.ref_date       = datetime.date(day=int(curve_date[-2:]), month=int(curve_date[5:7]), year=int(curve_date[:4]))
-    cc.description    = curve_des
+    for x in xrange(0,len(curve_des)):
+        cc = CdsCurve()
 
-    cc.ratingProvider = app.new_window.new_window.rating.get()
-    cc.sectorProvider = app.new_window.new_window.sector.get()
-    cc.loadDataFromDB()
-    writeCurveOnXls(cc, nameSheet, xla, curve_type)
+        cc.ref_date       = datetime.date(day=int(curve_date[-2:]), month=int(curve_date[5:7]), year=int(curve_date[:4]))
+        cc.description    = curve_des[x]
+
+        cc.ratingProvider = app.new_window.new_window.rating.get()
+        cc.sectorProvider = app.new_window.new_window.sector.get()
+        cc.loadDataFromDB()
+        writeCurveOnXls(cc, nameSheet, xla, curve_type)
 
 #=======================================================================================================================
 # punto di ingresso per load BondData
@@ -155,8 +160,8 @@ def load_bond_data_from_db(control):
 # punto di ingresso per bootstrap curve SWAP
 #=======================================================================================================================
 
-from xls_bootCurve import writeBootstrapResOnXls,writeCDSBootstrapRes1OnXls, writeCDSBootstrapRes2OnXls
-from xls_bootCurve import writeCDSBootstrapRes1OnXls_surv_m, writeCDSBootstrapRes1OnXls_md_m, writeCDSBootstrapRes1OnXls_hr_m
+from xls_bootCurve import writeBootstrapResOnXls,writeCDSBootstrapRes1OnXls, writeCDSBootstrapRes2OnXls 
+from xls_bootCurve import writeCDSBootstrapRes1OnXls_surv_m, writeCDSBootstrapRes1OnXls_md_m, writeCDSBootstrapRes1OnXls_hr_m 
 from xls_bootCurve import writeCDSBootstrapRes2OnXls_zc_m, writeCDSBootstrapRes2OnXls_py_m
 
 from xls_swapCurve import readCurveFromXls
@@ -222,7 +227,6 @@ def bootstrap_from_xls(control):
     codeL, codeR = curve.getCurveCode()
     
     boot_out     = curve.bootstrap(data_opt)
-    #print "risultati bootstrap:", boot_out
     
 
     if boot_out == None:
@@ -361,8 +365,7 @@ def bond_fitting_from_xls(control):
 
     curveL = readCurvesNames(xla,s,rangeStart,"v", distance, 0)
     root = Tk()
-    root.iconbitmap(default=imp.find_module('sc_elab')[1] + r'\\excel_hook\\fig\\icona.ico')
-    #W = W_bootstrapSelection(root, curveL = curveL, type = "BOND") # da modificare
+    #W = W_bootstrapSelection(root, curveL = curveL, type = "BOND") # da modificare 
     W = W_bondFitting(root, curveL = curveL, type = "BOND") # da modificare
     
     #W2 = W_setParameters(root)
@@ -463,7 +466,7 @@ def bond_fitting_from_xls(control):
         # significa che ho intercettato un errore!
         root = Tk()
         root.withdraw()
-
+        
         msg0 = "Curva benchmark associata al modello {} non presente alla data del {}, cambia modello o data!".format(interp_rf_model, portfolio_xl.ref_date)
         tkMessageBox.showinfo("Attenzione!", msg0)
 
@@ -556,7 +559,7 @@ def bond_fitting_from_xls(control):
     
     x0    = par_x0
     x_bnd = par_bnd
-
+    
     
     dictPortfolio,resDict = bf.fromXLSToBondFittingPortfolio(portfolio_xl.portfolio_anag)
 
@@ -564,7 +567,7 @@ def bond_fitting_from_xls(control):
         return
 
     # ------------ elaborazione ---------------------------
-
+ 
     
     flag_elab, res_elab = bf.compute_bond_fitting(bf_options_elab, dictPortfolio, data_zc_rf, data_zc_infl, data_ts_infl, x0, x_bnd)
 
@@ -650,7 +653,7 @@ def save_from_xls(control):
         xla         =  xl_app()
         nameSheet   =  nameSheetBootstrap
         int_curve   =  readInterpolatedCurveFromXls(xla,nameSheet, pos_curve, pos_parms)
-
+        
         # ---
         saveInterpolationParmsOnDb(int_curve)
         # ---
@@ -689,9 +692,6 @@ def bootstrap_cds_from_xls(control):
     root = Tk()
     root.iconbitmap(default=imp.find_module('sc_elab')[1] + r'\\excel_hook\\fig\\icona.ico')
     W = W_bootstrapSelection(root, curveL = curveL, type = "CDS")
-
-
-
     root.mainloop()
 
     n_c = len( W.curve)
@@ -713,91 +713,91 @@ def bootstrap_cds_from_xls(control):
         curveL     = readCurvesNames(xla,s,rangeStart,"o", distance)
 
         curveDes = W.curve[i]
-        curvePos = int(W.pos[i])
-
-
+        curvePos = int(W.pos[i]) 
+        
+    
         opt_boot_meth   = (str(W.new_window.variable1.get()).strip(""))[1]
         opt_rf_interp   = (str(W.new_window.variable6.get()).strip(""))[1]
         opt_hr_interp   = (str(W.new_window.variable7.get()).strip(""))[1]
-
+    
         str_boot_opt = opt_boot_meth+","+opt_rf_interp + "," + opt_hr_interp
         data_opt                    = {}
-
+        
         data_opt['hr_bootMethod']  = opt_boot_meth
         data_opt['bench_interp']   = opt_rf_interp
         data_opt['hr_interp']      = opt_hr_interp
         data_opt['Emittente']      = curveDes
-
-
-
+        
+        
+        
         curve_xl        = readCurveFromXls(xla, curveDes, curvePos, nameSheet, "CDS")
-
+    
         opt_download = {}
-
+        
         interp_rf_model = curve_xl.mapCodeModelInv(opt_rf_interp)
-
-
-
-
+        
+        
+    
+    
         opt_download['refDate'] = curve_xl.ref_date
         opt_download['valuta'] = curve_xl.curr
         opt_download['rating'] = curve_xl.rating
         opt_download['seniority'] = curve_xl.seniority
         opt_download['tipo_modello'] = interp_rf_model
-
-
+    
+    
         codeBenchList = ['%LS', '%DS', '%LFS', '%DFS']
-
+    
         for codeTmp in codeBenchList:
-
+    
             opt_download['codeSeg'] = codeTmp
             flag_loaded = curve_xl.loadBenchDataFromDB(opt_download)
             if (flag_loaded == 1):
                 break
-
-
-
+        
+        
+        
         if flag_loaded == 0:
             # significa che ho intercettato un errore!
             root = Tk()
             root.withdraw()
             msg0 = "Curva benchmark associata al modello %s non presente alla data del %s, cambia modello o data!!" %(interp_rf_model, curve_xl.ref_date)
             tkMessageBox.showinfo("Attenzione!!", msg0)
-
+    
             root.destroy()
             return
-
-
-
+    
+        
+    
         data_opt['DataRef']        = curve_xl.ref_date
         data_opt['RecoveryRate'] = float(curve_xl.recovery)/100.0
         data_opt['opt_path_graph']  =  'C:\\'
-
-
-
-        yy = str(curve_xl.ref_date.year)
+        
+        
+        
+        yy = str(curve_xl.ref_date.year) 
         gg = str(curve_xl.ref_date.day)
         mm = str(curve_xl.ref_date.month)
         yy = yy[1:]
-
-
+    
+    
         curve_xl.ref_date
-
+    
         opt_boot_meth_s = curve_xl.mapBootCDS(int(opt_boot_meth))
-
+        
         codice_curva = 'CSN3' + curve_xl.curr + 'HR' +'BLM' + '0' + yy + mm + gg + 'CFRIL' + 'SW' + opt_boot_meth_s
-
+    
         curve_xl.cds_boot_method    = data_opt['hr_bootMethod']
-        curve_xl.rf_interp_type     = data_opt['bench_interp']
+        curve_xl.rf_interp_type     = data_opt['bench_interp']  
         curve_xl.recovery           = data_opt['RecoveryRate']
         curve_xl.hr_model           = data_opt['hr_interp']
-
-
-
+        
+        
+    
         # -------------- elaborazione ---------------------------
         boot_out     = curve_xl.bootstrap(data_opt, flag_plot)
-
-
+        
+        
         if boot_out == None:
             # significa che ho intercettato un errore!
             root = Tk()
@@ -806,10 +806,10 @@ def bootstrap_cds_from_xls(control):
             tkMessageBox.showinfo("ERROR!", msg)
             root.destroy()
             return
-
+        
         if (n_c > 1):
-
-
+        
+        
             if (i==0):
                 flag_first = True
             else:
@@ -821,7 +821,7 @@ def bootstrap_cds_from_xls(control):
             #writeCDSBootstrapRes1OnXls_md_m(curve_xl, xla, str_boot_opt, boot_out, codice_curva)
             #s = xla.Cells.Columns.AutoFit()
 
-
+        
             #writeCDSBootstrapRes1OnXls_hr_m(curve_xl, xla, str_boot_opt, boot_out, codice_curva)
             #s = xla.Cells.Columns.AutoFit()
 
@@ -830,26 +830,27 @@ def bootstrap_cds_from_xls(control):
 
             #writeCDSBootstrapRes2OnXls_py_m(curve_xl, xla, str_boot_opt, boot_out, codice_curva)
             #s = xla.Cells.Columns.AutoFit()
-
+        
 
         else:
 
             writeCDSBootstrapRes1OnXls(curve_xl, xla, str_boot_opt, boot_out, codice_curva)
             s = xla.Cells.Columns.AutoFit()
-
+        
             writeCDSBootstrapRes2OnXls(curve_xl, xla, str_boot_opt, boot_out, codice_curva)
             s = xla.Cells.Columns.AutoFit()
-
 
 # ==========================================
 # punto d'ingresso per CALIBRAZIONE
 # ==========================================
 
-from sc_elab.excel_hook.W_calibration import W_calib_models
+from sc_elab.excel_hook.W_calibration import W_calib_models, W_dividends
 from scipy.optimize import minimize
 import matplotlib.pyplot as plt
 from sc_elab.core.funzioni_calibrazioni import *
+from sc_elab.core.utils_g2pp_newton import Pt_MKT,found_opt,price_swaption
 from sc_elab.excel_hook.xls_Calibration import *
+import pandas as pd
 
 @xl_func
 def calibration_from_xls(control):
@@ -910,66 +911,376 @@ def calibration_from_xls(control):
 
             if type_data == 'MKT':
 
-                if (model in ['CIR','VSCK']):
-                    mkt_value, mkt_to_fit, type_cap = preProcessignCurve(W1.CurveChosen)
+                if W1.mkt_calibration_type.get() == 'CURVE':
 
-                    x0_m  = []
+                    if (model in ['CIR','VSCK']):
+                        mkt_value, mkt_to_fit, type_cap = preProcessingCurve(W1.CurveChosen)
+
+                        x0_m  = []
+                        x_bnd = []
+
+                        # l_bound = []
+                        # h_bound = []
+
+                        for p_name in W1.params_names:
+                            x0_m.append(float(W1.param_dict[p_name]['sv']))
+                            x_bnd.append([float(W1.param_dict[p_name]['min']), float(W1.param_dict[p_name]['max'])])
+                            # l_bound.append(float(W1.param_dict[p_name]['min']))
+                            # h_bound.append(float(W1.param_dict[p_name]['max']))
+
+                        if W.model.get() == 'CIR':
+                            ff = minimize(loss_zc_model_cir, args = (mkt_to_fit ,loss_function_type_power,loss_function_type_absrel), x0 = x0_m, method='TNC', bounds=x_bnd)
+                        else:
+                            ff = minimize(loss_zc_model_vsck, args = (mkt_to_fit ,loss_function_type_power,loss_function_type_absrel), x0 = x0_m, method='TNC', bounds=x_bnd)
+
+                        # creo la lista dei risultati ottimali
+                        list_model_params_opt = []
+                        list_model_params_opt.append(ff.x[0])
+                        list_model_params_opt.append(ff.x[1])
+                        list_model_params_opt.append(ff.x[2])
+                        list_model_params_opt.append(ff.x[3])
+
+                        if W.model.get() == 'CIR':
+                            mkt_value['MODEL VALUE'] = compute_zc_cir_rate(list_model_params_opt, mkt_value["TIME"])
+                        else:
+                            mkt_value['MODEL VALUE'] = compute_zc_vsck_rate(list_model_params_opt, mkt_value["TIME"])
+
+
+                        # converto i risultati in composto nel caso in cui in input lo siano
+                        if type_cap == 'CMP':
+                            mkt_value['MODEL VALUE'] = fromContinuousToCompost(mkt_value['MODEL VALUE'])
+
+                        # calcolo il chi quadro
+                        chi2 = computeCHI2(mkt=mkt_value["VALUE"], mdl=mkt_value['MODEL VALUE'])
+
+                        # scrivo su foglio Excel
+                        writeCalibrationResOnXls(type_data = type_data,
+                                                 model = model,
+                                                 W_class = W1,
+                                                 xla = xla,
+                                                 chi2 = chi2,
+                                                 opt_dict = list_model_params_opt,
+                                                 res = mkt_value,
+                                                 capitalization_type = type_cap)
+
+                        # produco il grafico
+                        mkt_value.set_index('TIME',inplace=True)
+                        mkt_value.plot(style=['o', '-'])
+                        plt.title('Calibration results')
+                        plt.xlabel('Time')
+                        plt.ylabel('Rate')
+                        plt.show()
+
+                elif W1.mkt_calibration_type.get() == 'CURVE_OPT':
+
+                    # Leggo i parametri iniziali del modello e i loro limiti superiore e inferiore
+                    x0_m = []
                     x_bnd = []
-
-                    l_bound = []
-                    h_bound = []
 
                     for p_name in W1.params_names:
                         x0_m.append(float(W1.param_dict[p_name]['sv']))
                         x_bnd.append([float(W1.param_dict[p_name]['min']), float(W1.param_dict[p_name]['max'])])
-                        l_bound.append(float(W1.param_dict[p_name]['min']))
-                        h_bound.append(float(W1.param_dict[p_name]['max']))
 
-                    if W.model.get() == 'CIR':
-                        ff = minimize(loss_zc_model_cir, args = (mkt_to_fit ,loss_function_type_power,loss_function_type_absrel), x0 = x0_m, method='TNC', bounds=x_bnd)
-                    else:
-                        ff = minimize(loss_zc_model_vsck, args = (mkt_to_fit ,loss_function_type_power,loss_function_type_absrel), x0 = x0_m, method='TNC', bounds=x_bnd)
+                    if model in ['G2++','VSCK']:
 
-                    # creo la lista dei risultati ottimali
-                    list_model_params_opt = []
-                    list_model_params_opt.append(ff.x[0])
-                    list_model_params_opt.append(ff.x[1])
-                    list_model_params_opt.append(ff.x[2])
-                    list_model_params_opt.append(ff.x[3])
+                        option_type = W1.OptionChosen.loc[(W1.OptionChosen.loc[:, 0] == 'OptionType'), 1].values[0]
 
-                    if W.model.get() == 'CIR':
-                        mkt_value['VALUE_OPT'] = compute_zc_cir_rate(list_model_params_opt, mkt_value["TIME"])
-                    else:
-                        mkt_value['VALUE_OPT'] = compute_zc_vsck_rate(list_model_params_opt, mkt_value["TIME"])
+                        if model=='G2++' and option_type=='Swaption':
 
+                            # leggo la curva dei tassi risk free
+                            orig_curve, curve, type_cap = preProcessingCurve(W1.CurveChosen, rate_time_zero=True)
+                            curve_times  = curve['TIME'].values
+                            curve_values = curve['VALUE'].values
+                            # leggo e processo i dati sulle opzioni
+                            market_data, tenr, call_flag = preProcessingOptions(W1, curve)
 
-                    # converto i risultati in composto nel caso in cui in input lo siano
-                    if type_cap == 'CMP':
-                        mkt_value['VALUE_OPT'] = fromContinuousToCompost(mkt_value['VALUE_OPT'])
+                            root = Tk()
+                            root.grid()
+                            message = Label(root, text='Calibrazione in corso, potrebbe richiedere qualche minuto.')
+                            message.grid(column=0, row=1)
+                            root.update()
 
-                    # calcolo il chi quadro
-                    chi2 = computeCHI2(mkt=mkt_value["VALUE"], mdl=mkt_value['VALUE_OPT'])
+                            ff = found_opt(np.array(x0_m), x_bnd, market_data['expiry'].values,
+                                           market_data['maturity'].values, market_data['swap'].values,
+                                           market_data['market price'].values, curve_times, curve_values, tenr, call_flag)
 
-                    # scrivo su foglio Excel
-                    writeCalibrationResOnXls(type_data = type_data,
-                                             model = model,
-                                             W_class = W1,
-                                             xla = xla,
-                                             chi2 = chi2,
-                                             opt_dict = list_model_params_opt,
-                                             res = mkt_value,
-                                             capitalization_type = type_cap)
+                            root.destroy()
 
-                    # produco il grafico
-                    mkt_value.set_index('TIME',inplace=True)
-                    mkt_value.plot(style=['o', '-'])
-                    plt.title('Calibration results')
-                    plt.xlabel('Time')
-                    plt.ylabel('Rate')
-                    plt.show()
+                            for i in range(0, int(market_data.shape[0])):
+                                t_exp = market_data.loc[i, 'expiry']
+                                t_mat = market_data.loc[i, 'maturity']
+                                swp_atm_d = market_data.loc[i, 'swap']
+                                market_data.loc[i, 'model price'] = price_swaption(np.array(ff.x), t_exp, t_mat,
+                                                                               tenr, swp_atm_d, curve_times,
+                                                                               curve_values, call_flag, n_max=50)
 
-                if W1.NameOption.get() != "":
-                    opt_total = W1.OptionChosen
+                        elif model=='G2++' and option_type in ['Vol Caplets','Caplets']:
+
+                            # leggo la curva dei tassi risk free
+                            orig_curve, curve, type_cap = preProcessingCurve(W1.CurveChosen, rate_time_zero=True,
+                                                                             out_type='discount')
+                            # leggo e processo i dati sulle opzioni
+                            market_data = preProcessingOptions(W1,curve)
+
+                            root = Tk()
+                            root.grid()
+                            message = Label(root, text='Calibrazione in corso')
+                            message.grid(column=0, row=1)
+                            root.update()
+
+                            ff = minimize(loss_G2pp,
+                                      args=(curve, market_data, loss_function_type_power, loss_function_type_absrel),
+                                      x0=x0_m, bounds=x_bnd, method='TNC')
+
+                            root.destroy()
+
+                            market_data['model price'] = compute_G2pp_prices(ff.x, curve, market_data['time'],
+                                                               market_data['strike'])
+
+                        elif model == 'G2++' and option_type in ['Vol Caps', 'Caps']:
+
+                            # leggo la curva dei tassi risk free
+                            orig_curve, curve, type_cap = preProcessingCurve(W1.CurveChosen, rate_time_zero=True,
+                                                                             out_type='discount')
+                            # leggo e processo i dati sulle opzioni
+                            market_data = preProcessingOptions(W1, curve)
+
+                            root = Tk()
+                            root.grid()
+                            message = Label(root, text='Calibrazione in corso')
+                            message.grid(column=0, row=1)
+                            root.update()
+
+                            ff = minimize(loss_G2pp_caps,
+                                          args=(
+                                              curve, market_data, loss_function_type_power, loss_function_type_absrel),
+                                          x0=x0_m, bounds=x_bnd, method='TNC')
+
+                            root.destroy()
+
+                            market_data['model price'] = compute_G2pp_cap_prices(ff.x, curve, market_data)
+
+                        elif model=='VSCK':
+
+                            # leggo la curva dei tassi risk free
+                            orig_curve, curve, type_cap = preProcessingCurve(W1.CurveChosen, rate_time_zero=True,
+                                                                             out_type='discount')
+                            # leggo e processo i dati sulle opzioni
+                            market_data = preProcessingOptions(W1, curve)
+
+                            root = Tk()
+                            root.grid()
+                            message = Label(root, text='Calibrazione in corso')
+                            message.grid(column=0, row=1)
+                            root.update()
+
+                            ff = minimize(loss_caplets_Vasicek,args=(market_data, 2, 'abs'), x0=x0_m,
+                                          bounds=x_bnd, method='TNC')
+
+                            root.destroy()
+
+                            market_data['model price'] = compute_Vasicek_prices(ff.x, market_data['time'],
+                                                                             market_data['strike'])
+                        else :
+                            root = Tk()
+                            tkMessageBox.showwarning(title='Errore', message='Campo OptionType compilato male')
+                            root.destroy()
+                            return
+
+                        if model=='G2++' and option_type=='Swaption':
+                            # Produco il grafico della calibrazione
+                            plt.plot(market_data['expiry'], market_data['market price'], 'b^', label='Market Prices')
+                            plt.plot(market_data['expiry'], market_data['model price'], 'ro', label='Model Prices')
+                            plt.title('Calibration results')
+                            plt.xlabel('Time')
+                            plt.ylabel('Swaption price')
+                            plt.legend()
+                            plt.show()
+                            # Mapping delle expiry e maturity da intero a stringa
+                            # market_data['expiry']   = 360*market_data['expiry'].values
+                            # market_data['expiry'] = market_data['expiry'].map(MaturityFromIntToString)
+                            # market_data['maturity'] = 360*market_data['maturity'].values
+                            # market_data['maturity'] = market_data['maturity'].map(MaturityFromIntToString)
+
+                        else:
+                            # Produco il grafico della calibrazione
+                            plt.plot(market_data['time'], market_data['market price'], 'b^', label='Market Prices')
+                            plt.plot(market_data['time'], market_data['model price'], 'ro', label='Model Prices')
+                            plt.title('Calibration results')
+                            plt.xlabel('Time')
+                            plt.ylabel('Caplet price')
+                            plt.legend()
+                            plt.show()
+
+                        # Calcolo il chi quadro
+                        chi2 = computeCHI2(mkt=market_data['market price'], mdl=market_data['model price'],type_calib='CURVE_OPT')
+
+                        # scrivo su foglio Excel
+                        writeCalibrationResOnXls(type_data=type_data,
+                                                 model=model,
+                                                 W_class=W1,
+                                                 xla=xla,
+                                                 chi2=chi2,
+                                                 opt_dict=ff.x,
+                                                 res=market_data,
+                                                 capitalization_type='')
+
+                    if model == 'Variance Gamma':
+
+                        # leggo la curva dei tassi di interesse
+                        orig_curve, curve, type_cap = preProcessingCurve(W1.CurveChosen, rate_time_zero=True)
+
+                        # leggo e processo i dati sulle opzioni
+                        market_data, S0, strike, maturity, dividends_data, dividends = preProcessingOptions(W1,curve)
+
+                        root = Tk()
+                        root.grid()
+                        message = Label(root, text='Calibrazione in corso, potrebbe richiedere un minutino.')
+                        message.grid(column=0, row=1)
+                        root.update()
+
+                        ff = minimize(loss_Call_VG, args=(S0, market_data, curve, dividends, loss_function_type_power, loss_function_type_absrel)
+                                      , x0=x0_m, bounds=x_bnd, method='TNC')
+
+                        root.destroy()
+
+                        #  aggiungo al dataframe di dati i prezzi da modello
+                        market_data['model price'] = compute_VG_prices(ff.x, S0, curve, dividends, market_data)
+
+                        # creo le tabelle pivot con i risultati maturity x strike
+                        market_call_pivot = pd.pivot_table(market_data.loc[market_data['type'] == 'CALL'], index='strike', columns='maturity',
+                                                           values='market price', fill_value=np.nan)
+                        model_call_pivot = pd.pivot_table(market_data.loc[market_data['type'] == 'CALL'], index='strike', columns='maturity',
+                                                          values='model price', fill_value=np.nan)
+
+                        market_put_pivot = pd.pivot_table(market_data.loc[market_data['type'] == 'PUT'], index='strike',
+                                                          columns='maturity', values='market price', fill_value=np.nan)
+                        model_put_pivot = pd.pivot_table(market_data.loc[market_data['type'] == 'PUT'], index='strike',
+                                                         columns='maturity', values='model price', fill_value=np.nan)
+
+                        # # produco i grafici
+                        # for i in range(0, len(market_call_pivot.keys())):
+                        #     plt.plot(market_call_pivot.index, market_call_pivot[market_call_pivot.keys()[i]], '^',label='market price')
+                        #     plt.plot(market_call_pivot.index, model_call_pivot[model_call_pivot.keys()[i]], 'o',label='model price')
+                        #     plt.title('Call prices maturity %.2f year' % market_call_pivot.keys()[i])
+                        #     plt.xlabel('Strike')
+                        #     plt.legend()
+                        #     plt.show()
+                        #
+                        # for i in range(0, len(market_put_pivot.keys())):
+                        #     plt.plot(market_put_pivot.index, market_put_pivot[market_put_pivot.keys()[i]], '^',label='market price')
+                        #     plt.plot(market_put_pivot.index, model_put_pivot[model_put_pivot.keys()[i]], 'o',label='model price')
+                        #     plt.title('Put prices maturity %.2f year' % market_put_pivot.keys()[i])
+                        #     plt.xlabel('Strike')
+                        #     plt.legend()
+                        #     plt.show()
+
+                        # produco i grafici in subplots contenenti grafico fitting Call e grafico fitting Put
+                        graphics_keys = market_data['maturity'].unique()
+                        for i in graphics_keys:
+                            plt.rcParams['figure.figsize'] = [8, 4]
+                            plt.subplot(1,2,1)
+                            if i in market_call_pivot.keys():
+                                plt.plot(market_call_pivot.index, market_call_pivot[i], '^',
+                                         label='market price')
+                                plt.plot(market_call_pivot.index, model_call_pivot[i], 'o',
+                                         label='model price')
+                                plt.title('Call prices maturity %.2f year' % i)
+                                plt.xlabel('Strike')
+                                plt.legend()
+                            plt.subplot(1,2,2)
+                            if i in market_put_pivot.keys():
+                                plt.plot(market_put_pivot.index, market_put_pivot[i], '^',
+                                         label='market price')
+                                plt.plot(market_put_pivot.index, model_put_pivot[i], 'o',
+                                         label='model price')
+                                plt.title('Put prices maturity %.2f year' % i)
+                                plt.xlabel('Strike')
+                                plt.legend()
+                            plt.tight_layout()
+                            plt.show()
+
+                        # Inverto il prezzo VG relativo a strike e maturity date per ottenere una volatilita' BS
+                        vol = fromPriceVGtoVolBS(ff.x,S0,strike,maturity,curve,dividends)
+
+                        # Calcolo il chi quadro
+                        chi2 = computeCHI2(mkt=market_data['market price'], mdl=market_data['model price'],
+                                           type_calib='CURVE_OPT')
+
+                        # scrivo su foglio Excel
+                        writeDividendsResOnXls(title='Implicit dividends',
+                                               W_class=W1,
+                                               xla=xla,
+                                               res=dividends)
+
+                        writeVolResOnXls(title='Volatility from surface',
+                                         W_class=W1,
+                                         xla=xla,
+                                         strike=strike,
+                                         maturity=maturity,
+                                         vol=vol)
+
+                        writeCalibrationResOnXls(type_data=type_data,
+                                                 model=model,
+                                                 W_class=W1,
+                                                 xla=xla,
+                                                 chi2=chi2,
+                                                 opt_dict=ff.x,
+                                                 res=market_data,
+                                                 capitalization_type='CNT')
+
+                    if model == 'Jarrow Yildirim':
+
+                        # leggo la curva dei tassi nominali
+                        orig_curve_nom, curve_nom, type_cap = preProcessingCurve(W1.CurveChosen, rate_time_zero=True)
+                        # leggo la curva dei tassi reali
+                        origin_real_curve, real_curve, type_real_curve = preProcessingCurve(W1.InflationChosen, rate_time_zero=True, curve_nom= curve_nom)
+
+                        # leggo i dati di mercato
+                        param, flag_optim, market_data = preProcessingDataJY(W1, curve_nom, real_curve)
+
+                        root = Tk()
+                        root.grid()
+                        message = Label(root, text='Calibrazione in corso, potrebbe richiedere qualche minuto.')
+                        message.grid(column=0, row=1)
+                        root.update()
+
+                        # avvio la calibrazione
+                        if flag_optim:
+                            ff = optimize.minimize(fun=loss_jy_model, args=(param, market_data,loss_function_type_power, loss_function_type_absrel), x0=x0_m,
+                                                   method='TNC', bounds=x_bnd)
+                        else:
+                            ff = optimize.minimize(fun=loss_jy_model_var, args=(market_data,loss_function_type_power, loss_function_type_absrel), x0=x0_m,
+                                                   method='TNC', bounds=x_bnd)
+
+                        root.destroy()
+
+                        # calcolo i prezzi da modello secondo i parametri calibrati
+                        market_data['model value'] = compute_values_post_calib_JY(flag_optim, param, market_data, ff.x)
+
+                        # produco il grafico con l'evidenza della calibrazione
+                        plt.plot(market_data['time'], market_data['market value'], 'o', market_data['time'], market_data['model value'], '-')
+                        plt.title('Fitting results')
+                        plt.xlabel('Time')
+                        if flag_optim:
+                            plt.ylabel('OPZ price (bps)')
+                        else:
+                            plt.ylabel('Volatility')
+                        plt.show()
+
+                        # Calcolo il chi quadro
+                        chi2 = computeCHI2(mkt=market_data['market value'], mdl=market_data['model value'],
+                                           type_calib='CURVE_OPT')
+
+                        # scrivo su foglio Excel
+                        writeCalibrationResOnXls(type_data=type_data,
+                                                 model=model,
+                                                 W_class=W1,
+                                                 xla=xla,
+                                                 chi2=chi2,
+                                                 opt_dict=ff.x,
+                                                 res=market_data,
+                                                 capitalization_type='CNT')
 
             else:
 
@@ -1343,3 +1654,251 @@ def template_elaborate_matrix(control):
     root.mainloop()
 
     writeTemplateQuarterlyMatrixInput(xla = xla, nameSheet = nameSheetElabMatrix, dimMatrix = app.dimMatrix.get())
+
+# ===================================================================
+# punto d'ingresso per scarico volatilita' implicite nei Cap e Floor
+# ===================================================================
+
+from W_Bootstrap_VolCapFloor import W_VolCapFloorDate, W_CurrencySelection, W_tipo_dato_selection
+from xls_Bootstrap_VolCapFloor import write_VolCapFloor
+from DEF_intef import nameSheetCapFloorVolatilities
+from sc_elab.excel_hook.connection import Connection
+
+@xl_func
+def CapFloor_BVol_fromDBtoXls(control):
+
+    nameSheet = nameSheetCapFloorVolatilities
+    xla = xl_app()
+    book = xla.ActiveWorkbook
+
+    # -------------- controllo l'esistenza del foglio di input  ----------------
+    try:
+        s = book.Sheets(nameSheet)
+        s.Activate()
+    except:
+        s = book.Sheets.Add()
+        s.Name = nameSheet
+    # -------------- apro la finestra di input della scelta  ----------------------------
+
+    con = Connection()
+    # necessario per inizializzare il db
+    cursor = con.db_data()
+
+    root = Tk()
+    app = W_VolCapFloorDate(root)
+    root.mainloop()
+
+    ref_date = datetime.date(day=int(app.date[-2:]), month=int(app.date[5:7]), year=int(app.date[:4]))
+
+    # query che permette di trovare per una certa data la currency
+    qry_to_execute = '''
+                    SELECT distinct DProCFS.Currency from DProCFS,DProTS_master
+                    WHERE DProTS_master.BloombergTicker = DProCFS.BloombergTicker
+                    AND (DProCFS.TipoDato = 'VCapFloor')
+                    and DProTS_master.Data= '%s' ''' % (ref_date)
+
+    currencies = pd.read_sql(qry_to_execute, con.db)['Currency'].tolist()
+
+    # query che permette di trovare per una certa data il contributor
+    qry_to_execute = '''
+                        SELECT distinct DProCFS.Contributor from DProCFS,DProTS_master
+                        WHERE DProTS_master.BloombergTicker = DProCFS.BloombergTicker
+                        AND (DProCFS.TipoDato = 'VCapFloor')
+                        and DProTS_master.Data= '%s' ''' % (ref_date)
+
+    contributors = pd.read_sql(qry_to_execute, con.db)['Contributor'].tolist()
+
+    # La seguente selezione genera un errore, ma tutto funziona
+    root = Tk()
+    app = W_CurrencySelection(root,currencies=currencies,contributors=contributors)
+    root.mainloop()
+
+
+    currency = app.curr.get()
+    contributor = app.cont.get()
+
+    # query di scarico dei dati da stampare su foglio Excel
+    qry_to_execute = '''
+                 SELECT DProCFS.MaturityInt, DProCFS.Strike, DProTS_master.ValoreMid
+                 FROM DProCFS, DProTS_master
+                 WHERE DProTS_master.BloombergTicker = DProCFS.BloombergTicker
+                 AND(DProCFS.TipoDato = 'VCapFloor')
+                 and DProCFS.Contributor = '%s'
+                 and DProCFS.Currency = '%s' 
+                 and DProTS_master.Data= '%s' 
+                 order by DProCFS.MaturityInt, DProCFS.Strike ASC''' % (contributor, currency, ref_date)
+
+    res = pd.read_sql(qry_to_execute, con.db)
+
+    if len(res)==0:
+        root=Tk()
+        tkMessageBox.showwarning('Attenzione', 'Non si dispone di dati per la coppia Contributor-Currency selezionata')
+        root.destroy()
+        return
+
+    # Identificazione ed eventuale selezione del tipo di dato (ATM o Surface)
+    if res['Strike'].nunique()== 1 and res['Strike'][0]==-1:
+        tipo_dato = 'ATM'
+    elif -1. not in res['Strike'].values:
+        tipo_dato = 'Surface'
+    else:
+        root=Tk()
+        W_type = W_tipo_dato_selection(root)
+        root.mainloop()
+        tipo_dato = W_type.tipo_dato
+        if tipo_dato == 'ATM':
+            res = res.loc[res['Strike']==-1,:]
+        elif tipo_dato == 'Surface':
+            res = res.loc[res['Strike']!=-1,:]
+
+    # Interrogo il campo deltaBp per capire se i Cap e Floor sono shiftati. Qualora il campo deltaBp
+    # per tutte le componenti della superficie di volatilita Cap e Floor ad una certa data sia identico e pari
+    # a None, allora restituisce No Shifted
+
+    qry_to_execute = '''
+                        SELECT distinct DProCFS.deltaBp from DProCFS,DProTS_master 
+                        WHERE DProTS_master.BloombergTicker = DProCFS.BloombergTicker
+                        AND (DProCFS.TipoDato = 'VCapFloor') 
+                        and DProTS_master.Data= '%s' ''' % (ref_date)
+
+    res3 = pd.read_sql(qry_to_execute, con.db)
+
+    if not res3['deltaBp'][0] and res3.shape[0] == 1:
+        tipo_modello = "No Shifted"
+        shift='0'
+    elif res3.shape[0] > 1:
+        root = Tk()
+        tkMessageBox.showwarning('Attenzione', 'Sono presenti shift diversi')
+        shift = '-999'
+        root.destroy()
+        tipo_modello = 'Undefined'
+    else:
+        tipo_modello = 'Shifted'
+        shift = res3['deltaBp'][0]
+
+
+    write_VolCapFloor(xla, res, ref_date, currency, contributor, tipo_modello, tipo_dato, shift)
+    s = xla.Cells.Columns.AutoFit()
+
+
+
+# ====================================================================
+# punto d'ingresso per Bootstrap volatilita' implicite nei Cap e Floor
+# ====================================================================
+
+import pandas as pd
+
+from W_Bootstrap_VolCapFloor import Bootstrap_BVol_menu
+from xls_Bootstrap_VolCapFloor import writeBootstrapVolOnXls, readFeaturesDiscCurve
+from DEF_intef import nameSheetCapFloorVolatilities, nameSheetBootstrap
+from W_calibration import readSheetObject, readFeaturesObject
+from sc_elab.core.anagrafica_dati import MaturityFromStringToYear
+from sc_elab.core.funzioni_boot_cap_floor import Bootstrap_CapFloor_ATM, Bootstrap_CapFloor_Surface
+import tkMessageBox
+
+@xl_func
+def BootstrapCapFloorVol_on_xls(control):
+
+    nameSheetVols = nameSheetCapFloorVolatilities
+    nameSheetCurve= nameSheetBootstrap
+    xla = xl_app()
+    book = xla.ActiveWorkbook
+
+    allSheetInBook = allSheet(book)
+
+    # -------------- controllo l'esistenza del foglio di input per le volatilita' e scarico i dati -------------
+    if nameSheetVols not in allSheetInBook:
+        msg = "Missing input sheet(%s) for Bootstrap in your workbook... \nNothing to do for me!" % nameSheetVols
+        root = Tk()
+        tkMessageBox.showwarning("Warning!", msg)
+        root.destroy()
+        return
+
+    # -------------- controllo l'esistenza del foglio di input per la curva e scarico i dati -------------
+    if nameSheetCurve not in allSheetInBook:
+        msg = "Missing input sheet(%s) for Bootstrap in your workbook... \nNothing to do for me!" % nameSheetCurve
+        root = Tk()
+        tkMessageBox.showwarning("Warning!", msg)
+        root.destroy()
+        return
+
+    # scarico i dati
+    volsdata = readSheetObject(str(book.FullName), nameSheetVols)
+    discount_curves = readSheetObject(str(book.FullName), nameSheetCurve)
+
+    # leggo le caratteristiche identificative di questi oggetti
+    volsdata_list = readFeaturesObject(volsdata)
+    disc_curves_list = readFeaturesDiscCurve(discount_curves)
+
+    # creo le liste da passare alle combobox per la scelta di curva e volatilita'
+    volsdata_choices = []
+    for i in volsdata_list.index:
+        if volsdata_list.loc[i, 'TypeObject'] == 'Option':
+            volsdata_tmp = str(volsdata_list.loc[i, 'keys']) + ' ' + str(volsdata_list.loc[i, 'Name'])
+            volsdata_choices.append(volsdata_tmp)
+
+    disc_curves_choices = []
+    for i in disc_curves_list.index:
+        if disc_curves_list.loc[i, 'TypeObject'] == 'Discount Curve':
+            discount_curve_tmp = str(disc_curves_list.loc[i, 'keys']) + ' ' + str(disc_curves_list.loc[i, 'Name'])
+            disc_curves_choices.append(discount_curve_tmp)
+
+    # controllo di avere i dati per il Bootstrap
+    if len(volsdata_choices) == 0 or len(disc_curves_choices) == 0:
+        root = Tk()
+        tkMessageBox.showwarning('Warning', 'Missing data to perform the bootstrap...I cannot do anything!')
+        root.destroy()
+        return
+
+    # apro la finestra di selezione dei dati
+
+    choices = Bootstrap_BVol_menu(volsdata_choices, disc_curves_choices)
+    if choices[0] == 0:
+        root=Tk()
+        tkMessageBox.showinfo('Salutation', 'Au revoir')
+        root.destroy()
+        return
+
+    selected_disc_curve = int(choices[1][:1])
+    selected_vols = int(choices[2][:1])
+
+    # Eseguo un controllo sulle date di riferimento
+    refdate_vol   = volsdata[selected_vols].loc[(volsdata[selected_vols].loc[:,0]=='Date ref'),1].values[0]
+    refdate_curve = discount_curves[selected_disc_curve].loc[(discount_curves[selected_disc_curve].loc[:,0]=='Date Ref'),1].values[0]
+    if refdate_vol != refdate_curve:
+        root=Tk()
+        tkMessageBox.showinfo('Attenzione', 'Curve and volatilities reference date are not the same')
+        root.destroy()
+
+    # seleziono i dati che andranno in input alla funzione di bootstrap e li formatto come array di floats
+
+    shift = float(volsdata[selected_vols].loc[volsdata[selected_vols][0] == 'Shift', 1])
+
+    volsdata_noint = volsdata[selected_vols].loc[(volsdata[selected_vols].loc[:, 3] == 'Y'), [0,1,2]]
+    volatilities = {}
+    volatilities['Maturities'] = volsdata_noint.loc[:, 0].map(MaturityFromStringToYear).values.astype(float)
+    volatilities['Strikes']= np.divide(volsdata_noint.loc[:, 1].values.astype(float),100)
+    volatilities['Volatilities'] = np.divide(volsdata_noint.loc[:, 2].values.astype(float),100)
+
+    curve = discount_curves[selected_disc_curve].loc[(discount_curves[selected_disc_curve].loc[:, 2] == 'Y'), [0, 1]]
+    discount = {}
+    discount['discount times'] = curve.loc[:, 0].values
+    discount['discount factors'] = curve.loc[:, 1].values.astype(float)
+
+    # converto le date dei fattori di sconto in intervalli in termini di giorni
+    discount['discount times'] = discount['discount times'] - discount['discount times'][0]
+    discount['discount times'] = np.array([(d.days) / 365.2425 for d in discount['discount times']])
+
+    if volsdata[selected_vols].loc[(volsdata[selected_vols].loc[:, 0] == 'Tipo dato'), 1].values == 'ATM':
+        bootstrapped_volatilities = Bootstrap_CapFloor_ATM(shift, discount, volatilities)
+    elif volsdata[selected_vols].loc[(volsdata[selected_vols].loc[:, 0] == 'Tipo dato'), 1].values == 'Surface':
+        bootstrapped_volatilities = Bootstrap_CapFloor_Surface(shift, discount, volatilities)
+    else:
+        root = Tk()
+        tkMessageBox.showwarning('Error', 'Bootstrap on the selected data not available')
+        root.destroy()
+        bootstrapped_volatilities = pd.DataFrame()
+
+    bootstrapped_volatilities['Usage']='Y'
+
+    writeBootstrapVolOnXls(xla, bootstrapped_volatilities, volsdata[selected_vols], discount_curves[selected_disc_curve])

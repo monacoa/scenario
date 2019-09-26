@@ -2,6 +2,8 @@ from sc_elab.excel_hook.xls_utils import drawBox, drawLine, formatTestataCurva, 
 import datetime
 from sc_elab.excel_hook.DEF_intef import nameSheetCalib,nameSheetCalibRes,FORMATT
 from sc_elab.excel_hook.xls_utils import findCalibrationPos, writeResultPandas
+from sc_elab.core.anagrafica_dati import MaturityFromIntToString
+
 
 import pandas as pd
 import numpy as np
@@ -32,7 +34,7 @@ def intestazioneCalibration( xla, rng,  attributi, nCols = 2, title= 'Calibratio
     return rangeStart
 
 
-def writeParameterCalibration( xla, rng , v_name , v_value,  dict, nCols = 4):
+def writeParameterCalibration( xla, rng , v_name , v_value,  dict, nCols = 5):
 
     nRows           = len(v_name)
     topLeftRow      = rng.Row
@@ -41,15 +43,17 @@ def writeParameterCalibration( xla, rng , v_name , v_value,  dict, nCols = 4):
 
     xla.Cells(topLeftRow , topLeftCol + 0).Value = 'Parameter'
     xla.Cells(topLeftRow , topLeftCol + 1).Value = 'Value'
-    xla.Cells(topLeftRow , topLeftCol + 2).Value = 'Min'
-    xla.Cells(topLeftRow , topLeftCol + 3).Value = 'Max'
+    xla.Cells(topLeftRow , topLeftCol + 2).Value = 'Initial guess'
+    xla.Cells(topLeftRow , topLeftCol + 3).Value = 'Min'
+    xla.Cells(topLeftRow , topLeftCol + 4).Value = 'Max'
 
     i = 0
     for k in v_name:
         xla.Cells(topLeftRow + 1+ i, topLeftCol+0).Value   = k
         xla.Cells(topLeftRow + 1+ i, topLeftCol+1).Value = v_value[i]
-        xla.Cells(topLeftRow + 1+ i, topLeftCol+2).Value = dict[k]['min']
-        xla.Cells(topLeftRow + 1+ i, topLeftCol+3).Value = dict[k]['max']
+        xla.Cells(topLeftRow + 1+ i, topLeftCol+2).Value = dict[k]['sv']
+        xla.Cells(topLeftRow + 1+ i, topLeftCol+3).Value = dict[k]['min']
+        xla.Cells(topLeftRow + 1+ i, topLeftCol+4).Value = dict[k]['max']
         i+=1
 
     rangeStart = xla.Range(xla.Cells(topLeftRow + nRows + 1, topLeftCol),xla.Cells(topLeftRow + nRows + 1, topLeftCol))
@@ -149,6 +153,68 @@ def writeCalibrationResOnXls(type_data, model, W_class, xla, chi2, opt_dict, res
 
 
 
+def writeDividendsResOnXls(title, W_class, xla, res, dividend_type = 'continuous'):
+
+    nameSheet = nameSheetCalibRes
+    try:
+        s = xla.ActiveWorkbook.Sheets(nameSheet)
+    except:
+        s = xla.ActiveWorkbook.Sheets.Add()
+        s.Name = nameSheet
+    s.Activate()
+
+    r = findCalibrationPos(xla, nameSheet)
+
+    #---
+    #mi posiziono nella prima cella utile per scrivere i risultati del fitting
+    #---
+
+    df = W_class.CurveChosen
+    ref_date = df.loc[df.loc[:, 0] == 'Date Ref',1].values[0]
+
+    Attributi = \
+        {     "1. Date ref"              : ref_date
+            , "2. Type Data Calibration" : W_class.set_mkt_ts.get()
+            , "3. Name Curve"            : W_class.NameCurve.get()
+            , "4. Name Option"           : W_class.NameOption.get()
+            , "5. Dividend rate Type"    : dividend_type
+        }
+
+    r = intestazioneCalibration(xla = xla, rng = r, attributi = Attributi , title = title)
+    r = writeResultPandas(xla = xla , rng = r, df = res, flagPrintColumns = True)
+    s = xla.Cells.Columns.AutoFit()
+
+
+def writeVolResOnXls(title, W_class, xla, strike, maturity, vol):
+
+    nameSheet = nameSheetCalibRes
+    try:
+        s = xla.ActiveWorkbook.Sheets(nameSheet)
+    except:
+        s = xla.ActiveWorkbook.Sheets.Add()
+        s.Name = nameSheet
+    s.Activate()
+
+    r = findCalibrationPos(xla, nameSheet)
+
+    #---
+    #mi posiziono nella prima cella utile per scrivere i risultati del fitting
+    #---
+
+    df = W_class.CurveChosen
+    ref_date = df.loc[df.loc[:, 0] == 'Date Ref',1].values[0]
+
+    Attributi = \
+        {     "1. Date ref"              : ref_date
+            , "2. Type Volatility"       : 'Black-Scholes vol'
+            , "3. Strike"                : strike
+            , "4. Maturity"              : maturity
+            , "5. Volatility"            : vol
+        }
+
+    r = intestazioneCalibration(xla = xla, rng = r, attributi = Attributi , title = title)
+    s = xla.Cells.Columns.AutoFit()
+
 
 def writeTemplateCalibration(xla, nameSheet):
 
@@ -165,11 +231,11 @@ def writeTemplateCalibration(xla, nameSheet):
     mat = pd.DataFrame()
 
     mat['Date']  = pd.date_range(start=datetime.datetime.now().date() - datetime.timedelta(7), periods=7)
-    mat['Value'] = np.zeros(7)
+    mat['Value (x100)'] = np.zeros(7)
     mat['Usage'] = 'Y'
 
     Attributi = \
-        {       "0. CurveType"           : 'Swap'
+        {       "0. CurveType"           : 'Zero coupon RF, Inflation, Real'
             ,   "1. Interest rate Type"  : 'SMP, CMP, CNT'
             ,   "2. Date Ref"            :  datetime.datetime.now().strftime("%m/%d/%Y")
         }
@@ -186,11 +252,11 @@ def writeTemplateCalibration(xla, nameSheet):
     mat = pd.DataFrame()
 
     mat['Times']  = np.arange(1,4.5,step=0.5)
-    mat['Value'] = np.zeros(7)
+    mat['Value (x100)'] = np.zeros(7)
     mat['Usage'] = 'Y'
 
     Attributi = \
-        {       "0. CurveType"           : 'Swap'
+        {       "0. CurveType"           : 'Zero coupon RF, Inflation, Real'
             ,   "1. Interest rate Type"  : 'SMP, CMP, CNT'
             ,   "2. Date Ref"            :  datetime.datetime.now().strftime("%m/%d/%Y")
         }
@@ -225,15 +291,18 @@ def writeTemplateCalibration(xla, nameSheet):
 
     mat['Expiry']   = np.arange(1,8,step=1) * 360.
     mat['Maturity'] = 10. * 360.
-    mat['Value'] = np.zeros(7)
+    mat['Expiry']   = mat['Expiry'].map(MaturityFromIntToString)
+    mat['Maturity'] = mat['Maturity'].map(MaturityFromIntToString)
+    mat['Value (x100)'] = np.zeros(7)
     mat['Usage'] = 'Y'
 
     Attributi = {
              "0. Date Ref"    : datetime.datetime.now().strftime("%m/%d/%Y")
             ,"1. OptionType"  : 'Swaption'
-            ,"2. Type value"  : 'Price, Volatility'
-            ,"3. Type model"  : 'No Shifted'
-            ,"4. Tenor swap"  : 0.5
+            ,"2. SwaptionType": 'Payer, Receiver'
+            ,"3. Type value"  : 'Volatility'
+            ,"4. Type model"  : 'No Shifted'
+            ,"5. Tenor swap"  : '6M'
     }
 
     r = intestazioneCalibration(xla=xla, rng=r, attributi=Attributi, title='Template Calibration Swaption')
@@ -242,23 +311,68 @@ def writeTemplateCalibration(xla, nameSheet):
 
 
     ##########################
+    ## Cap Floor
+    ##########################
+
+    mat = pd.DataFrame()
+
+    mat['Time']   = np.arange(1,8,step=1)
+    mat['Strike (x100)'] = np.repeat(0.9,7)
+    mat['Value (x100)'] = np.zeros(7)
+    mat['Usage'] = 'Y'
+
+    Attributi = {
+             "0. Date Ref"           : datetime.datetime.now().strftime("%m/%d/%Y")
+            ,"1. OptionType"         : 'Vol Caps, Vol Caplets, Caplets, Caps'
+            # ,"2. Type value"         : 'Price, Volatility'
+            ,"3. Shift"              : 0
+    }
+
+    r = intestazioneCalibration(xla=xla, rng=r, attributi=Attributi, title='Template Calibration Cap Floor')
+    r = writeResultPandas(xla=xla, rng=r, df=mat, flagPrintColumns=True)
+    xla.Cells.ColumnWidth = 18
+
+    #######################
     ## OPTION - Opzione
     ##########################
 
     mat = pd.DataFrame()
 
-    mat['Times']   = np.arange(1,8,step=1)
-    mat['Value'] = np.zeros(7)
+    mat['Maturity']   = np.arange(1,8,step=1)
+    mat['Strike'] = np.repeat(0.9,7)
+    mat['Price'] = np.zeros(7)
+    mat['Type'] = 'CALL'
     mat['Usage'] = 'Y'
 
     Attributi = {
              "0. Date Ref"           : datetime.datetime.now().strftime("%m/%d/%Y")
-            ,"1. OptionType"         : 'CapFloor, Cap, Floor'
-            ,"2. Type value"         : 'Price, Volatility'
-            ,"3. Tenor oplet (month)": 0
-            ,"4. Strike"             : 0.
+            ,"1. OptionType"         : 'PUT / CALL'
+            ,"2. Initial Price"      : 100
+            ,"3. Strike"             : 100
+            ,"4. Mat"                : 2
     }
 
     r = intestazioneCalibration(xla=xla, rng=r, attributi=Attributi, title='Template Calibration Option')
+    r = writeResultPandas(xla=xla, rng=r, df=mat, flagPrintColumns=True)
+    xla.Cells.ColumnWidth = 18
+
+    #######################
+    ## INFLATION OPTION
+    ##########################
+
+    mat = pd.DataFrame()
+
+    mat['Maturity'] = np.arange(1, 8, step=1)
+    mat['Value'] = np.zeros(7)
+    mat['Usage'] = 'Y'
+
+    Attributi = {
+        "0. Date Ref": datetime.datetime.now().strftime("%m/%d/%Y")
+        , "1. OptionType": 'Cap/Floor'
+        , "2. Type value": 'Price/Volatility'
+        , "3. tenorOplet": 12
+    }
+
+    r = intestazioneCalibration(xla=xla, rng=r, attributi=Attributi, title='Template Calibration Inflation Option')
     r = writeResultPandas(xla=xla, rng=r, df=mat, flagPrintColumns=True)
     xla.Cells.ColumnWidth = 18
