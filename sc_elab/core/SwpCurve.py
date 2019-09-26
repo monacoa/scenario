@@ -994,7 +994,7 @@ class CdsCurve(Curve):
         self.rendimento = 'Par Yield'
         self.node_type  = 'CDS'
         self.lag       = 2
-        self.recovery  =  35
+        self.recovery  = 40
         cod_segm       = 'SCDS' #codice_segmentazione
         self.settore   = 999
         self.rating    = 999
