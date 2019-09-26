@@ -155,8 +155,8 @@ def load_bond_data_from_db(control):
 # punto di ingresso per bootstrap curve SWAP
 #=======================================================================================================================
 
-from xls_bootCurve import writeBootstrapResOnXls,writeCDSBootstrapRes1OnXls, writeCDSBootstrapRes2OnXls 
-from xls_bootCurve import writeCDSBootstrapRes1OnXls_surv_m, writeCDSBootstrapRes1OnXls_md_m, writeCDSBootstrapRes1OnXls_hr_m 
+from xls_bootCurve import writeBootstrapResOnXls,writeCDSBootstrapRes1OnXls, writeCDSBootstrapRes2OnXls
+from xls_bootCurve import writeCDSBootstrapRes1OnXls_surv_m, writeCDSBootstrapRes1OnXls_md_m, writeCDSBootstrapRes1OnXls_hr_m
 from xls_bootCurve import writeCDSBootstrapRes2OnXls_zc_m, writeCDSBootstrapRes2OnXls_py_m
 
 from xls_swapCurve import readCurveFromXls
@@ -194,9 +194,7 @@ def bootstrap_from_xls(control):
     root.mainloop()
 
     curveDes = W.curve
-    #curvePos = W.pos
     curvePos = int(W.pos[0])
-    #print 'curvePos ,', curvePos
 
 
     #opt
@@ -224,6 +222,7 @@ def bootstrap_from_xls(control):
     codeL, codeR = curve.getCurveCode()
     
     boot_out     = curve.bootstrap(data_opt)
+    #print "risultati bootstrap:", boot_out
     
 
     if boot_out == None:
@@ -363,7 +362,7 @@ def bond_fitting_from_xls(control):
     curveL = readCurvesNames(xla,s,rangeStart,"v", distance, 0)
     root = Tk()
     root.iconbitmap(default=imp.find_module('sc_elab')[1] + r'\\excel_hook\\fig\\icona.ico')
-    #W = W_bootstrapSelection(root, curveL = curveL, type = "BOND") # da modificare 
+    #W = W_bootstrapSelection(root, curveL = curveL, type = "BOND") # da modificare
     W = W_bondFitting(root, curveL = curveL, type = "BOND") # da modificare
     
     #W2 = W_setParameters(root)
@@ -464,7 +463,7 @@ def bond_fitting_from_xls(control):
         # significa che ho intercettato un errore!
         root = Tk()
         root.withdraw()
-        
+
         msg0 = "Curva benchmark associata al modello {} non presente alla data del {}, cambia modello o data!".format(interp_rf_model, portfolio_xl.ref_date)
         tkMessageBox.showinfo("Attenzione!", msg0)
 
@@ -557,7 +556,7 @@ def bond_fitting_from_xls(control):
     
     x0    = par_x0
     x_bnd = par_bnd
-    
+
     
     dictPortfolio,resDict = bf.fromXLSToBondFittingPortfolio(portfolio_xl.portfolio_anag)
 
@@ -565,7 +564,7 @@ def bond_fitting_from_xls(control):
         return
 
     # ------------ elaborazione ---------------------------
- 
+
     
     flag_elab, res_elab = bf.compute_bond_fitting(bf_options_elab, dictPortfolio, data_zc_rf, data_zc_infl, data_ts_infl, x0, x_bnd)
 
@@ -651,7 +650,7 @@ def save_from_xls(control):
         xla         =  xl_app()
         nameSheet   =  nameSheetBootstrap
         int_curve   =  readInterpolatedCurveFromXls(xla,nameSheet, pos_curve, pos_parms)
-        
+
         # ---
         saveInterpolationParmsOnDb(int_curve)
         # ---
@@ -690,12 +689,16 @@ def bootstrap_cds_from_xls(control):
     root = Tk()
     root.iconbitmap(default=imp.find_module('sc_elab')[1] + r'\\excel_hook\\fig\\icona.ico')
     W = W_bootstrapSelection(root, curveL = curveL, type = "CDS")
-    
-    
-    
+
+
+
     root.mainloop()
 
     n_c = len( W.curve)
+    flag_plot = True
+
+    if (n_c > 1):
+        flag_plot = False
 
     for i in range(0, n_c):
 
@@ -711,91 +714,90 @@ def bootstrap_cds_from_xls(control):
 
         curveDes = W.curve[i]
         curvePos = int(W.pos[i])
-        
-    
+
+
         opt_boot_meth   = (str(W.new_window.variable1.get()).strip(""))[1]
         opt_rf_interp   = (str(W.new_window.variable6.get()).strip(""))[1]
         opt_hr_interp   = (str(W.new_window.variable7.get()).strip(""))[1]
-    
+
         str_boot_opt = opt_boot_meth+","+opt_rf_interp + "," + opt_hr_interp
         data_opt                    = {}
-        
+
         data_opt['hr_bootMethod']  = opt_boot_meth
         data_opt['bench_interp']   = opt_rf_interp
         data_opt['hr_interp']      = opt_hr_interp
         data_opt['Emittente']      = curveDes
-        
-        
-        
+
+
+
         curve_xl        = readCurveFromXls(xla, curveDes, curvePos, nameSheet, "CDS")
-    
+
         opt_download = {}
-        
+
         interp_rf_model = curve_xl.mapCodeModelInv(opt_rf_interp)
-        
-        
-    
-    
+
+
+
+
         opt_download['refDate'] = curve_xl.ref_date
         opt_download['valuta'] = curve_xl.curr
         opt_download['rating'] = curve_xl.rating
         opt_download['seniority'] = curve_xl.seniority
-    
         opt_download['tipo_modello'] = interp_rf_model
-    
-    
+
+
         codeBenchList = ['%LS', '%DS', '%LFS', '%DFS']
-    
+
         for codeTmp in codeBenchList:
-    
+
             opt_download['codeSeg'] = codeTmp
             flag_loaded = curve_xl.loadBenchDataFromDB(opt_download)
             if (flag_loaded == 1):
                 break
-        
-        
-        
+
+
+
         if flag_loaded == 0:
             # significa che ho intercettato un errore!
             root = Tk()
             root.withdraw()
             msg0 = "Curva benchmark associata al modello %s non presente alla data del %s, cambia modello o data!!" %(interp_rf_model, curve_xl.ref_date)
             tkMessageBox.showinfo("Attenzione!!", msg0)
-    
+
             root.destroy()
             return
-    
-        
-    
+
+
+
         data_opt['DataRef']        = curve_xl.ref_date
         data_opt['RecoveryRate'] = float(curve_xl.recovery)/100.0
         data_opt['opt_path_graph']  =  'C:\\'
-        
-        
-        
-        yy = str(curve_xl.ref_date.year) 
+
+
+
+        yy = str(curve_xl.ref_date.year)
         gg = str(curve_xl.ref_date.day)
         mm = str(curve_xl.ref_date.month)
         yy = yy[1:]
-    
-    
+
+
         curve_xl.ref_date
-    
+
         opt_boot_meth_s = curve_xl.mapBootCDS(int(opt_boot_meth))
-        
+
         codice_curva = 'CSN3' + curve_xl.curr + 'HR' +'BLM' + '0' + yy + mm + gg + 'CFRIL' + 'SW' + opt_boot_meth_s
-    
+
         curve_xl.cds_boot_method    = data_opt['hr_bootMethod']
-        curve_xl.rf_interp_type     = data_opt['bench_interp']  
+        curve_xl.rf_interp_type     = data_opt['bench_interp']
         curve_xl.recovery           = data_opt['RecoveryRate']
         curve_xl.hr_model           = data_opt['hr_interp']
-        
-        
-    
+
+
+
         # -------------- elaborazione ---------------------------
-        boot_out     = curve_xl.bootstrap(data_opt)
-        
-        
+        boot_out     = curve_xl.bootstrap(data_opt, flag_plot)
+
+
         if boot_out == None:
             # significa che ho intercettato un errore!
             root = Tk()
@@ -804,33 +806,40 @@ def bootstrap_cds_from_xls(control):
             tkMessageBox.showinfo("ERROR!", msg)
             root.destroy()
             return
-        
+
         if (n_c > 1):
-        
-            writeCDSBootstrapRes1OnXls_surv_m(curve_xl, xla, str_boot_opt, boot_out, codice_curva)
+
+
+            if (i==0):
+                flag_first = True
+            else:
+                flag_first = False
+
+            writeCDSBootstrapRes1OnXls_surv_m(curve_xl, xla, str_boot_opt, boot_out, flag_first, codice_curva, i)
             s = xla.Cells.Columns.AutoFit()
 
-            writeCDSBootstrapRes1OnXls_md_m(curve_xl, xla, str_boot_opt, boot_out, codice_curva)
+            #writeCDSBootstrapRes1OnXls_md_m(curve_xl, xla, str_boot_opt, boot_out, codice_curva)
+            #s = xla.Cells.Columns.AutoFit()
+
+
+            #writeCDSBootstrapRes1OnXls_hr_m(curve_xl, xla, str_boot_opt, boot_out, codice_curva)
+            #s = xla.Cells.Columns.AutoFit()
+
+            writeCDSBootstrapRes2OnXls_zc_m(curve_xl, xla, str_boot_opt, boot_out, flag_first, codice_curva, i)
             s = xla.Cells.Columns.AutoFit()
 
-        
-            writeCDSBootstrapRes1OnXls_hr_m(curve_xl, xla, str_boot_opt, boot_out, codice_curva)
-            s = xla.Cells.Columns.AutoFit()
+            #writeCDSBootstrapRes2OnXls_py_m(curve_xl, xla, str_boot_opt, boot_out, codice_curva)
+            #s = xla.Cells.Columns.AutoFit()
 
-            writeCDSBootstrapRes2OnXls_zc_m(curve_xl, xla, str_boot_opt, boot_out, codice_curva)
-            s = xla.Cells.Columns.AutoFit()
-
-            writeCDSBootstrapRes2OnXls_py_m(curve_xl, xla, str_boot_opt, boot_out, codice_curva)
-            s = xla.Cells.Columns.AutoFit()
-        
 
         else:
 
             writeCDSBootstrapRes1OnXls(curve_xl, xla, str_boot_opt, boot_out, codice_curva)
             s = xla.Cells.Columns.AutoFit()
-        
+
             writeCDSBootstrapRes2OnXls(curve_xl, xla, str_boot_opt, boot_out, codice_curva)
             s = xla.Cells.Columns.AutoFit()
+
 
 # ==========================================
 # punto d'ingresso per CALIBRAZIONE
@@ -849,94 +858,201 @@ def calibration_from_xls(control):
 
     xla = xl_app()
     book = xla.ActiveWorkbook
+    wbName = str(book.FullName)
+    book.Save()
 
     root = Tk()
-    root.iconbitmap(default=imp.find_module('sc_elab')[1] + r'\\excel_hook\\fig\\icona.ico')
-    # -------------- controllo l'esistenza del foglio di input CalibData ----------------
-    try:
+    root.iconbitmap(default= imp.find_module('sc_elab')[1] + r'\\excel_hook\\fig\\icona.ico')
+
+    allSheetInBook = allSheet(book)
+
+    # -------------- controllo l'esistenza del foglio  ----------------
+    if nameSheet in allSheetInBook:
         s = book.Sheets(nameSheet)
         s.Activate()
-    except:
-        msg = "Missing input sheet(%s) for Calibration in your workbook... \nNothing to do for me!" %nameSheetCalib
-        root.withdraw()
+    else:
+        msg = "Missing input sheet(%s) for Calibration in your workbook... \nNothing to do for me!" %nameSheet
         tkMessageBox.showinfo("Warning!", msg)
         root.destroy()
         return
-    # -------------- apro la finestra di input della scelta  ----------------------------
-
-    wbName = str(book.FullName)
-    book.Save()
+    # -----------------------------------------------------------------
 
     W = W_calib_models(master = root, nameWorkbook= wbName, nameWorksheet=nameSheet)
     root.mainloop()
 
-    W1 = W.newWindow
-    loss_function_type = W1.loss_function_type.get()
-    model_dict = W1.param_dict
+    if W.res > 0:
+        W1 = W.newWindow
 
-    model = W.model.get()
-    type_data = W1.set_mkt_ts.get()
+        if W1.res > 0:
+            loss_function_type_tmp = W1.loss_function_type.get()
 
-    if type_data == 'MKT':
+            if loss_function_type_tmp == 1:
+                loss_function_type_power = 2
+                loss_function_type_absrel = 'abs'
 
-        if (model in ['CIR','VSCK']):
-            mkt_value, mkt_to_fit, type_cap = preProcessignCurve(W1.CurveChosen)
+            elif  loss_function_type_tmp == 2:
+                loss_function_type_power = 2
+                loss_function_type_absrel = 'rel'
 
-            x0_m  = []
-            x_bnd = []
+            elif loss_function_type_tmp == 3:
+                loss_function_type_power = 1
+                loss_function_type_absrel = 'abs'
 
-            l_bound = []
-            h_bound = []
+            elif loss_function_type_tmp == 4:
+                loss_function_type_power = 1
+                loss_function_type_absrel = 'rel'
 
-            for p_name in W1.params_names:
-                x0_m.append(float(W1.param_dict[p_name]['sv']))
-                x_bnd.append([float(W1.param_dict[p_name]['min']), float(W1.param_dict[p_name]['max'])])
-                l_bound.append(float(W1.param_dict[p_name]['min']))
-                h_bound.append(float(W1.param_dict[p_name]['max']))
 
-            if W.model.get() == 'CIR':
-                ff = minimize(loss_zc_model_cir, args = (mkt_to_fit , W1.loss_function_type.get()), x0 = x0_m, method='TNC', bounds=x_bnd)
+            model_dict = W1.param_dict
+
+            model = W.model.get()
+            type_data = W1.set_mkt_ts.get()
+
+            if type_data == 'MKT':
+
+                if (model in ['CIR','VSCK']):
+                    mkt_value, mkt_to_fit, type_cap = preProcessignCurve(W1.CurveChosen)
+
+                    x0_m  = []
+                    x_bnd = []
+
+                    l_bound = []
+                    h_bound = []
+
+                    for p_name in W1.params_names:
+                        x0_m.append(float(W1.param_dict[p_name]['sv']))
+                        x_bnd.append([float(W1.param_dict[p_name]['min']), float(W1.param_dict[p_name]['max'])])
+                        l_bound.append(float(W1.param_dict[p_name]['min']))
+                        h_bound.append(float(W1.param_dict[p_name]['max']))
+
+                    if W.model.get() == 'CIR':
+                        ff = minimize(loss_zc_model_cir, args = (mkt_to_fit ,loss_function_type_power,loss_function_type_absrel), x0 = x0_m, method='TNC', bounds=x_bnd)
+                    else:
+                        ff = minimize(loss_zc_model_vsck, args = (mkt_to_fit ,loss_function_type_power,loss_function_type_absrel), x0 = x0_m, method='TNC', bounds=x_bnd)
+
+                    # creo la lista dei risultati ottimali
+                    list_model_params_opt = []
+                    list_model_params_opt.append(ff.x[0])
+                    list_model_params_opt.append(ff.x[1])
+                    list_model_params_opt.append(ff.x[2])
+                    list_model_params_opt.append(ff.x[3])
+
+                    if W.model.get() == 'CIR':
+                        mkt_value['VALUE_OPT'] = compute_zc_cir_rate(list_model_params_opt, mkt_value["TIME"])
+                    else:
+                        mkt_value['VALUE_OPT'] = compute_zc_vsck_rate(list_model_params_opt, mkt_value["TIME"])
+
+
+                    # converto i risultati in composto nel caso in cui in input lo siano
+                    if type_cap == 'CMP':
+                        mkt_value['VALUE_OPT'] = fromContinuousToCompost(mkt_value['VALUE_OPT'])
+
+                    # calcolo il chi quadro
+                    chi2 = computeCHI2(mkt=mkt_value["VALUE"], mdl=mkt_value['VALUE_OPT'])
+
+                    # scrivo su foglio Excel
+                    writeCalibrationResOnXls(type_data = type_data,
+                                             model = model,
+                                             W_class = W1,
+                                             xla = xla,
+                                             chi2 = chi2,
+                                             opt_dict = list_model_params_opt,
+                                             res = mkt_value,
+                                             capitalization_type = type_cap)
+
+                    # produco il grafico
+                    mkt_value.set_index('TIME',inplace=True)
+                    mkt_value.plot(style=['o', '-'])
+                    plt.title('Calibration results')
+                    plt.xlabel('Time')
+                    plt.ylabel('Rate')
+                    plt.show()
+
+                if W1.NameOption.get() != "":
+                    opt_total = W1.OptionChosen
+
             else:
-                ff = minimize(loss_zc_model_vsck, args = (mkt_to_fit , W1.loss_function_type.get()), x0 = x0_m, method='TNC', bounds=x_bnd)
 
-            # creo la lista dei risultati ottimali
-            list_model_params_opt = []
-            list_model_params_opt.append(ff.x[0])
-            list_model_params_opt.append(ff.x[1])
-            list_model_params_opt.append(ff.x[2])
-            list_model_params_opt.append(ff.x[3])
+                if (model in ['CIR','VSCK']):
+                    # pre processing time series
+                    mkt_to_fit = preProcessignTimeSeries(df = W1.TSChosen, dt_min= W1.TS_dateMIN , dt_max= W1.TS_dateMAX)
 
-            if W.model.get() == 'CIR':
-                mkt_value['MODEL'] = compute_zc_cir_rate(list_model_params_opt, mkt_value["TIME"])
-            else:
-                mkt_value['MODEL'] = compute_zc_vsck_rate(list_model_params_opt, mkt_value["TIME"])
+                    # creazione del set di parametri
+                    x0_m  = []
+                    x_bnd = []
 
+                    l_bound = []
+                    h_bound = []
 
-            # converto i risultati in composto nel caso in cui in input lo siano
-            if type_cap == 'CMP':
-                mkt_value['MODEL'] = fromContinuousToCompost(mkt_value['MODEL'])
+                    for p_name in W1.params_names:
+                        x0_m.append(float(W1.param_dict[p_name]['sv']))
+                        x_bnd.append([float(W1.param_dict[p_name]['min']), float(W1.param_dict[p_name]['max'])])
+                        l_bound.append(float(W1.param_dict[p_name]['min']))
+                        h_bound.append(float(W1.param_dict[p_name]['max']))
 
-            # calcolo il chi quadro
-            chi2 = computeCHI2(mkt=mkt_value["MKT"], mdl=mkt_value['MODEL'])
+                    # ottimizzazione
+                    if W.model.get() == 'CIR':
+                        ff = minimize(mle_cir, args=(mkt_to_fit), x0 = x0_m, method='TNC', bounds=x_bnd)
+                    else:
+                        ff = minimize(mle_vsck, args=(mkt_to_fit), x0 = x0_m, method='TNC', bounds=x_bnd)
 
-            # scrivo su foglio Excel
-            writeCalibrationResOnXls(model = model, W_class = W1, xla = xla, chi2 = chi2, opt_dict = list_model_params_opt, res = mkt_value)
+                    # creo la lista dei risultati ottimali
+                    list_model_params_opt = []
+                    list_model_params_opt.append(mkt_to_fit.loc[0,'VALUE'])
+                    list_model_params_opt.append(ff.x[1])
+                    list_model_params_opt.append(ff.x[2])
+                    list_model_params_opt.append(ff.x[3])
 
-            # produco il grafico
-            mkt_value.set_index('TIME',inplace=True)
-            mkt_value.plot(style=['o', '-'])
-            plt.title('Calibration results')
-            plt.xlabel('Time')
-            plt.ylabel('Rate')
-            plt.show()
+                    # creazione dei risultati
+                    if W.model.get() == 'CIR':
+                        model_value = generate_cir_perc(params = list_model_params_opt, data_to_fit = mkt_to_fit)
+                    else:
+                        model_value = generate_vsck_perc(params = list_model_params_opt, data_to_fit = mkt_to_fit)
 
-        if W1.NameOption.get() != "":
-            opt_total = W1.OptionChosen
+                    # calcolo il chi quadro
+                    chi2 = computeCHI2(mkt=model_value["VALUE"], mdl=model_value['MODEL VALUE MEAN'])
 
+                    # scrivo su foglio Excel
+                    writeCalibrationResOnXls(type_data = type_data,model = model, W_class = W1, xla = xla, chi2 = chi2, opt_dict = list_model_params_opt, res = model_value)
+
+                    # produzione del grafico
+                    model_value.set_index('DATE',inplace=True)
+                    model_value.plot(style=['bo','r-', 'k--', 'k--'])
+                    plt.title('Calibration results')
+                    plt.xlabel('Date')
+                    plt.ylabel('Value')
+                    plt.show()
+
+# ==========================================
+# punto d'ingresso per Template Calibration
+# ==========================================
+
+@xl_func
+def template_elaborate_calibration(control):
+
+    xla = xl_app()
+    wb = xla.ActiveWorkbook
+
+    allSheetInBook = allSheet(wb)
+
+    # -------------- controllo l'esistenza del foglio  ----------------
+    if not (nameSheetCalib in allSheetInBook):
+        s = wb.Sheets.Add()
+        s.Name = nameSheetCalib
     else:
-        ts_total = W1.TSChosen
+        s = wb.Sheets(nameSheetCalib)
+        s.Activate()
+    # -----------------------------------------------------------------
 
+    '''
+    possibilita di scegliere la tipologia di template
+    
+    root = Tk()
+    root.iconbitmap(default= imp.find_module('sc_elab')[1] + r'\\excel_hook\\fig\\icona.ico')
+    root.mainloop()
+    '''
 
+    writeTemplateCalibration(xla = xla, nameSheet = nameSheetCalib)
 
 # ==========================================
 # punto d'ingresso per Caricamento Dati

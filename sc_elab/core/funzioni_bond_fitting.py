@@ -2494,7 +2494,7 @@ def computePortfolioCF(dictPortfolio, opt_elab, zc_times, zc_rf, rf_prms, rf_mod
 		dictPortfolio[isin_tmp]['coupon times']  = coupon_times
 		dictPortfolio[isin_tmp]['coupon dt']     = coupon_dt
 		dictPortfolio[isin_tmp]['cash flow']     = coupon_values
-
+	print 'coupon_values ', coupon_values
 
 	return dictPortfolio
 
