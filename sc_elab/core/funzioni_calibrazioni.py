@@ -32,7 +32,7 @@ def preProcessingCurve(df, rate_time_zero=False, out_type='rate', curve_nom=None
 
     # seleziono solo le righe da considerare
     out = out.loc[(out.loc[:,2] == 'Y'),0:1]
-    out.columns = ['TIME','MKT']
+    out.columns = ['TIME','VALUE']
 
 
     if isinstance(out.iloc[0,0],datetime.datetime):
