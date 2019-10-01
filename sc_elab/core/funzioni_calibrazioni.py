@@ -801,7 +801,9 @@ def PhiCaratt(parameters, S0, r, q, T, u):
     nu = parameters['nu']
     theta = parameters['theta']
 
-    omega = (1. / nu) * np.log(1 - theta * nu - 0.5 * sigma * sigma * nu)
+    omega = (1. / nu) * np.log(1. - theta * nu - 0.5 * sigma * sigma * nu)
+    if 1. - theta * nu - 0.5 * sigma * sigma * nu <= 0.:
+        raise Exception('1. - theta * nu - 0.5 * sigma * sigma * nu deve essere positivo')
     base = 1-1j*theta*nu*u+0.5*sigma*sigma*nu*u*u
     fatt2 = np.power(base,-T/nu)
     fatt1 = np.exp(1j*u*(np.log(S0)+(r-q+omega)*T))

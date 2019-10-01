@@ -45,9 +45,9 @@ def model_parameters(value):
         attribute = ['sv', 'min', 'max', 'fix']
 
     elif value == 'G2++':
-        dict ={'a'      :{'sv':'0.1'  , 'min': '0.0001', 'max': '5.0','fix':0},
+        dict ={'a'      :{'sv':'0.1'  , 'min': '0.0001', 'max': '2.0','fix':0},
               'sigma'   :{'sv':'0.01'  , 'min': '0.0001', 'max': '0.7','fix':0},
-              'b'       :{'sv': '0.1', 'min': '0.0001', 'max': '5.0','fix':0},
+              'b'       :{'sv': '0.1', 'min': '0.0001', 'max': '2.0','fix':0},
               'eta'     :{'sv': '0.01', 'min': '0.0001', 'max': '0.7','fix':0},
               'rho'     :{'sv': '0.1' , 'min': '-0.7'  , 'max': '0.7','fix':0}
               }
@@ -55,8 +55,8 @@ def model_parameters(value):
         attribute = ['sv', 'min', 'max', 'fix']
 
     elif value == 'Variance Gamma':
-        dict ={'sigma'   :{'sv':'0.1', 'min': '0.0001', 'max': '5.0' , 'fix':0},
-               'nu': {'sv': '0.1', 'min': '0.0001', 'max': '2.0', 'fix': 0},
+        dict ={'sigma'   :{'sv':'0.1', 'min': '0.01', 'max': '2.0' , 'fix':0},
+               'nu': {'sv': '0.1', 'min': '0.001', 'max': '2.0', 'fix': 0},
                'theta': {'sv': '0.1', 'min': '-0.7', 'max': '0.7', 'fix': 0}
                }
         names = ['sigma', 'nu', 'theta']

@@ -34,7 +34,7 @@ def intestazioneCalibration( xla, rng,  attributi, nCols = 2, title= 'Calibratio
     return rangeStart
 
 
-def writeParameterCalibration( xla, rng , v_name , v_value,  dict, nCols = 5):
+def writeParameterCalibration( xla, rng , v_name , v_value,  dict, nCols = 5, rand = False):
 
     nRows           = len(v_name)
     topLeftRow      = rng.Row
@@ -51,7 +51,10 @@ def writeParameterCalibration( xla, rng , v_name , v_value,  dict, nCols = 5):
     for k in v_name:
         xla.Cells(topLeftRow + 1+ i, topLeftCol+0).Value   = k
         xla.Cells(topLeftRow + 1+ i, topLeftCol+1).Value = v_value[i]
-        xla.Cells(topLeftRow + 1+ i, topLeftCol+2).Value = dict[k]['sv']
+        if rand:
+            xla.Cells(topLeftRow + 1 + i, topLeftCol + 2).Value = ''
+        else:
+            xla.Cells(topLeftRow + 1+ i, topLeftCol+2).Value = dict[k]['sv']
         xla.Cells(topLeftRow + 1+ i, topLeftCol+3).Value = dict[k]['min']
         xla.Cells(topLeftRow + 1+ i, topLeftCol+4).Value = dict[k]['max']
         i+=1
@@ -146,8 +149,11 @@ def writeCalibrationResOnXls(type_data, model, W_class, xla, chi2, opt_dict, res
                     , "4. Chi-squared"           : chi2
                 }
 
+    rand_flag = False
+    if W_class.nTime.get() > 1 : rand_flag = True
+
     r = intestazioneCalibration(xla = xla, rng = r, attributi = Attributi , title = model)
-    r = writeParameterCalibration(xla = xla, rng = r, v_name = W_class.params_names, v_value = opt_dict,  dict = W_class.param_dict)
+    r = writeParameterCalibration(xla = xla, rng = r, v_name = W_class.params_names, v_value = opt_dict,  dict = W_class.param_dict, rand=rand_flag)
     r = writeResultPandas(xla = xla , rng = r, df = res, flagPrintColumns = True)
     s = xla.Cells.Columns.AutoFit()
 

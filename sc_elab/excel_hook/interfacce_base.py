@@ -1003,6 +1003,7 @@ def calibration_from_xls(control):
                             ff = found_opt(np.array(x0_m), x_bnd, market_data['expiry'].values,
                                            market_data['maturity'].values, market_data['swap'].values,
                                            market_data['market price'].values, curve_times, curve_values, tenr, call_flag)
+                            final_params = ff.x
 
                             root.destroy()
 
@@ -1010,7 +1011,7 @@ def calibration_from_xls(control):
                                 t_exp = market_data.loc[i, 'expiry']
                                 t_mat = market_data.loc[i, 'maturity']
                                 swp_atm_d = market_data.loc[i, 'swap']
-                                market_data.loc[i, 'model price'] = price_swaption(np.array(ff.x), t_exp, t_mat,
+                                market_data.loc[i, 'model price'] = price_swaption(np.array(final_params), t_exp, t_mat,
                                                                                tenr, swp_atm_d, curve_times,
                                                                                curve_values, call_flag, n_max=50)
 
@@ -1028,14 +1029,51 @@ def calibration_from_xls(control):
                             message.grid(column=0, row=1)
                             root.update()
 
-                            ff = minimize(loss_G2pp,
-                                      args=(curve, market_data, loss_function_type_power, loss_function_type_absrel),
-                                      x0=x0_m, bounds=x_bnd, method='TNC')
+                            n_sample = W1.nTime.get()
+                            print 'numero di tentativi:', n_sample
+                            if n_sample == 1:
+                                ff = minimize(loss_G2pp,
+                                          args=(curve, market_data, loss_function_type_power, loss_function_type_absrel),
+                                          x0=x0_m, bounds=x_bnd, method='TNC')
+                                #  aggiungo al dataframe di dati i prezzi da modello
+                                market_data['model price'] = compute_G2pp_prices(ff.x, curve, market_data['time'],
+                                                                                 market_data['strike'])
+                                # Calcolo il chi quadro
+                                chi2 = computeCHI2(mkt=market_data['market price'], mdl=market_data['model price'],
+                                                   type_calib='CURVE_OPT')
+                                final_params = ff.x
+                            elif n_sample > 1:
+                                multiple_calib_dict = {}
+                                for i in range(n_sample):
+                                    starting_points_list = []
+                                    for p_name in W1.params_names:
+                                        starting_points_list.append(
+                                            np.random.uniform(low=float(W1.param_dict[p_name]['min']),
+                                                              high=float(W1.param_dict[p_name]['max'])))
+                                    print 'punti iniziali al passo %i:' % i, starting_points_list
+                                    ff = minimize(loss_G2pp,
+                                                  args=(curve, market_data, loss_function_type_power,
+                                                        loss_function_type_absrel),
+                                                  x0=starting_points_list, bounds=x_bnd, method='TNC')
+                                    print 'parametri calibrati al passo %i:' % i, ff.x
+                                    #  aggiungo al dataframe di dati i prezzi da modello
+                                    market_data['model price'] = compute_G2pp_prices(ff.x, curve, market_data['time'],
+                                                                                     market_data['strike'])
+                                    # Calcolo il chi quadro
+                                    chi2 = computeCHI2(mkt=market_data['market price'], mdl=market_data['model price'],
+                                                       type_calib='CURVE_OPT')
+                                    print 'chi2 al passo %i:' % i, chi2
+                                    multiple_calib_dict[chi2] = {'chi2': chi2, 'calib_params': ff.x,
+                                                                 'initial_guess': starting_points_list}
+                                valid_keys = [k for k in multiple_calib_dict.keys() if k > 0]
+                                print 'chiavi valide:', valid_keys
+                                chi2_min = min(valid_keys)
+                                print 'chi2_min al termine delle varie calibrazioni:', chi2_min
+                                market_data['model price'] = compute_G2pp_prices(multiple_calib_dict[chi2_min]['calib_params'], curve, market_data['time'],
+                                                                                 market_data['strike'])
+                                final_params = multiple_calib_dict[chi2_min]['calib_params']
 
                             root.destroy()
-
-                            market_data['model price'] = compute_G2pp_prices(ff.x, curve, market_data['time'],
-                                                               market_data['strike'])
 
                         elif model == 'G2++' and option_type in ['Vol Caps', 'Caps']:
 
@@ -1051,14 +1089,52 @@ def calibration_from_xls(control):
                             message.grid(column=0, row=1)
                             root.update()
 
-                            ff = minimize(loss_G2pp_caps,
-                                          args=(
-                                              curve, market_data, loss_function_type_power, loss_function_type_absrel),
-                                          x0=x0_m, bounds=x_bnd, method='TNC')
+                            n_sample = W1.nTime.get()
+                            print 'numero di tentativi:', n_sample
+                            if n_sample == 1:
+                                ff = minimize(loss_G2pp_caps,
+                                              args=(
+                                                  curve, market_data, loss_function_type_power, loss_function_type_absrel),
+                                              x0=x0_m, bounds=x_bnd, method='TNC')
+                                # aggiungo al dataframe di dati i prezzi da modello
+                                market_data['model price'] = compute_G2pp_cap_prices(ff.x, curve, market_data)
+                                # Calcolo il chi quadro
+                                chi2 = computeCHI2(mkt=market_data['market price'], mdl=market_data['model price'],
+                                                   type_calib='CURVE_OPT')
+                                final_params = ff.x
+                            elif n_sample > 1:
+                                multiple_calib_dict = {}
+                                for i in range(n_sample):
+                                    starting_points_list = []
+                                    for p_name in W1.params_names:
+                                        starting_points_list.append(
+                                            np.random.uniform(low=float(W1.param_dict[p_name]['min']),
+                                                              high=float(W1.param_dict[p_name]['max'])))
+                                    print 'punti iniziali al passo %i:' % i, starting_points_list
+                                    ff = minimize(loss_G2pp_caps,
+                                                  args=(
+                                                      curve, market_data, loss_function_type_power,
+                                                      loss_function_type_absrel),
+                                                  x0=starting_points_list, bounds=x_bnd, method='TNC')
+                                    print 'parametri calibrati al passo %i:' % i, ff.x
+                                    #  aggiungo al dataframe di dati i prezzi da modello
+                                    market_data['model price'] = compute_G2pp_cap_prices(ff.x, curve, market_data)
+                                    # Calcolo il chi quadro
+                                    chi2 = computeCHI2(mkt=market_data['market price'], mdl=market_data['model price'],
+                                                       type_calib='CURVE_OPT')
+                                    print 'chi2 al passo %i:' % i, chi2
+                                    multiple_calib_dict[chi2] = {'chi2': chi2, 'calib_params': ff.x,
+                                                                 'initial_guess': starting_points_list}
+                                valid_keys = [k for k in multiple_calib_dict.keys() if k > 0]
+                                print 'chiavi valide:', valid_keys
+                                chi2_min = min(valid_keys)
+                                print 'chi2_min al termine delle varie calibrazioni:', chi2_min
+                                market_data['model price'] = compute_G2pp_cap_prices(
+                                    multiple_calib_dict[chi2_min]['calib_params'],  curve, market_data)
+                                final_params = multiple_calib_dict[chi2_min]['calib_params']
 
                             root.destroy()
 
-                            market_data['model price'] = compute_G2pp_cap_prices(ff.x, curve, market_data)
 
                         elif model=='VSCK':
 
@@ -1076,10 +1152,11 @@ def calibration_from_xls(control):
 
                             ff = minimize(loss_caplets_Vasicek,args=(market_data, 2, 'abs'), x0=x0_m,
                                           bounds=x_bnd, method='TNC')
+                            final_params = ff.x
 
                             root.destroy()
 
-                            market_data['model price'] = compute_Vasicek_prices(ff.x, market_data['time'],
+                            market_data['model price'] = compute_Vasicek_prices(final_params, market_data['time'],
                                                                              market_data['strike'])
                         else :
                             root = Tk()
@@ -1121,7 +1198,7 @@ def calibration_from_xls(control):
                                                  W_class=W1,
                                                  xla=xla,
                                                  chi2=chi2,
-                                                 opt_dict=ff.x,
+                                                 opt_dict=final_params,
                                                  res=market_data,
                                                  capitalization_type='')
 
@@ -1139,13 +1216,47 @@ def calibration_from_xls(control):
                         message.grid(column=0, row=1)
                         root.update()
 
-                        ff = minimize(loss_Call_VG, args=(S0, market_data, curve, dividends, loss_function_type_power, loss_function_type_absrel)
-                                      , x0=x0_m, bounds=x_bnd, method='TNC')
-
+                        n_sample = W1.nTime.get()
+                        print 'numero di tentativi:', n_sample
+                        if n_sample == 1:
+                            ff = minimize(loss_Call_VG, args=(S0, market_data, curve, dividends, loss_function_type_power, loss_function_type_absrel)
+                                          , x0=x0_m, bounds=x_bnd, method='TNC')
+                            #  aggiungo al dataframe di dati i prezzi da modello
+                            market_data['model price'] = compute_VG_prices(ff.x, S0, curve, dividends, market_data)
+                            # Calcolo il chi quadro
+                            chi2 = computeCHI2(mkt=market_data['market price'], mdl=market_data['model price'],
+                                               type_calib='CURVE_OPT')
+                            final_params = ff.x
+                        elif n_sample > 1:
+                            multiple_calib_dict = {}
+                            for i in range(n_sample):
+                                starting_points_list = []
+                                for p_name in W1.params_names:
+                                    starting_points_list.append(np.random.uniform(low=float(W1.param_dict[p_name]['min']),high=float(W1.param_dict[p_name]['max'])))
+                                # test condizione calcolo omega
+                                if 1. - starting_points_list[2] * starting_points_list[1] - 0.5 * np.power(starting_points_list[0],2) * starting_points_list[1] <= 0.:
+                                    continue
+                                print 'punti iniziali al passo %i:'%i, starting_points_list
+                                ff = minimize(loss_Call_VG, args=(
+                                S0, market_data, curve, dividends, loss_function_type_power, loss_function_type_absrel)
+                                              , x0=starting_points_list, bounds=x_bnd, method='TNC')
+                                print 'parametri calibrati al passo %i:'%i, ff.x
+                                #  aggiungo al dataframe di dati i prezzi da modello
+                                market_data['model price'] = compute_VG_prices(ff.x, S0, curve, dividends, market_data)
+                                # Calcolo il chi quadro
+                                chi2 = computeCHI2(mkt=market_data['market price'], mdl=market_data['model price'],
+                                                   type_calib='CURVE_OPT')
+                                print 'chi2 al passo %i:'%i, chi2
+                                multiple_calib_dict[chi2] = {'chi2':chi2, 'calib_params':ff.x, 'initial_guess':starting_points_list}
+                            valid_keys = [k for k in multiple_calib_dict.keys() if k > 0]
+                            print 'chiavi valide:',valid_keys
+                            chi2_min = min(valid_keys)
+                            print 'chi2_min al termine delle varie calibrazioni:', chi2_min
+                            market_data['model price'] = compute_VG_prices(multiple_calib_dict[chi2_min]['calib_params'], S0, curve, dividends, market_data)
+                            chi2 = multiple_calib_dict[chi2_min]['chi2']
+                            final_params = multiple_calib_dict[chi2_min]['calib_params']
                         root.destroy()
 
-                        #  aggiungo al dataframe di dati i prezzi da modello
-                        market_data['model price'] = compute_VG_prices(ff.x, S0, curve, dividends, market_data)
 
                         # creo le tabelle pivot con i risultati maturity x strike
                         market_call_pivot = pd.pivot_table(market_data.loc[market_data['type'] == 'CALL'], index='strike', columns='maturity',
@@ -1157,23 +1268,6 @@ def calibration_from_xls(control):
                                                           columns='maturity', values='market price', fill_value=np.nan)
                         model_put_pivot = pd.pivot_table(market_data.loc[market_data['type'] == 'PUT'], index='strike',
                                                          columns='maturity', values='model price', fill_value=np.nan)
-
-                        # # produco i grafici
-                        # for i in range(0, len(market_call_pivot.keys())):
-                        #     plt.plot(market_call_pivot.index, market_call_pivot[market_call_pivot.keys()[i]], '^',label='market price')
-                        #     plt.plot(market_call_pivot.index, model_call_pivot[model_call_pivot.keys()[i]], 'o',label='model price')
-                        #     plt.title('Call prices maturity %.2f year' % market_call_pivot.keys()[i])
-                        #     plt.xlabel('Strike')
-                        #     plt.legend()
-                        #     plt.show()
-                        #
-                        # for i in range(0, len(market_put_pivot.keys())):
-                        #     plt.plot(market_put_pivot.index, market_put_pivot[market_put_pivot.keys()[i]], '^',label='market price')
-                        #     plt.plot(market_put_pivot.index, model_put_pivot[model_put_pivot.keys()[i]], 'o',label='model price')
-                        #     plt.title('Put prices maturity %.2f year' % market_put_pivot.keys()[i])
-                        #     plt.xlabel('Strike')
-                        #     plt.legend()
-                        #     plt.show()
 
                         # produco i grafici in subplots contenenti grafico fitting Call e grafico fitting Put
                         graphics_keys = market_data['maturity'].unique()
@@ -1201,11 +1295,7 @@ def calibration_from_xls(control):
                             plt.show()
 
                         # Inverto il prezzo VG relativo a strike e maturity date per ottenere una volatilita' BS
-                        vol = fromPriceVGtoVolBS(ff.x,S0,strike,maturity,curve,dividends)
-
-                        # Calcolo il chi quadro
-                        chi2 = computeCHI2(mkt=market_data['market price'], mdl=market_data['model price'],
-                                           type_calib='CURVE_OPT')
+                        vol = fromPriceVGtoVolBS(final_params,S0,strike,maturity,curve,dividends)
 
                         # scrivo su foglio Excel
                         writeDividendsResOnXls(title='Implicit dividends',
@@ -1225,7 +1315,7 @@ def calibration_from_xls(control):
                                                  W_class=W1,
                                                  xla=xla,
                                                  chi2=chi2,
-                                                 opt_dict=ff.x,
+                                                 opt_dict=final_params,
                                                  res=market_data,
                                                  capitalization_type='CNT')
 
