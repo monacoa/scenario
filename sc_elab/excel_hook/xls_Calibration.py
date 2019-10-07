@@ -159,7 +159,7 @@ def writeCalibrationResOnXls(type_data, model, W_class, xla, chi2, opt_dict, res
 
 
 
-def writeDividendsResOnXls(title, W_class, xla, res, dividend_type = 'continuous'):
+def writeDividendsResOnXls(title, W_class, xla, res, dividend_type = 'CNT'):
 
     nameSheet = nameSheetCalibRes
     try:
@@ -382,3 +382,24 @@ def writeTemplateCalibration(xla, nameSheet):
     r = intestazioneCalibration(xla=xla, rng=r, attributi=Attributi, title='Template Calibration Inflation Option')
     r = writeResultPandas(xla=xla, rng=r, df=mat, flagPrintColumns=True)
     xla.Cells.ColumnWidth = 18
+    #
+    # ##########################
+    # # Vol from VG surface
+    # ##########################
+    #
+    # mat = pd.DataFrame()
+    # mat['Maturity'] = np.arange(1, 8, step=1)
+    # mat['Strike'] = 9999*np.ones(7)
+    # mat['Usage'] = 'Y'
+    #
+    # Attributi = {
+    #     "0. Date Ref":  datetime.datetime.now().strftime("%m/%d/%Y")
+    #     ,"1. Initial Price": 9999
+    #     ,"2. sigma"        : 0.1
+    #     ,"3. nu"           : 0.1
+    #     ,"4. theta"        : 0
+    # }
+    #
+    # r = intestazioneCalibration(xla=xla, rng=r, attributi=Attributi, title='Template Vol from VG Surface')
+    # r = writeResultPandas(xla=xla, rng=r, df=mat, flagPrintColumns=True)
+    # xla.Cells.ColumnWidth = 18

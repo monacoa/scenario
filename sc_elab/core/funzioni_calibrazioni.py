@@ -112,11 +112,12 @@ def preProcessingOptions(W_calib, curve):
 
     if optiontype == 'Swaption':
         # leggo le opzioni
-        volsdata_noint = W_calib.OptionChosen.loc[(W_calib.OptionChosen[3] == 'Y'), [0, 1, 2]]
+        volsdata_noint = W_calib.OptionChosen.loc[(W_calib.OptionChosen[4] == 'Y'), [0, 1, 2, 3]]
         market_data = pd.DataFrame()
         market_data['expiry'] = volsdata_noint.loc[:, 0].map(MaturityFromStringToYear).values.astype(float)
         market_data['maturity'] = volsdata_noint.loc[:, 1].map(MaturityFromStringToYear).values.astype(float)
         market_data['value'] = np.divide(volsdata_noint.loc[:, 2].values.astype(float), 100.)
+        market_data['shift']= np.divide(volsdata_noint.loc[:,3].values.astype(float),100.)
 
         # leggo il tipo di contratto e il tenor
         if W_calib.OptionChosen.loc[W_calib.OptionChosen[0] == 'SwaptionType', 1].values[0] == 'Payer':
@@ -140,8 +141,8 @@ def preProcessingOptions(W_calib, curve):
             srate, annuity = forwardSwap(tenr, curve_times, curve_values, 0, t, T)
             market_data.at[i, "swap"] = srate
             if market_data.at[i, "swap"] > 0:
-                market_data.at[i, "market price"] = fromVolaToPrice(t, T, tenr, market_data.at[i, "value"], curve_times,
-                                                                    curve_values, call_flag)
+                market_data.at[i, "market price"] = fromVolaATMToPrice(t, T, tenr, market_data.at[i, "value"], curve_times,
+                                                                    curve_values, market_data.at[i, "shift"], call_flag)
 
         # per calibrare seleziono i dati con swap positivo
         market_data = market_data.loc[market_data['swap'] >= 0]
@@ -766,17 +767,27 @@ def CurveFromDictToList(rf_Curve):
     return np.array(rf_times), np.array(rf_values)
 
 
-def fromVolaToPrice(t_exp, t_mat, tenor, vol, rf_times,rf_values,call_type):
+# def fromVolaToPrice(t_exp, t_mat, tenor, vol, rf_times,rf_values,call_type):
+#     if (vol <= 0.0) or (vol >= 2.0):
+#         print "in swaption: it takes 0 < vol < 2; found ", vol
+#
+#     srate, ForwardAnnuityPrice = forwardSwap(tenor, rf_times,rf_values, 0, t_exp, t_mat)
+#     call = srate * call_type * (2.0 * norm.cdf(call_type * 0.5 * vol * np.sqrt(t_exp)) - 1.0)
+#
+#     price = ForwardAnnuityPrice * call
+#
+#     return price
+
+def fromVolaATMToPrice(t_exp, t_mat, tenor, vol, rf_times,rf_values, shift, call_type):
     if (vol <= 0.0) or (vol >= 2.0):
         print "in swaption: it takes 0 < vol < 2; found ", vol
 
     srate, ForwardAnnuityPrice = forwardSwap(tenor, rf_times,rf_values, 0, t_exp, t_mat)
-    call = srate * call_type * (2.0 * norm.cdf(call_type * 0.5 * vol * np.sqrt(t_exp)) - 1.0)
+    call = (srate+shift) * call_type * (2.0 * norm.cdf(call_type * 0.5 * vol * np.sqrt(t_exp)) - 1.0)
 
     price = ForwardAnnuityPrice * call
 
     return price
-
 
 def fromPriceToVola(t_exp, t_mat, tenor,price, curve_dict,call_type):
 
@@ -1020,6 +1031,16 @@ def fromPriceVGtoVolBS(parameters_list,S0,strike,maturity,curve,dividends):
         root.mainloop()
 
     return vol
+
+# # ==========================================
+# # funzioni collegate alla calibrazione
+# # ==========================================
+#
+# @xl_func
+# def vol_from_VG_surface(control):
+#
+#
+#
 
 ###############################################
 #  Jarrow Yildirim
