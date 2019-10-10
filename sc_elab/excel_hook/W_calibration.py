@@ -174,6 +174,7 @@ class W_calib_menu(LabelFrame):
             tmpInflCurve = objectOnSheet.loc[objectOnSheet.TypeObject == 'Inflation/Real Curve', 'Name'].tolist()
             tmpOptions = objectOnSheet.loc[objectOnSheet.TypeObject == 'Option', 'Name'].tolist()
             tmpTS = objectOnSheet.loc[objectOnSheet.TypeObject == 'TS', 'Name'].tolist()
+            tmpVolCoord = objectOnSheet.loc[objectOnSheet.TypeObject == 'Elaboration', 'Name'].tolist()
 
         #########################################################################
         # Titolo della form
@@ -308,6 +309,17 @@ class W_calib_menu(LabelFrame):
             self.NameInflation = StringVar()
             self.cb_inflcurve.config(textvariable=self.NameInflation, state="readonly", values=tmpInflCurve)
             self.cb_inflcurve.grid(row=8, column=2, rowspan=1, columnspan=3, pady=2, sticky=W + E + N + S)
+
+        #### Alimentazione delle coppie strike x maturity per l'estrazione delle volatilita' dalla superficie
+        # di volatilita' implicita nei prezzi delle opzioni Variance Gamma
+        if model == 'Variance Gamma':
+            Label6 = Label(self.nb_t0, text='Vol Coordinates')
+            Label6.grid(row=8, column=1, rowspan=1, columnspan=1, pady=2, sticky=W + E + N + S)
+
+            self.cb_volcoord = ttk.Combobox(self.nb_t0)
+            self.NameVolCoord = StringVar()
+            self.cb_volcoord.config(textvariable=self.NameVolCoord, state='readonly', values=tmpVolCoord)
+            self.cb_volcoord.grid(row=8, column=2, rowspan=1, columnspan=3, pady=2, sticky=W + E + N + S)
 
         #########################################################################
         # Area TS
@@ -529,6 +541,11 @@ class W_calib_menu(LabelFrame):
                     if model == 'Jarrow Yildirim':
                         tmp_inflation = tableObject.loc[tableObject.Name == self.NameInflation.get(), 'keys'].values[0]
                         self.InflationChosen = dictObject[tmp_inflation]
+                    if model == 'Variance Gamma' and self.NameVolCoord.get() != '':
+                        tmp_volcoord = tableObject.loc[tableObject.Name == self.NameVolCoord.get(), 'keys'].values[0]
+                        self.VolCoordChosen = dictObject[tmp_volcoord]
+                    elif model == 'Variance Gamma' and self.NameVolCoord.get() == '':
+                        self.VolCoordChosen = pd.DataFrame()
                     self.master.destroy()
 
 
@@ -707,6 +724,9 @@ def readFeaturesObject(input_dict):
                                                         'TypeObject': 'Matrix',
                                                         'Name': item.loc[0, 0]}, ignore_index=True)
 
-
+        elif u'ElabType' in item.loc[:,0].values:
+            element_on_sheet = element_on_sheet.append({'keys': k,
+                                                        'TypeObject': 'Elaboration',
+                                                        'Name': item.loc[0,0]}, ignore_index=True)
 
     return element_on_sheet

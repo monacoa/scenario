@@ -207,8 +207,12 @@ def preProcessingOptions(W_calib, curve):
 
         S0 = W_calib.OptionChosen.loc[(W_calib.OptionChosen.loc[:, 0] == 'Initial Price'), 1].values.astype(float)[0]
 
-        strike = W_calib.OptionChosen.loc[(W_calib.OptionChosen[0] == 'Strike'), 1].values.astype(float)[0]
-        maturity = W_calib.OptionChosen.loc[(W_calib.OptionChosen[0] == 'Mat'), 1].values.astype(float)[0]
+        if len(W_calib.VolCoordChosen) > 0:
+            vol_coord_df = W_calib.VolCoordChosen.loc[W_calib.VolCoordChosen[2]=='Y',[0,1]]
+            vol_coord_df.rename(columns={0:'Maturity',1:'Strike'},inplace=True)
+            vol_coord_df.reset_index(drop=True, inplace=True)
+        else:
+            vol_coord_df = pd.DataFrame()
         # preprocessing dati
         market_data = market_data.sort_values(by=['maturity', 'type', 'strike'])
 
@@ -229,7 +233,7 @@ def preProcessingOptions(W_calib, curve):
                 dividends['VALUE'] = [float(W_dvd.dvd.get()), float(W_dvd.dvd.get())]
                 dividends_data = dividends
 
-        return market_data, S0, strike, maturity, dividends_data, dividends
+        return market_data, S0, vol_coord_df, dividends_data, dividends
 
     else:
         root = Tk()

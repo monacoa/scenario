@@ -1208,7 +1208,7 @@ def calibration_from_xls(control):
                         orig_curve, curve, type_cap = preProcessingCurve(W1.CurveChosen, rate_time_zero=True)
 
                         # leggo e processo i dati sulle opzioni
-                        market_data, S0, strike, maturity, dividends_data, dividends = preProcessingOptions(W1,curve)
+                        market_data, S0, vol_coord_df, dividends_data, dividends = preProcessingOptions(W1,curve)
 
                         root = Tk()
                         root.grid()
@@ -1294,8 +1294,13 @@ def calibration_from_xls(control):
                             plt.tight_layout()
                             plt.show()
 
-                        # Inverto il prezzo VG relativo a strike e maturity date per ottenere una volatilita' BS
-                        vol = fromPriceVGtoVolBS(final_params,S0,strike,maturity,curve,dividends)
+                        # Inverto i prezzi VG relativi a strike e maturity date per ottenere delle volatilita' BS
+                        if len(vol_coord_df) > 0:
+                            print vol_coord_df
+                            vol_coord_list = []
+                            for i in range(len(vol_coord_df)):
+                                vol_coord_list.append(fromPriceVGtoVolBS(final_params,S0,vol_coord_df['Strike'][i],vol_coord_df['Maturity'][i],curve,dividends))
+                            vol_coord_df['Implied Vol']=vol_coord_list
 
                         # scrivo su foglio Excel
                         writeDividendsResOnXls(title='Implicit dividends',
@@ -1303,12 +1308,11 @@ def calibration_from_xls(control):
                                                xla=xla,
                                                res=dividends)
 
-                        writeVolResOnXls(title='Volatility from surface',
-                                         W_class=W1,
-                                         xla=xla,
-                                         strike=strike,
-                                         maturity=maturity,
-                                         vol=vol)
+                        if len(vol_coord_df) > 0:
+                            writeVolResOnXls(title='Volatility from surface',
+                                             W_class=W1,
+                                             xla=xla,
+                                             res=vol_coord_df)
 
                         writeCalibrationResOnXls(type_data=type_data,
                                                  model=model,
