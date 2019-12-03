@@ -62,6 +62,16 @@ def model_parameters(value):
         names = ['sigma', 'nu', 'theta']
         attribute = ['sv', 'min', 'max', 'fix']
 
+    elif value == 'Heston':
+        dict ={'kappa' :{'sv':'0.5', 'min': '0.01', 'max': '5.0' , 'fix':0},
+               'theta': {'sv': '0.15', 'min': '0.01', 'max': '0.7', 'fix': 0},
+               'v0': {'sv': '0.1', 'min': '0.01', 'max': '0.7', 'fix': 0},
+               'sigma': {'sv': '0.1', 'min': '0.01', 'max': '1.0', 'fix': 0},
+               'rho': {'sv': '-0.1', 'min': '-0.9', 'max': '0.9', 'fix': 0},
+               }
+        names = ['kappa','theta','v0','sigma','rho']
+        attribute = ['sv', 'min', 'max', 'fix']
+
     else:
         dict ={}
         names = []
@@ -93,7 +103,8 @@ class W_calib_models(Frame):
                          'VSCK',
                          'Jarrow Yildirim',
                          'G2++',
-                         'Variance Gamma']
+                         'Variance Gamma',
+                              'Heston']
 
         for name_calib in self.calib_avaible:
             Radiobutton(self,
@@ -195,7 +206,7 @@ class W_calib_menu(LabelFrame):
         self.rb_type2.grid(row = 1, column = 2, rowspan = 1, columnspan = 1, pady = 5, sticky = W+E+N+S)
         self.set_mkt_ts.set('MKT')
 
-        if model in ['Jarrow Yildirim','G2++','Variance Gamma']:
+        if model in ['Jarrow Yildirim','G2++','Variance Gamma','Heston']:
             self.rb_type2.config(state = 'disabled')
 
         #########################################################################
@@ -246,7 +257,7 @@ class W_calib_menu(LabelFrame):
             self.rb_calib1.config(state = 'disabled')
             self.rb_calib3.config(state = 'disabled')
             self.mkt_calibration_type.set('CURVE')
-        elif model in ['G2++','Variance Gamma','Jarrow Yildirim']:
+        elif model in ['G2++','Variance Gamma','Jarrow Yildirim','Heston']:
             self.rb_calib1.config(state = 'disabled')
             self.rb_calib2.config(state = 'disabled')
             self.mkt_calibration_type.set('CURVE_OPT')
@@ -312,7 +323,7 @@ class W_calib_menu(LabelFrame):
 
         #### Alimentazione delle coppie strike x maturity per l'estrazione delle volatilita' dalla superficie
         # di volatilita' implicita nei prezzi delle opzioni Variance Gamma
-        if model == 'Variance Gamma':
+        if model in ['Variance Gamma','Heston']:
             Label6 = Label(self.nb_t0, text='Vol Coordinates')
             Label6.grid(row=8, column=1, rowspan=1, columnspan=1, pady=2, sticky=W + E + N + S)
 
@@ -541,10 +552,10 @@ class W_calib_menu(LabelFrame):
                     if model == 'Jarrow Yildirim':
                         tmp_inflation = tableObject.loc[tableObject.Name == self.NameInflation.get(), 'keys'].values[0]
                         self.InflationChosen = dictObject[tmp_inflation]
-                    if model == 'Variance Gamma' and self.NameVolCoord.get() != '':
+                    if (model in ['Variance Gamma','Heston']) and (self.NameVolCoord.get() != ''):
                         tmp_volcoord = tableObject.loc[tableObject.Name == self.NameVolCoord.get(), 'keys'].values[0]
                         self.VolCoordChosen = dictObject[tmp_volcoord]
-                    elif model == 'Variance Gamma' and self.NameVolCoord.get() == '':
+                    elif (model in ['Variance Gamma','Heston']) and (self.NameVolCoord.get() == ''):
                         self.VolCoordChosen = pd.DataFrame()
                     self.master.destroy()
 

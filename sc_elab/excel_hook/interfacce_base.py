@@ -1202,7 +1202,7 @@ def calibration_from_xls(control):
                                                  res=market_data,
                                                  capitalization_type='')
 
-                    if model == 'Variance Gamma':
+                    if model in ['Variance Gamma','Heston']:
 
                         # leggo la curva dei tassi di interesse
                         orig_curve, curve, type_cap = preProcessingCurve(W1.CurveChosen, rate_time_zero=True)
@@ -1216,47 +1216,120 @@ def calibration_from_xls(control):
                         message.grid(column=0, row=1)
                         root.update()
 
-                        n_sample = W1.nTime.get()
-                        print 'numero di tentativi:', n_sample
-                        if n_sample == 1:
-                            ff = minimize(loss_Call_VG, args=(S0, market_data, curve, dividends, loss_function_type_power, loss_function_type_absrel)
-                                          , x0=x0_m, bounds=x_bnd, method='TNC')
-                            #  aggiungo al dataframe di dati i prezzi da modello
-                            market_data['model price'] = compute_VG_prices(ff.x, S0, curve, dividends, market_data)
-                            # Calcolo il chi quadro
-                            chi2 = computeCHI2(mkt=market_data['market price'], mdl=market_data['model price'],
-                                               type_calib='CURVE_OPT')
-                            final_params = ff.x
-                        elif n_sample > 1:
-                            multiple_calib_dict = {}
-                            for i in range(n_sample):
-                                starting_points_list = []
-                                for p_name in W1.params_names:
-                                    starting_points_list.append(np.random.uniform(low=float(W1.param_dict[p_name]['min']),high=float(W1.param_dict[p_name]['max'])))
-                                # test condizione calcolo omega
-                                if 1. - starting_points_list[2] * starting_points_list[1] - 0.5 * np.power(starting_points_list[0],2) * starting_points_list[1] <= 0.:
-                                    continue
-                                print 'punti iniziali al passo %i:'%i, starting_points_list
-                                ff = minimize(loss_Call_VG, args=(
-                                S0, market_data, curve, dividends, loss_function_type_power, loss_function_type_absrel)
-                                              , x0=starting_points_list, bounds=x_bnd, method='TNC')
-                                print 'parametri calibrati al passo %i:'%i, ff.x
+                        if model == 'Variance Gamma':
+                            loss_function = loss_Call_VG
+                            price_function = compute_VG_prices
+
+                            n_sample = W1.nTime.get()
+                            print 'numero di tentativi:', n_sample
+                            if n_sample == 1:
+                                ff = minimize(loss_function, args=(S0, market_data, curve, dividends, loss_function_type_power, loss_function_type_absrel)
+                                              , x0=x0_m, bounds=x_bnd, method='TNC')
                                 #  aggiungo al dataframe di dati i prezzi da modello
-                                market_data['model price'] = compute_VG_prices(ff.x, S0, curve, dividends, market_data)
+                                market_data['model price'] = price_function(ff.x, S0, curve, dividends, market_data)
                                 # Calcolo il chi quadro
                                 chi2 = computeCHI2(mkt=market_data['market price'], mdl=market_data['model price'],
                                                    type_calib='CURVE_OPT')
-                                print 'chi2 al passo %i:'%i, chi2
-                                multiple_calib_dict[chi2] = {'chi2':chi2, 'calib_params':ff.x, 'initial_guess':starting_points_list}
-                            valid_keys = [k for k in multiple_calib_dict.keys() if k > 0]
-                            print 'chiavi valide:',valid_keys
-                            chi2_min = min(valid_keys)
-                            print 'chi2_min al termine delle varie calibrazioni:', chi2_min
-                            market_data['model price'] = compute_VG_prices(multiple_calib_dict[chi2_min]['calib_params'], S0, curve, dividends, market_data)
-                            chi2 = multiple_calib_dict[chi2_min]['chi2']
-                            final_params = multiple_calib_dict[chi2_min]['calib_params']
-                        root.destroy()
+                                final_params = ff.x
+                            elif n_sample > 1:
+                                multiple_calib_dict = {}
+                                for i in range(n_sample):
+                                    starting_points_list = []
+                                    for p_name in W1.params_names:
+                                        starting_points_list.append(np.random.uniform(low=float(W1.param_dict[p_name]['min']),high=float(W1.param_dict[p_name]['max'])))
+                                    # test condizione calcolo omega
+                                    if 1. - starting_points_list[2] * starting_points_list[1] - 0.5 * np.power(starting_points_list[0],2) * starting_points_list[1] <= 0.:
+                                        continue
+                                    print 'punti iniziali al passo %i:'%i, starting_points_list
+                                    ff = minimize(loss_function, args=(
+                                    S0, market_data, curve, dividends, loss_function_type_power, loss_function_type_absrel)
+                                                  , x0=starting_points_list, bounds=x_bnd, method='TNC')
+                                    print 'parametri calibrati al passo %i:'%i, ff.x
+                                    #  aggiungo al dataframe di dati i prezzi da modello
+                                    market_data['model price'] = price_function(ff.x, S0, curve, dividends, market_data)
+                                    # Calcolo il chi quadro
+                                    chi2 = computeCHI2(mkt=market_data['market price'], mdl=market_data['model price'],
+                                                       type_calib='CURVE_OPT')
+                                    print 'chi2 al passo %i:'%i, chi2
+                                    multiple_calib_dict[chi2] = {'chi2':chi2, 'calib_params':ff.x, 'initial_guess':starting_points_list}
+                                valid_keys = [k for k in multiple_calib_dict.keys() if k > 0]
+                                print 'chiavi valide:',valid_keys
+                                chi2_min = min(valid_keys)
+                                print 'chi2_min al termine delle varie calibrazioni:', chi2_min
+                                market_data['model price'] = price_function(multiple_calib_dict[chi2_min]['calib_params'], S0, curve, dividends, market_data)
+                                chi2 = multiple_calib_dict[chi2_min]['chi2']
+                                final_params = multiple_calib_dict[chi2_min]['calib_params']
+                            root.destroy()
 
+                        if model == 'Heston':
+
+                            loss_function = loss_Call_HES
+                            price_function = compute_HES_prices
+
+                            n_sample = W1.nTime.get()
+                            print 'numero di tentativi:', n_sample
+
+                            def fun_constr(param_list):
+                                return 2. * param_list[0] * param_list[1] - np.power(param_list[3], 2) - 0.1
+
+                            constraints = [{'type': 'ineq', 'fun': fun_constr},
+                                           {'type': 'ineq', 'fun': lambda x: x[0] - x_bnd[0][0]},
+                                           {'type': 'ineq', 'fun': lambda x: x[0] - x_bnd[0][0]},
+                                           {'type': 'ineq', 'fun': lambda x: x[1] - x_bnd[1][0]},
+                                           {'type': 'ineq', 'fun': lambda x: x[2] - x_bnd[2][0]},
+                                           {'type': 'ineq', 'fun': lambda x: x[3] - x_bnd[3][0]},
+                                           {'type': 'ineq', 'fun': lambda x: x[4] - x_bnd[4][0]},
+                                           {'type': 'ineq', 'fun': lambda x: x_bnd[0][1] - x[0]},
+                                           {'type': 'ineq', 'fun': lambda x: x_bnd[1][1] - x[1]},
+                                           {'type': 'ineq', 'fun': lambda x: x_bnd[2][1] - x[2]},
+                                           {'type': 'ineq', 'fun': lambda x: x_bnd[3][1] - x[3]},
+                                           {'type': 'ineq', 'fun': lambda x: x_bnd[4][1] - x[4]}]
+
+                            if n_sample == 1:
+                                ff = minimize(loss_function, args=(
+                                S0, market_data, curve, dividends, loss_function_type_power, loss_function_type_absrel)
+                                              , x0=x0_m, constraints=constraints, method='COBYLA')
+                                #  aggiungo al dataframe di dati i prezzi da modello
+                                market_data['model price'] = price_function(ff.x, S0, curve, dividends, market_data)
+                                # Calcolo il chi quadro
+                                chi2 = computeCHI2(mkt=market_data['market price'], mdl=market_data['model price'],
+                                                   type_calib='CURVE_OPT')
+                                final_params = ff.x
+                            elif n_sample > 1:
+                                multiple_calib_dict = {}
+                                for i in range(n_sample):
+                                    starting_points_list = []
+                                    for p_name in W1.params_names:
+                                        starting_points_list.append(
+                                            np.random.uniform(low=float(W1.param_dict[p_name]['min']),
+                                                              high=float(W1.param_dict[p_name]['max'])))
+                                    # test Feller condition
+                                    if 2. * starting_points_list[0] * starting_points_list[1] - np.power(starting_points_list[3], 2) < 0.1:
+                                        continue
+                                    print 'punti iniziali al passo %i:' % i, starting_points_list
+                                    ff = minimize(loss_function, args=(
+                                        S0, market_data, curve, dividends, loss_function_type_power,
+                                        loss_function_type_absrel)
+                                                  , x0=starting_points_list, constraints=constraints,
+                                                  method='COBYLA')
+                                    print 'parametri calibrati al passo %i:' % i, ff.x
+                                    #  aggiungo al dataframe di dati i prezzi da modello
+                                    market_data['model price'] = price_function(ff.x, S0, curve, dividends, market_data)
+                                    # Calcolo il chi quadro
+                                    chi2 = computeCHI2(mkt=market_data['market price'], mdl=market_data['model price'],
+                                                       type_calib='CURVE_OPT')
+                                    print 'chi2 al passo %i:' % i, chi2
+                                    multiple_calib_dict[chi2] = {'chi2': chi2, 'calib_params': ff.x,
+                                                                 'initial_guess': starting_points_list}
+                                valid_keys = [k for k in multiple_calib_dict.keys() if k > 0]
+                                print 'chiavi valide:', valid_keys
+                                chi2_min = min(valid_keys)
+                                print 'chi2_min al termine delle varie calibrazioni:', chi2_min
+                                market_data['model price'] = price_function(
+                                    multiple_calib_dict[chi2_min]['calib_params'], S0, curve, dividends, market_data)
+                                chi2 = multiple_calib_dict[chi2_min]['chi2']
+                                final_params = multiple_calib_dict[chi2_min]['calib_params']
+                            root.destroy()
 
                         # creo le tabelle pivot con i risultati maturity x strike
                         market_call_pivot = pd.pivot_table(market_data.loc[market_data['type'] == 'CALL'], index='strike', columns='maturity',

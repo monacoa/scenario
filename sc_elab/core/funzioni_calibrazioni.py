@@ -214,7 +214,7 @@ def preProcessingOptions(W_calib, curve):
         else:
             vol_coord_df = pd.DataFrame()
         # preprocessing dati
-        market_data = market_data.sort_values(by=['maturity', 'type', 'strike'])
+        market_data = market_data.sort_values(by=['maturity', 'type', 'strike']).reset_index(drop=True)
 
         # calcolo dei dividendi impliciti nei prezzi delle opzioni
         dividends_data, dividends = implicit_dividends(S0, market_data, curve)
@@ -247,6 +247,7 @@ def P_0t(t,curve_times,curve_values):
     if t > curve_times[len(curve_times)-1]:
         last_forward = np.log(curve_values[len(curve_values)-2] / curve_values[len(curve_values)-1]) / (curve_times[len(curve_times)-1] - curve_times[len(curve_times)-2])
         return np.exp(-last_forward * (t - curve_times[len(curve_times)-1])) * curve_values[len(curve_values)-1]
+    return np.exp(np.interp(t,curve_times,np.log(curve_values)))
 
 ############################################################
 #       CIR
@@ -884,7 +885,7 @@ def compute_VG_prices(list_model_params, S0, curve, dividends, market_data):
     parameters['theta'] = list_model_params[2]
 
     times = market_data['maturity'].drop_duplicates().tolist()
-    rates = np.interp(times,curve['TIME'],curve['VALUE'])
+    rates = -np.divide(np.interp(times,curve['TIME'],-curve['VALUE']*curve['TIME']),times)
     dividends = np.interp(times, dividends['TIME'],dividends['VALUE'])
 
     alpha = alpha_Madan(list_model_params)
@@ -1417,3 +1418,126 @@ def compute_values_post_calib_JY(flag_optim, param, market_data, calib_result_li
             mdl_opt_list.append(float(mdl_tmp))
 
     return mdl_opt_list
+
+######################################################################
+#           HESTON
+######################################################################
+# I prezzi analitici delle opzioni Call e Put sono calcolati con l'espansione della trasformata di Fourier
+# in serie di coseni, secondo l'articolo di Fang e Osterlee
+
+def PhiCaratt_Fang(params_dict, r, q, T, u):
+    # Versione due della funzione caratteristica del log price di Heston. Con questa versione
+    # non ci sono problemi di continuita' per la parte reale del logaritmo complesso. Per la formula si veda
+    # The Little Heston Trap
+    d = np.sqrt(np.power(params_dict['rho'] * params_dict['sigma'] * u * 1j - params_dict['kappa'], 2) + np.power(params_dict['sigma'], 2) * (
+                1j * u + np.power(u, 2)))
+    g_2 = (params_dict['kappa'] - params_dict['rho'] * params_dict['sigma'] * 1j * u - d) / (
+                params_dict['kappa'] - params_dict['rho'] * params_dict['sigma'] * 1j * u + d)
+    fatt1 = np.exp(1j * u * (r - q) * T)
+    fatt2 = np.exp(params_dict['theta'] * params_dict['kappa'] * np.power(params_dict['sigma'], -2) * (
+                (params_dict['kappa'] - params_dict['rho'] * params_dict['sigma'] * 1j * u - d) * T
+                - 2. * np.log((1. - g_2 * np.exp(-d * T)) / (1 - g_2))))
+    fatt3 = np.exp(
+        params_dict['v0'] * np.power(params_dict['sigma'], -2) * (params_dict['kappa'] - params_dict['rho'] * params_dict['sigma'] * 1j * u - d)
+        * (1. - np.exp(-d * T)) / (1. - g_2 * np.exp(-d * T)))
+
+    return fatt1 * fatt2 * fatt3
+
+def cum_1(params_dict, r, q, T):
+    cum = (r - q) * T + (1. + np.exp(-params_dict['kappa'] * T)) * (params_dict['theta'] - params_dict['v0']) / (
+                2. * params_dict['kappa']) - 0.5 * params_dict['theta'] * T
+    return cum
+
+def cum_2(params_dict, T):
+    fact = 1. / (8. * np.power(params_dict['kappa'], 3))
+    summ_1 = params_dict['sigma'] * T * params_dict['kappa'] * np.exp(-params_dict['kappa'] * T) * (params_dict['v0'] - params_dict['theta']) * (
+                8. * params_dict['kappa'] * params_dict['rho'] - 4. * params_dict['sigma'])
+    summ_2 = params_dict['kappa'] * params_dict['rho'] * params_dict['sigma'] * (1. - np.exp(-params_dict['kappa'] * T)) * (
+                16. * params_dict['theta'] - 8. * params_dict['v0'])
+    summ_3 = 2. * params_dict['theta'] * params_dict['kappa'] * T * (
+                -4. * params_dict['kappa'] * params_dict['rho'] * params_dict['sigma'] + np.power(params_dict['sigma'], 2) + 4. * np.power(
+            params_dict['kappa'], 2))
+    summ_4 = (params_dict['theta'] - 2. * params_dict['v0']) * np.exp(-2. * params_dict['kappa'] * T) + params_dict['theta'] * (
+                6. * np.exp(-params_dict['kappa'] * T) - 7.) + 2. * params_dict['v0']
+    summ_4 *= np.power(params_dict['sigma'], 2)
+    summ_5 = 8. * np.power(params_dict['kappa'], 2) * (params_dict['v0'] - params_dict['theta']) * (1. - np.exp(-params_dict['kappa'] * T))
+    cum = fact * (summ_1 + summ_2 + summ_3 + summ_4 + summ_5)
+    return cum
+
+def Chi_Fang(k, low_bnd, up_bnd, c, d):
+    frac = lambda s: (s - low_bnd) / (up_bnd - low_bnd)
+    summ_1 = np.cos(k * np.pi * frac(d)) * np.exp(d)
+    summ_2 = np.cos(k * np.pi * frac(c)) * np.exp(c)
+    summ_3 = (k * np.pi / (up_bnd - low_bnd)) * np.sin(k * np.pi * frac(d)) * np.exp(d)
+    summ_4 = (k * np.pi / (up_bnd - low_bnd)) * np.sin(k * np.pi * frac(c)) * np.exp(c)
+    fact = 1. / (1. + np.power(k * np.pi / (up_bnd - low_bnd), 2))
+    chi_fang = fact * (summ_1 - summ_2 + summ_3 - summ_4)
+    return chi_fang
+
+def Psi_Fang(k, low_bnd, up_bnd, c, d):
+    frac = lambda s: (s - low_bnd) / (up_bnd - low_bnd)
+    psi = np.ones(len(k)) * (d - c)
+    psi[1:] = (np.sin(k[1:] * np.pi * frac(d)) - np.sin(k[1:] * np.pi * frac(c))) * (up_bnd - low_bnd) / (k[1:] * np.pi)
+
+    return psi
+
+def V(K, k, low_bnd, up_bnd, option_type):
+    fact = 2. * K / (up_bnd - low_bnd)
+    flag = 1 * (option_type == u'CALL') - 1 * (option_type == u'PUT')
+    V = flag * fact * (Chi_Fang(k, low_bnd, up_bnd, ((1 - flag) / 2) * low_bnd,
+                                     ((flag + 1) / 2) * up_bnd) - Psi_Fang(k, low_bnd, up_bnd,
+                                                                                ((1 - flag) / 2) * low_bnd,
+                                                                                ((flag + 1) / 2) * up_bnd))
+    return V
+
+def Option_Heston_cos(params_dict, S0, K, r, q, T, N, option_type):
+    x = np.log(S0 / K)
+    low_bnd = cum_1(params_dict,r,q,T) - 12. * np.sqrt(np.absolute(cum_2(params_dict,T)))
+    up_bnd = cum_1(params_dict,r,q,T) + 12. * np.sqrt(np.absolute(cum_2(params_dict,T)))
+    sum_weights = np.ones(N)
+    sum_weights[0] = 0.5
+    nodes = np.arange(N)
+    summands = np.real(PhiCaratt_Fang(params_dict, r, q, T, nodes * np.pi / (up_bnd - low_bnd)) * np.exp(
+        1j * np.pi * nodes * ((x - low_bnd) / (up_bnd - low_bnd))))
+    summands *= V(K, nodes, low_bnd, up_bnd, option_type)
+    price = np.sum(sum_weights * summands)
+    price *= np.exp(-r * T)
+
+    return price
+
+def compute_HES_prices(list_model_params, S0, curve, dividends, market_data):
+
+    parameters = {}
+    parameters['kappa'] = list_model_params[0]
+    parameters['theta'] = list_model_params[1]
+    parameters['v0'] = list_model_params[2]
+    parameters['sigma'] = list_model_params[3]
+    parameters['rho'] = list_model_params[4]
+
+    HES_prices = []
+    for i in range(len(market_data)):
+        type = market_data['type'][i].strip()
+        strike = market_data['strike'][i]
+        maturity = market_data['maturity'][i]
+        rate = -np.interp(maturity,curve['TIME'],-curve['VALUE']*curve['TIME'])/maturity # forward costante a tratti
+        dividend = np.interp(maturity, dividends['TIME'],dividends['VALUE'])
+        HES_prices.append(Option_Heston_cos(parameters,S0,strike,rate,dividend,maturity,96,type))
+
+    return HES_prices
+
+# ---------- Funzione di calcolo norma da ottimizzare ------------------------------------
+# power=1 metrica di Manhattan
+# power=2 metrica euclidea
+# se absrel='rel' viene calcolata la norma delle differenze relative
+# mkt_data e' un DataFrame contenente tre series 'maturity', 'strike' e 'market price'
+# curve e' un DataFrame contenente due series: 'time' e 'rate'
+def loss_Call_HES(list_model_params, S0, mkt_data, curve, dividends, power, absrel):
+
+    model_price_tmp = np.array(compute_HES_prices(list_model_params, S0, curve, dividends, mkt_data))
+    diff = np.absolute(model_price_tmp - mkt_data['market price'])
+    if absrel == 'rel':
+        diff = diff /np.absolute(mkt_data['market price'])
+
+    diff = np.power(diff,power)
+
+    return diff.sum()
