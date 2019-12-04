@@ -1270,7 +1270,7 @@ def calibration_from_xls(control):
                             print 'numero di tentativi:', n_sample
 
                             def fun_constr(param_list):
-                                return 2. * param_list[0] * param_list[1] - np.power(param_list[3], 2) - 0.1
+                                return 2. * param_list[0] * param_list[1] - np.power(param_list[3], 2) - float(W1.setting_Fcm.get())
 
                             constraints = [{'type': 'ineq', 'fun': fun_constr},
                                            {'type': 'ineq', 'fun': lambda x: x[0] - x_bnd[0][0]},
@@ -1285,12 +1285,14 @@ def calibration_from_xls(control):
                                            {'type': 'ineq', 'fun': lambda x: x_bnd[3][1] - x[3]},
                                            {'type': 'ineq', 'fun': lambda x: x_bnd[4][1] - x[4]}]
 
+                            CsN = int(W1.setting_CsN.get())
+
                             if n_sample == 1:
                                 ff = minimize(loss_function, args=(
-                                S0, market_data, curve, dividends, loss_function_type_power, loss_function_type_absrel)
+                                S0, market_data, curve, dividends, CsN, loss_function_type_power, loss_function_type_absrel)
                                               , x0=x0_m, constraints=constraints, method='COBYLA')
                                 #  aggiungo al dataframe di dati i prezzi da modello
-                                market_data['model price'] = price_function(ff.x, S0, curve, dividends, market_data)
+                                market_data['model price'] = price_function(ff.x, S0, curve, dividends, market_data, CsN)
                                 # Calcolo il chi quadro
                                 chi2 = computeCHI2(mkt=market_data['market price'], mdl=market_data['model price'],
                                                    type_calib='CURVE_OPT')
@@ -1308,13 +1310,13 @@ def calibration_from_xls(control):
                                         continue
                                     print 'punti iniziali al passo %i:' % i, starting_points_list
                                     ff = minimize(loss_function, args=(
-                                        S0, market_data, curve, dividends, loss_function_type_power,
+                                        S0, market_data, curve, dividends, CsN, loss_function_type_power,
                                         loss_function_type_absrel)
                                                   , x0=starting_points_list, constraints=constraints,
                                                   method='COBYLA')
                                     print 'parametri calibrati al passo %i:' % i, ff.x
                                     #  aggiungo al dataframe di dati i prezzi da modello
-                                    market_data['model price'] = price_function(ff.x, S0, curve, dividends, market_data)
+                                    market_data['model price'] = price_function(ff.x, S0, curve, dividends, market_data,CsN)
                                     # Calcolo il chi quadro
                                     chi2 = computeCHI2(mkt=market_data['market price'], mdl=market_data['model price'],
                                                        type_calib='CURVE_OPT')
@@ -1326,7 +1328,7 @@ def calibration_from_xls(control):
                                 chi2_min = min(valid_keys)
                                 print 'chi2_min al termine delle varie calibrazioni:', chi2_min
                                 market_data['model price'] = price_function(
-                                    multiple_calib_dict[chi2_min]['calib_params'], S0, curve, dividends, market_data)
+                                    multiple_calib_dict[chi2_min]['calib_params'], S0, curve, dividends, market_data, CsN)
                                 chi2 = multiple_calib_dict[chi2_min]['chi2']
                                 final_params = multiple_calib_dict[chi2_min]['calib_params']
                             root.destroy()

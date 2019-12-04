@@ -1505,7 +1505,7 @@ def Option_Heston_cos(params_dict, S0, K, r, q, T, N, option_type):
 
     return price
 
-def compute_HES_prices(list_model_params, S0, curve, dividends, market_data):
+def compute_HES_prices(list_model_params, S0, curve, dividends, market_data, N):
 
     parameters = {}
     parameters['kappa'] = list_model_params[0]
@@ -1521,7 +1521,7 @@ def compute_HES_prices(list_model_params, S0, curve, dividends, market_data):
         maturity = market_data['maturity'][i]
         rate = -np.interp(maturity,curve['TIME'],-curve['VALUE']*curve['TIME'])/maturity # forward costante a tratti
         dividend = np.interp(maturity, dividends['TIME'],dividends['VALUE'])
-        HES_prices.append(Option_Heston_cos(parameters,S0,strike,rate,dividend,maturity,96,type))
+        HES_prices.append(Option_Heston_cos(parameters,S0,strike,rate,dividend,maturity,N,type))
 
     return HES_prices
 
@@ -1531,9 +1531,9 @@ def compute_HES_prices(list_model_params, S0, curve, dividends, market_data):
 # se absrel='rel' viene calcolata la norma delle differenze relative
 # mkt_data e' un DataFrame contenente tre series 'maturity', 'strike' e 'market price'
 # curve e' un DataFrame contenente due series: 'time' e 'rate'
-def loss_Call_HES(list_model_params, S0, mkt_data, curve, dividends, power, absrel):
+def loss_Call_HES(list_model_params, S0, mkt_data, curve, dividends, N, power, absrel):
 
-    model_price_tmp = np.array(compute_HES_prices(list_model_params, S0, curve, dividends, mkt_data))
+    model_price_tmp = np.array(compute_HES_prices(list_model_params, S0, curve, dividends, mkt_data, N))
     diff = np.absolute(model_price_tmp - mkt_data['market price'])
     if absrel == 'rel':
         diff = diff /np.absolute(mkt_data['market price'])

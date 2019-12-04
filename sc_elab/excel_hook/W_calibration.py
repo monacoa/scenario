@@ -225,7 +225,7 @@ class W_calib_menu(LabelFrame):
         self.nb_t2 = Frame(self.nb)
         self.nb.add(self.nb_t2, text="PARAMS",compound="left")
 
-        if model == 'Jarrow Yildirim':
+        if model in ['Jarrow Yildirim','Heston']:
             self.nb_t3 = Frame(self.nb)
             self.nb.add(self.nb_t3, text='SETTINGS', compound='left')
 
@@ -409,6 +409,22 @@ class W_calib_menu(LabelFrame):
             Noz_label.grid(row=4, column=1, rowspan=1, columnspan=1, pady=2, sticky=E + N + S)
             Noz_entry = Entry(self.nb_t3, textvariable=self.setting_Noz)
             Noz_entry.grid(row=4,column=2, rowspan=1, columnspan=1, pady=2, sticky=W + N + S)
+
+        if model == 'Heston':
+
+            self.setting_Fcm = StringVar() # Feller condition margin
+            self.setting_Fcm.set('0.1')
+            Fcm_label = Label(self.nb_t3, text = 'Feller condition margin')
+            Fcm_label.grid(row=1,column=1,rowspan=1,columnspan=1,pady=2,sticky=E+N+S)
+            Fcm_entry = Entry(self.nb_t3, textvariable=self.setting_Fcm)
+            Fcm_entry.grid(row=1,column=2,rowspan=1,columnspan=1,pady=2,sticky=W+N+S)
+
+            self.setting_CsN = StringVar() #Cos series N - number of addends in the cos expansion of the fourier transform
+            self.setting_CsN.set('48')
+            CsN_label = Label(self.nb_t3, text = 'Cos series N')
+            CsN_label.grid(row=2,column=1,rowspan=1,columnspan=1,pady=2,sticky=E+N+S)
+            CsN_entry = Entry(self.nb_t3,textvariable=self.setting_CsN)
+            CsN_entry.grid(row=2,column=2,rowspan=1,columnspan=1,pady=2,sticky=W+N+S)
 
         #########################################################################
         # Bottoni finali
