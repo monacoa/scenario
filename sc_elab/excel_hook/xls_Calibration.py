@@ -298,6 +298,7 @@ def writeTemplateCalibration(xla, nameSheet):
     mat['Expiry']   = mat['Expiry'].map(MaturityFromIntToString)
     mat['Maturity'] = mat['Maturity'].map(MaturityFromIntToString)
     mat['Value (x100)'] = np.zeros(7)
+    mat['Shift'] = np.zeros(7)
     mat['Usage'] = 'Y'
 
     Attributi = {
