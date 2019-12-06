@@ -877,7 +877,7 @@ def alpha_Madan(list_model_params):
     return alpha
 
 
-def compute_VG_prices(list_model_params, S0, curve, dividends, market_data):
+def compute_VG_prices(list_model_params, S0, curve, dividends, market_data, settings):
 
     parameters = {}
     parameters['sigma'] = list_model_params[0]
@@ -892,7 +892,7 @@ def compute_VG_prices(list_model_params, S0, curve, dividends, market_data):
 
     VG_prices = []
     for i in range(0,len(times)):
-        strikesTmp, pricesTmp = Call_Fourier_VG(parameters, S0, rates[i], dividends[i], times[i], alpha, 0.25, 4096)
+        strikesTmp, pricesTmp = Call_Fourier_VG(parameters, S0, rates[i], dividends[i], times[i], alpha, settings['eta'], np.power(2,settings['N']))
         strikeMkt = market_data.loc[market_data['maturity']==times[i],['strike']].values.flatten()
         typeMkt = market_data.loc[market_data['maturity']==times[i],['type']].values.flatten()
         price_interp = np.interp(strikeMkt,strikesTmp,pricesTmp).flatten().tolist()
@@ -909,9 +909,9 @@ def compute_VG_prices(list_model_params, S0, curve, dividends, market_data):
 # se absrel='rel' viene calcolata la norma delle differenze relative
 # mkt_data e' un DataFrame contenente tre series 'maturity', 'strike' e 'market price'
 # curve e' un DataFrame contenente due series: 'time' e 'rate'
-def loss_Call_VG(list_model_params, S0, mkt_data, curve, dividends, power, absrel):
+def loss_Call_VG(list_model_params, S0, mkt_data, curve, dividends, settings, power, absrel):
 
-    model_price_tmp = np.array(compute_VG_prices(list_model_params, S0, curve, dividends, mkt_data[['maturity','strike','type']]))
+    model_price_tmp = np.array(compute_VG_prices(list_model_params, S0, curve, dividends, mkt_data[['maturity','strike','type']],settings))
     diff = np.absolute(model_price_tmp - mkt_data['market price'])
     if absrel == 'rel':
         diff = diff /np.absolute(mkt_data['market price'])
@@ -1016,7 +1016,7 @@ def fromPriceBSToVol(Price, S0, K, T, r, q):
 
 # Trovo la volatilita' Black-Scholes associata a strike e maturita' date in input tale che il prezzo
 # Black-Scholes e quello Variance Gamma coincidano
-def fromPriceVGtoVolBS(parameters_list,S0,strike,maturity,curve,dividends):
+def fromPriceVGtoVolBS(parameters_list,S0,strike,maturity,curve,dividends,settings):
 
     parameters = {'sigma': parameters_list[0], 'nu': parameters_list[1], 'theta': parameters_list[2]}
     r = np.interp(maturity, curve['TIME'], curve['VALUE'])
@@ -1026,7 +1026,7 @@ def fromPriceVGtoVolBS(parameters_list,S0,strike,maturity,curve,dividends):
     # q = P_0t(maturity, dividends['TIME'], dividends['VALUE']) # interpolazione con il forward costante a tratti
     # q = -np.log(q) / maturity
     alpha = alpha_Madan(parameters_list)
-    strike_list, price_list = Call_Fourier_VG(parameters, S0, r, q, maturity, alpha, 0.25, np.power(2, 12))
+    strike_list, price_list = Call_Fourier_VG(parameters, S0, r, q, maturity, alpha, settings['eta'], np.power(2, settings['N']))
     priceFourier = np.interp(strike, strike_list, price_list)
     vol = fromPriceBSToVol(priceFourier, S0, strike, maturity, r, q)
     priceBS = Call_BS(S0, strike, maturity, r, q, vol)
@@ -1505,7 +1505,7 @@ def Option_Heston_cos(params_dict, S0, K, r, q, T, N, option_type):
 
     return price
 
-def compute_HES_prices(list_model_params, S0, curve, dividends, market_data, N):
+def compute_HES_prices(list_model_params, S0, curve, dividends, market_data, settings):
 
     parameters = {}
     parameters['kappa'] = list_model_params[0]
@@ -1521,7 +1521,7 @@ def compute_HES_prices(list_model_params, S0, curve, dividends, market_data, N):
         maturity = market_data['maturity'][i]
         rate = -np.interp(maturity,curve['TIME'],-curve['VALUE']*curve['TIME'])/maturity # forward costante a tratti
         dividend = np.interp(maturity, dividends['TIME'],dividends['VALUE'])
-        HES_prices.append(Option_Heston_cos(parameters,S0,strike,rate,dividend,maturity,N,type))
+        HES_prices.append(Option_Heston_cos(parameters,S0,strike,rate,dividend,maturity,settings['CsN'],type))
 
     return HES_prices
 
@@ -1531,9 +1531,9 @@ def compute_HES_prices(list_model_params, S0, curve, dividends, market_data, N):
 # se absrel='rel' viene calcolata la norma delle differenze relative
 # mkt_data e' un DataFrame contenente tre series 'maturity', 'strike' e 'market price'
 # curve e' un DataFrame contenente due series: 'time' e 'rate'
-def loss_Call_HES(list_model_params, S0, mkt_data, curve, dividends, N, power, absrel):
+def loss_Call_HES(list_model_params, S0, mkt_data, curve, dividends, settings, power, absrel):
 
-    model_price_tmp = np.array(compute_HES_prices(list_model_params, S0, curve, dividends, mkt_data, N))
+    model_price_tmp = np.array(compute_HES_prices(list_model_params, S0, curve, dividends, mkt_data, settings))
     diff = np.absolute(model_price_tmp - mkt_data['market price'])
     if absrel == 'rel':
         diff = diff /np.absolute(mkt_data['market price'])
@@ -1541,3 +1541,27 @@ def loss_Call_HES(list_model_params, S0, mkt_data, curve, dividends, N, power, a
     diff = np.power(diff,power)
 
     return diff.sum()
+
+# Trovo la volatilita' Black-Scholes associata a strike e maturita' date in input tale che il prezzo
+# Black-Scholes e quello Heston coincidano
+def fromPriceHEStoVolBS(parameters_list,S0,strike,maturity,curve,dividends,settings):
+
+    parameters = {'kappa' : parameters_list[0],
+                    'theta' : parameters_list[1],
+                    'v0' : parameters_list[2],
+                    'sigma' : parameters_list[3],
+                    'rho' : parameters_list[4]}
+    r = -np.interp(maturity,curve['TIME'],-curve['VALUE']*curve['TIME'])/maturity # forward costante a tratti
+    q = np.interp(maturity, dividends['TIME'], dividends['VALUE']) # interpolazione lineare sui tassi
+    # dividends['VALUE'] = np.exp(-dividends['TIME'] * dividends['VALUE'])
+    # q = P_0t(maturity, dividends['TIME'], dividends['VALUE']) # interpolazione con il forward costante a tratti
+    # q = -np.log(q) / maturity
+    priceHes = Option_Heston_cos(parameters, S0, strike, r, q, maturity, settings['CsN'], option_type=u'CALL')
+    vol = fromPriceBSToVol(priceHes, S0, strike, maturity, r, q)
+    priceBS = Call_BS(S0, strike, maturity, r, q, vol)
+    if np.abs(priceHes-priceBS) > 2.*priceHes/100. :
+        root = Tk()
+        tkMessageBox.showwarning(title='Attenzione',message='Inversione del prezzo non riuscita, BS volatility non attendibile')
+        root.mainloop()
+
+    return vol

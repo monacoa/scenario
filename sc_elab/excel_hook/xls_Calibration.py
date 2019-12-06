@@ -383,7 +383,7 @@ def writeTemplateCalibration(xla, nameSheet):
     xla.Cells.ColumnWidth = 18
 
     ##########################
-    # Vol from VG surface
+    # Vol from surface
     ##########################
 
     mat = pd.DataFrame()
@@ -396,6 +396,6 @@ def writeTemplateCalibration(xla, nameSheet):
         , "1. ElabType": "Vol from Surface"
     }
 
-    r = intestazioneCalibration(xla=xla, rng=r, attributi=Attributi, title='Template Vol from VG Surface')
+    r = intestazioneCalibration(xla=xla, rng=r, attributi=Attributi, title='Template Vol from Surface')
     r = writeResultPandas(xla=xla, rng=r, df=mat, flagPrintColumns=True)
     xla.Cells.ColumnWidth = 18

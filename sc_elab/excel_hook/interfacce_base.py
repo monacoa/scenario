@@ -1219,14 +1219,17 @@ def calibration_from_xls(control):
                         if model == 'Variance Gamma':
                             loss_function = loss_Call_VG
                             price_function = compute_VG_prices
+                            vol_inversion_func = fromPriceVGtoVolBS
+                            settings = {'eta':float(W1.setting_etaVG.get()),
+                                        'N':int(W1.setting_Nesp.get())}
 
                             n_sample = W1.nTime.get()
                             print 'numero di tentativi:', n_sample
                             if n_sample == 1:
-                                ff = minimize(loss_function, args=(S0, market_data, curve, dividends, loss_function_type_power, loss_function_type_absrel)
+                                ff = minimize(loss_function, args=(S0, market_data, curve, dividends, settings, loss_function_type_power, loss_function_type_absrel)
                                               , x0=x0_m, bounds=x_bnd, method='TNC')
                                 #  aggiungo al dataframe di dati i prezzi da modello
-                                market_data['model price'] = price_function(ff.x, S0, curve, dividends, market_data)
+                                market_data['model price'] = price_function(ff.x, S0, curve, dividends, market_data,settings)
                                 # Calcolo il chi quadro
                                 chi2 = computeCHI2(mkt=market_data['market price'], mdl=market_data['model price'],
                                                    type_calib='CURVE_OPT')
@@ -1242,11 +1245,11 @@ def calibration_from_xls(control):
                                         continue
                                     print 'punti iniziali al passo %i:'%i, starting_points_list
                                     ff = minimize(loss_function, args=(
-                                    S0, market_data, curve, dividends, loss_function_type_power, loss_function_type_absrel)
+                                    S0, market_data, curve, dividends, settings, loss_function_type_power, loss_function_type_absrel)
                                                   , x0=starting_points_list, bounds=x_bnd, method='TNC')
                                     print 'parametri calibrati al passo %i:'%i, ff.x
                                     #  aggiungo al dataframe di dati i prezzi da modello
-                                    market_data['model price'] = price_function(ff.x, S0, curve, dividends, market_data)
+                                    market_data['model price'] = price_function(ff.x, S0, curve, dividends, market_data,settings)
                                     # Calcolo il chi quadro
                                     chi2 = computeCHI2(mkt=market_data['market price'], mdl=market_data['model price'],
                                                        type_calib='CURVE_OPT')
@@ -1256,21 +1259,24 @@ def calibration_from_xls(control):
                                 print 'chiavi valide:',valid_keys
                                 chi2_min = min(valid_keys)
                                 print 'chi2_min al termine delle varie calibrazioni:', chi2_min
-                                market_data['model price'] = price_function(multiple_calib_dict[chi2_min]['calib_params'], S0, curve, dividends, market_data)
+                                market_data['model price'] = price_function(multiple_calib_dict[chi2_min]['calib_params'], S0, curve, dividends, market_data,settings)
                                 chi2 = multiple_calib_dict[chi2_min]['chi2']
                                 final_params = multiple_calib_dict[chi2_min]['calib_params']
                             root.destroy()
 
-                        if model == 'Heston':
+                        elif model == 'Heston':
 
                             loss_function = loss_Call_HES
                             price_function = compute_HES_prices
+                            vol_inversion_func = fromPriceHEStoVolBS
+                            settings = {'Fcm': float(W1.setting_Fcm.get()),
+                                        'CsN':int(W1.setting_CsN.get())}
 
                             n_sample = W1.nTime.get()
                             print 'numero di tentativi:', n_sample
 
                             def fun_constr(param_list):
-                                return 2. * param_list[0] * param_list[1] - np.power(param_list[3], 2) - float(W1.setting_Fcm.get())
+                                return 2. * param_list[0] * param_list[1] - np.power(param_list[3], 2) - settings['Fcm']
 
                             constraints = [{'type': 'ineq', 'fun': fun_constr},
                                            {'type': 'ineq', 'fun': lambda x: x[0] - x_bnd[0][0]},
@@ -1289,10 +1295,10 @@ def calibration_from_xls(control):
 
                             if n_sample == 1:
                                 ff = minimize(loss_function, args=(
-                                S0, market_data, curve, dividends, CsN, loss_function_type_power, loss_function_type_absrel)
+                                S0, market_data, curve, dividends, settings, loss_function_type_power, loss_function_type_absrel)
                                               , x0=x0_m, constraints=constraints, method='COBYLA')
                                 #  aggiungo al dataframe di dati i prezzi da modello
-                                market_data['model price'] = price_function(ff.x, S0, curve, dividends, market_data, CsN)
+                                market_data['model price'] = price_function(ff.x, S0, curve, dividends, market_data, settings)
                                 # Calcolo il chi quadro
                                 chi2 = computeCHI2(mkt=market_data['market price'], mdl=market_data['model price'],
                                                    type_calib='CURVE_OPT')
@@ -1310,13 +1316,13 @@ def calibration_from_xls(control):
                                         continue
                                     print 'punti iniziali al passo %i:' % i, starting_points_list
                                     ff = minimize(loss_function, args=(
-                                        S0, market_data, curve, dividends, CsN, loss_function_type_power,
+                                        S0, market_data, curve, dividends, settings, loss_function_type_power,
                                         loss_function_type_absrel)
                                                   , x0=starting_points_list, constraints=constraints,
                                                   method='COBYLA')
                                     print 'parametri calibrati al passo %i:' % i, ff.x
                                     #  aggiungo al dataframe di dati i prezzi da modello
-                                    market_data['model price'] = price_function(ff.x, S0, curve, dividends, market_data,CsN)
+                                    market_data['model price'] = price_function(ff.x, S0, curve, dividends, market_data,settings)
                                     # Calcolo il chi quadro
                                     chi2 = computeCHI2(mkt=market_data['market price'], mdl=market_data['model price'],
                                                        type_calib='CURVE_OPT')
@@ -1328,7 +1334,7 @@ def calibration_from_xls(control):
                                 chi2_min = min(valid_keys)
                                 print 'chi2_min al termine delle varie calibrazioni:', chi2_min
                                 market_data['model price'] = price_function(
-                                    multiple_calib_dict[chi2_min]['calib_params'], S0, curve, dividends, market_data, CsN)
+                                    multiple_calib_dict[chi2_min]['calib_params'], S0, curve, dividends, market_data, settings)
                                 chi2 = multiple_calib_dict[chi2_min]['chi2']
                                 final_params = multiple_calib_dict[chi2_min]['calib_params']
                             root.destroy()
@@ -1374,7 +1380,8 @@ def calibration_from_xls(control):
                             print vol_coord_df
                             vol_coord_list = []
                             for i in range(len(vol_coord_df)):
-                                vol_coord_list.append(fromPriceVGtoVolBS(final_params,S0,vol_coord_df['Strike'][i],vol_coord_df['Maturity'][i],curve,dividends))
+                                vol_coord_list.append(vol_inversion_func(final_params,S0,vol_coord_df['Strike'][i],
+                                        vol_coord_df['Maturity'][i],curve,dividends,settings))
                             vol_coord_df['Implied Vol']=vol_coord_list
 
                         # scrivo su foglio Excel
