@@ -212,7 +212,7 @@ def writeVolResOnXls(title, W_class, xla, res):
 
     Attributi = \
         {     "1. Date ref"              : ref_date
-            , "2. Type Volatility"       : 'Black-Scholes vol from VG'
+            , "2. Type Volatility"       : 'Black-Scholes vol'
         }
 
     r = intestazioneCalibration(xla = xla, rng = r, attributi = Attributi , title = title)

@@ -140,12 +140,12 @@ def preProcessingOptions(W_calib, curve):
             T = market_data.at[i, "maturity"]
             srate, annuity = forwardSwap(tenr, curve_times, curve_values, 0, t, T)
             market_data.at[i, "swap"] = srate
-            if market_data.at[i, "swap"] > 0:
+            if market_data.at[i, "swap"] + market_data.at[i,"shift"] > 0:
                 market_data.at[i, "market price"] = fromVolaATMToPrice(t, T, tenr, market_data.at[i, "value"], curve_times,
                                                                     curve_values, market_data.at[i, "shift"], call_flag)
 
-        # per calibrare seleziono i dati con swap positivo
-        market_data = market_data.loc[market_data['swap'] >= 0]
+        # per calibrare seleziono i dati con (swap + shift) positivo
+        market_data = market_data.loc[market_data['swap'] + market_data['shift'] >= 0]
         market_data.reset_index(drop=True, inplace=True)
         print market_data
 
