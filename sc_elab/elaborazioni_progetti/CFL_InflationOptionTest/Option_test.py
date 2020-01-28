@@ -21,9 +21,9 @@ def parameters_fromDFtoDict(parameters):
 if __name__ == "__main__":
 
     # ----------- File di input ------------------------------
-    inputFile = 'input/20190930_InflationOptionTestInput.xlsx'
+    inputFile = 'input/20191231_InflationOptionTestInput.xlsx'
     # ----------- File di output -----------------------------
-    outputFile = 'output/20190930_InflationOptionTest_PY.xlsx'
+    outputFile = 'output/20191231_InflationOptionTest_PY.xlsx'
     #---------------------------------------------------------
     OutSheetBase = 'Base'
     OutSheetUp   = 'Up'

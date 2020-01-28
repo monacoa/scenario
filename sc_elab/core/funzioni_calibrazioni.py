@@ -203,7 +203,7 @@ def preProcessingOptions(W_calib, curve):
         market_data['maturity'] = options_noint.loc[:, 0].values.astype(float)
         market_data['strike'] = options_noint.loc[:, 1].values.astype(float)
         market_data['market price'] = options_noint.loc[:, 2].values.astype(float)
-        market_data['type'] = options_noint.loc[:, 3].values.astype(str)
+        market_data['type'] = np.char.strip(options_noint.loc[:, 3].values.astype(str))
 
         S0 = W_calib.OptionChosen.loc[(W_calib.OptionChosen.loc[:, 0] == 'Initial Price'), 1].values.astype(float)[0]
 
@@ -818,8 +818,8 @@ def PhiCaratt(parameters, S0, r, q, T, u):
     theta = parameters['theta']
 
     omega = (1. / nu) * np.log(1. - theta * nu - 0.5 * sigma * sigma * nu)
-    if 1. - theta * nu - 0.5 * sigma * sigma * nu <= 0.:
-        raise Exception('1. - theta * nu - 0.5 * sigma * sigma * nu deve essere positivo')
+    # if 1. - theta * nu - 0.5 * sigma * sigma * nu <= 0.:
+    #     raise Exception('1. - theta * nu - 0.5 * sigma * sigma * nu deve essere positivo')
     base = 1-1j*theta*nu*u+0.5*sigma*sigma*nu*u*u
     fatt2 = np.power(base,-T/nu)
     fatt1 = np.exp(1j*u*(np.log(S0)+(r-q+omega)*T))

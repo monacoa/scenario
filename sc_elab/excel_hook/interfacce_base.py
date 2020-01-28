@@ -1291,7 +1291,7 @@ def calibration_from_xls(control):
                                            {'type': 'ineq', 'fun': lambda x: x_bnd[3][1] - x[3]},
                                            {'type': 'ineq', 'fun': lambda x: x_bnd[4][1] - x[4]}]
 
-                            CsN = int(W1.setting_CsN.get())
+                            # CsN = int(W1.setting_CsN.get())
 
                             if n_sample == 1:
                                 ff = minimize(loss_function, args=(
