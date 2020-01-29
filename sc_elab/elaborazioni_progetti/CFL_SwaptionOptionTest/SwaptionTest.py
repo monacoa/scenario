@@ -20,9 +20,9 @@ def load_param(inputFile):
 if __name__ == "__main__":
 
     # ----------- File di input ------------------------------
-    inputFile = 'input/20190628_SwaptionTestInput.xlsx'
+    inputFile = 'input/20191231_SwaptionTestInput.xlsx'
     # ----------- File di output -----------------------------
-    outputFile = 'output/20190628_SwaptionTest_PY.xlsx'
+    outputFile = 'output/20191231_SwaptionTest_PY.xlsx'
     # ---------------------------------------------------------
     OutSheetBase = 'Base'
     OutSheetUp = 'Up'

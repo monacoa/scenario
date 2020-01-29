@@ -112,11 +112,12 @@ def preProcessingOptions(W_calib, curve):
 
     if optiontype == 'Swaption':
         # leggo le opzioni
-        volsdata_noint = W_calib.OptionChosen.loc[(W_calib.OptionChosen[3] == 'Y'), [0, 1, 2]]
+        volsdata_noint = W_calib.OptionChosen.loc[(W_calib.OptionChosen[4] == 'Y'), [0, 1, 2, 3]]
         market_data = pd.DataFrame()
         market_data['expiry'] = volsdata_noint.loc[:, 0].map(MaturityFromStringToYear).values.astype(float)
         market_data['maturity'] = volsdata_noint.loc[:, 1].map(MaturityFromStringToYear).values.astype(float)
         market_data['value'] = np.divide(volsdata_noint.loc[:, 2].values.astype(float), 100.)
+        market_data['shift']= np.divide(volsdata_noint.loc[:,3].values.astype(float),100.)
 
         # leggo il tipo di contratto e il tenor
         if W_calib.OptionChosen.loc[W_calib.OptionChosen[0] == 'SwaptionType', 1].values[0] == 'Payer':
@@ -139,12 +140,12 @@ def preProcessingOptions(W_calib, curve):
             T = market_data.at[i, "maturity"]
             srate, annuity = forwardSwap(tenr, curve_times, curve_values, 0, t, T)
             market_data.at[i, "swap"] = srate
-            if market_data.at[i, "swap"] > 0:
-                market_data.at[i, "market price"] = fromVolaToPrice(t, T, tenr, market_data.at[i, "value"], curve_times,
-                                                                    curve_values, call_flag)
+            if market_data.at[i, "swap"] + market_data.at[i,"shift"] > 0:
+                market_data.at[i, "market price"] = fromVolaATMToPrice(t, T, tenr, market_data.at[i, "value"], curve_times,
+                                                                    curve_values, market_data.at[i, "shift"], call_flag)
 
-        # per calibrare seleziono i dati con swap positivo
-        market_data = market_data.loc[market_data['swap'] >= 0]
+        # per calibrare seleziono i dati con (swap + shift) positivo
+        market_data = market_data.loc[market_data['swap'] + market_data['shift'] >= 0]
         market_data.reset_index(drop=True, inplace=True)
         print market_data
 
@@ -202,14 +203,18 @@ def preProcessingOptions(W_calib, curve):
         market_data['maturity'] = options_noint.loc[:, 0].values.astype(float)
         market_data['strike'] = options_noint.loc[:, 1].values.astype(float)
         market_data['market price'] = options_noint.loc[:, 2].values.astype(float)
-        market_data['type'] = options_noint.loc[:, 3].values.astype(str)
+        market_data['type'] = np.char.strip(options_noint.loc[:, 3].values.astype(str))
 
         S0 = W_calib.OptionChosen.loc[(W_calib.OptionChosen.loc[:, 0] == 'Initial Price'), 1].values.astype(float)[0]
 
-        strike = W_calib.OptionChosen.loc[(W_calib.OptionChosen[0] == 'Strike'), 1].values.astype(float)[0]
-        maturity = W_calib.OptionChosen.loc[(W_calib.OptionChosen[0] == 'Mat'), 1].values.astype(float)[0]
+        if len(W_calib.VolCoordChosen) > 0:
+            vol_coord_df = W_calib.VolCoordChosen.loc[W_calib.VolCoordChosen[2]=='Y',[0,1]]
+            vol_coord_df.rename(columns={0:'Maturity',1:'Strike'},inplace=True)
+            vol_coord_df.reset_index(drop=True, inplace=True)
+        else:
+            vol_coord_df = pd.DataFrame()
         # preprocessing dati
-        market_data = market_data.sort_values(by=['maturity', 'type', 'strike'])
+        market_data = market_data.sort_values(by=['maturity', 'type', 'strike']).reset_index(drop=True)
 
         # calcolo dei dividendi impliciti nei prezzi delle opzioni
         dividends_data, dividends = implicit_dividends(S0, market_data, curve)
@@ -228,7 +233,7 @@ def preProcessingOptions(W_calib, curve):
                 dividends['VALUE'] = [float(W_dvd.dvd.get()), float(W_dvd.dvd.get())]
                 dividends_data = dividends
 
-        return market_data, S0, strike, maturity, dividends_data, dividends
+        return market_data, S0, vol_coord_df, dividends_data, dividends
 
     else:
         root = Tk()
@@ -242,6 +247,7 @@ def P_0t(t,curve_times,curve_values):
     if t > curve_times[len(curve_times)-1]:
         last_forward = np.log(curve_values[len(curve_values)-2] / curve_values[len(curve_values)-1]) / (curve_times[len(curve_times)-1] - curve_times[len(curve_times)-2])
         return np.exp(-last_forward * (t - curve_times[len(curve_times)-1])) * curve_values[len(curve_values)-1]
+    return np.exp(np.interp(t,curve_times,np.log(curve_values)))
 
 ############################################################
 #       CIR
@@ -766,17 +772,27 @@ def CurveFromDictToList(rf_Curve):
     return np.array(rf_times), np.array(rf_values)
 
 
-def fromVolaToPrice(t_exp, t_mat, tenor, vol, rf_times,rf_values,call_type):
+# def fromVolaToPrice(t_exp, t_mat, tenor, vol, rf_times,rf_values,call_type):
+#     if (vol <= 0.0) or (vol >= 2.0):
+#         print "in swaption: it takes 0 < vol < 2; found ", vol
+#
+#     srate, ForwardAnnuityPrice = forwardSwap(tenor, rf_times,rf_values, 0, t_exp, t_mat)
+#     call = srate * call_type * (2.0 * norm.cdf(call_type * 0.5 * vol * np.sqrt(t_exp)) - 1.0)
+#
+#     price = ForwardAnnuityPrice * call
+#
+#     return price
+
+def fromVolaATMToPrice(t_exp, t_mat, tenor, vol, rf_times,rf_values, shift, call_type):
     if (vol <= 0.0) or (vol >= 2.0):
         print "in swaption: it takes 0 < vol < 2; found ", vol
 
     srate, ForwardAnnuityPrice = forwardSwap(tenor, rf_times,rf_values, 0, t_exp, t_mat)
-    call = srate * call_type * (2.0 * norm.cdf(call_type * 0.5 * vol * np.sqrt(t_exp)) - 1.0)
+    call = (srate+shift) * call_type * (2.0 * norm.cdf(call_type * 0.5 * vol * np.sqrt(t_exp)) - 1.0)
 
     price = ForwardAnnuityPrice * call
 
     return price
-
 
 def fromPriceToVola(t_exp, t_mat, tenor,price, curve_dict,call_type):
 
@@ -802,8 +818,8 @@ def PhiCaratt(parameters, S0, r, q, T, u):
     theta = parameters['theta']
 
     omega = (1. / nu) * np.log(1. - theta * nu - 0.5 * sigma * sigma * nu)
-    if 1. - theta * nu - 0.5 * sigma * sigma * nu <= 0.:
-        raise Exception('1. - theta * nu - 0.5 * sigma * sigma * nu deve essere positivo')
+    # if 1. - theta * nu - 0.5 * sigma * sigma * nu <= 0.:
+    #     raise Exception('1. - theta * nu - 0.5 * sigma * sigma * nu deve essere positivo')
     base = 1-1j*theta*nu*u+0.5*sigma*sigma*nu*u*u
     fatt2 = np.power(base,-T/nu)
     fatt1 = np.exp(1j*u*(np.log(S0)+(r-q+omega)*T))
@@ -861,7 +877,7 @@ def alpha_Madan(list_model_params):
     return alpha
 
 
-def compute_VG_prices(list_model_params, S0, curve, dividends, market_data):
+def compute_VG_prices(list_model_params, S0, curve, dividends, market_data, settings):
 
     parameters = {}
     parameters['sigma'] = list_model_params[0]
@@ -869,14 +885,14 @@ def compute_VG_prices(list_model_params, S0, curve, dividends, market_data):
     parameters['theta'] = list_model_params[2]
 
     times = market_data['maturity'].drop_duplicates().tolist()
-    rates = np.interp(times,curve['TIME'],curve['VALUE'])
+    rates = -np.divide(np.interp(times,curve['TIME'],-curve['VALUE']*curve['TIME']),times)
     dividends = np.interp(times, dividends['TIME'],dividends['VALUE'])
 
     alpha = alpha_Madan(list_model_params)
 
     VG_prices = []
     for i in range(0,len(times)):
-        strikesTmp, pricesTmp = Call_Fourier_VG(parameters, S0, rates[i], dividends[i], times[i], alpha, 0.25, 4096)
+        strikesTmp, pricesTmp = Call_Fourier_VG(parameters, S0, rates[i], dividends[i], times[i], alpha, settings['eta'], np.power(2,settings['N']))
         strikeMkt = market_data.loc[market_data['maturity']==times[i],['strike']].values.flatten()
         typeMkt = market_data.loc[market_data['maturity']==times[i],['type']].values.flatten()
         price_interp = np.interp(strikeMkt,strikesTmp,pricesTmp).flatten().tolist()
@@ -893,9 +909,9 @@ def compute_VG_prices(list_model_params, S0, curve, dividends, market_data):
 # se absrel='rel' viene calcolata la norma delle differenze relative
 # mkt_data e' un DataFrame contenente tre series 'maturity', 'strike' e 'market price'
 # curve e' un DataFrame contenente due series: 'time' e 'rate'
-def loss_Call_VG(list_model_params, S0, mkt_data, curve, dividends, power, absrel):
+def loss_Call_VG(list_model_params, S0, mkt_data, curve, dividends, settings, power, absrel):
 
-    model_price_tmp = np.array(compute_VG_prices(list_model_params, S0, curve, dividends, mkt_data[['maturity','strike','type']]))
+    model_price_tmp = np.array(compute_VG_prices(list_model_params, S0, curve, dividends, mkt_data[['maturity','strike','type']],settings))
     diff = np.absolute(model_price_tmp - mkt_data['market price'])
     if absrel == 'rel':
         diff = diff /np.absolute(mkt_data['market price'])
@@ -1000,7 +1016,7 @@ def fromPriceBSToVol(Price, S0, K, T, r, q):
 
 # Trovo la volatilita' Black-Scholes associata a strike e maturita' date in input tale che il prezzo
 # Black-Scholes e quello Variance Gamma coincidano
-def fromPriceVGtoVolBS(parameters_list,S0,strike,maturity,curve,dividends):
+def fromPriceVGtoVolBS(parameters_list,S0,strike,maturity,curve,dividends,settings):
 
     parameters = {'sigma': parameters_list[0], 'nu': parameters_list[1], 'theta': parameters_list[2]}
     r = np.interp(maturity, curve['TIME'], curve['VALUE'])
@@ -1010,7 +1026,7 @@ def fromPriceVGtoVolBS(parameters_list,S0,strike,maturity,curve,dividends):
     # q = P_0t(maturity, dividends['TIME'], dividends['VALUE']) # interpolazione con il forward costante a tratti
     # q = -np.log(q) / maturity
     alpha = alpha_Madan(parameters_list)
-    strike_list, price_list = Call_Fourier_VG(parameters, S0, r, q, maturity, alpha, 0.25, np.power(2, 12))
+    strike_list, price_list = Call_Fourier_VG(parameters, S0, r, q, maturity, alpha, settings['eta'], np.power(2, settings['N']))
     priceFourier = np.interp(strike, strike_list, price_list)
     vol = fromPriceBSToVol(priceFourier, S0, strike, maturity, r, q)
     priceBS = Call_BS(S0, strike, maturity, r, q, vol)
@@ -1020,6 +1036,16 @@ def fromPriceVGtoVolBS(parameters_list,S0,strike,maturity,curve,dividends):
         root.mainloop()
 
     return vol
+
+# # ==========================================
+# # funzioni collegate alla calibrazione
+# # ==========================================
+#
+# @xl_func
+# def vol_from_VG_surface(control):
+#
+#
+#
 
 ###############################################
 #  Jarrow Yildirim
@@ -1392,3 +1418,150 @@ def compute_values_post_calib_JY(flag_optim, param, market_data, calib_result_li
             mdl_opt_list.append(float(mdl_tmp))
 
     return mdl_opt_list
+
+######################################################################
+#           HESTON
+######################################################################
+# I prezzi analitici delle opzioni Call e Put sono calcolati con l'espansione della trasformata di Fourier
+# in serie di coseni, secondo l'articolo di Fang e Osterlee
+
+def PhiCaratt_Fang(params_dict, r, q, T, u):
+    # Versione due della funzione caratteristica del log price di Heston. Con questa versione
+    # non ci sono problemi di continuita' per la parte reale del logaritmo complesso. Per la formula si veda
+    # The Little Heston Trap
+    d = np.sqrt(np.power(params_dict['rho'] * params_dict['sigma'] * u * 1j - params_dict['kappa'], 2) + np.power(params_dict['sigma'], 2) * (
+                1j * u + np.power(u, 2)))
+    g_2 = (params_dict['kappa'] - params_dict['rho'] * params_dict['sigma'] * 1j * u - d) / (
+                params_dict['kappa'] - params_dict['rho'] * params_dict['sigma'] * 1j * u + d)
+    fatt1 = np.exp(1j * u * (r - q) * T)
+    fatt2 = np.exp(params_dict['theta'] * params_dict['kappa'] * np.power(params_dict['sigma'], -2) * (
+                (params_dict['kappa'] - params_dict['rho'] * params_dict['sigma'] * 1j * u - d) * T
+                - 2. * np.log((1. - g_2 * np.exp(-d * T)) / (1 - g_2))))
+    fatt3 = np.exp(
+        params_dict['v0'] * np.power(params_dict['sigma'], -2) * (params_dict['kappa'] - params_dict['rho'] * params_dict['sigma'] * 1j * u - d)
+        * (1. - np.exp(-d * T)) / (1. - g_2 * np.exp(-d * T)))
+
+    return fatt1 * fatt2 * fatt3
+
+def cum_1(params_dict, r, q, T):
+    cum = (r - q) * T + (1. + np.exp(-params_dict['kappa'] * T)) * (params_dict['theta'] - params_dict['v0']) / (
+                2. * params_dict['kappa']) - 0.5 * params_dict['theta'] * T
+    return cum
+
+def cum_2(params_dict, T):
+    fact = 1. / (8. * np.power(params_dict['kappa'], 3))
+    summ_1 = params_dict['sigma'] * T * params_dict['kappa'] * np.exp(-params_dict['kappa'] * T) * (params_dict['v0'] - params_dict['theta']) * (
+                8. * params_dict['kappa'] * params_dict['rho'] - 4. * params_dict['sigma'])
+    summ_2 = params_dict['kappa'] * params_dict['rho'] * params_dict['sigma'] * (1. - np.exp(-params_dict['kappa'] * T)) * (
+                16. * params_dict['theta'] - 8. * params_dict['v0'])
+    summ_3 = 2. * params_dict['theta'] * params_dict['kappa'] * T * (
+                -4. * params_dict['kappa'] * params_dict['rho'] * params_dict['sigma'] + np.power(params_dict['sigma'], 2) + 4. * np.power(
+            params_dict['kappa'], 2))
+    summ_4 = (params_dict['theta'] - 2. * params_dict['v0']) * np.exp(-2. * params_dict['kappa'] * T) + params_dict['theta'] * (
+                6. * np.exp(-params_dict['kappa'] * T) - 7.) + 2. * params_dict['v0']
+    summ_4 *= np.power(params_dict['sigma'], 2)
+    summ_5 = 8. * np.power(params_dict['kappa'], 2) * (params_dict['v0'] - params_dict['theta']) * (1. - np.exp(-params_dict['kappa'] * T))
+    cum = fact * (summ_1 + summ_2 + summ_3 + summ_4 + summ_5)
+    return cum
+
+def Chi_Fang(k, low_bnd, up_bnd, c, d):
+    frac = lambda s: (s - low_bnd) / (up_bnd - low_bnd)
+    summ_1 = np.cos(k * np.pi * frac(d)) * np.exp(d)
+    summ_2 = np.cos(k * np.pi * frac(c)) * np.exp(c)
+    summ_3 = (k * np.pi / (up_bnd - low_bnd)) * np.sin(k * np.pi * frac(d)) * np.exp(d)
+    summ_4 = (k * np.pi / (up_bnd - low_bnd)) * np.sin(k * np.pi * frac(c)) * np.exp(c)
+    fact = 1. / (1. + np.power(k * np.pi / (up_bnd - low_bnd), 2))
+    chi_fang = fact * (summ_1 - summ_2 + summ_3 - summ_4)
+    return chi_fang
+
+def Psi_Fang(k, low_bnd, up_bnd, c, d):
+    frac = lambda s: (s - low_bnd) / (up_bnd - low_bnd)
+    psi = np.ones(len(k)) * (d - c)
+    psi[1:] = (np.sin(k[1:] * np.pi * frac(d)) - np.sin(k[1:] * np.pi * frac(c))) * (up_bnd - low_bnd) / (k[1:] * np.pi)
+
+    return psi
+
+def V(K, k, low_bnd, up_bnd, option_type):
+    fact = 2. * K / (up_bnd - low_bnd)
+    flag = 1 * (option_type == u'CALL') - 1 * (option_type == u'PUT')
+    V = flag * fact * (Chi_Fang(k, low_bnd, up_bnd, ((1 - flag) / 2) * low_bnd,
+                                     ((flag + 1) / 2) * up_bnd) - Psi_Fang(k, low_bnd, up_bnd,
+                                                                                ((1 - flag) / 2) * low_bnd,
+                                                                                ((flag + 1) / 2) * up_bnd))
+    return V
+
+def Option_Heston_cos(params_dict, S0, K, r, q, T, N, option_type):
+    x = np.log(S0 / K)
+    low_bnd = cum_1(params_dict,r,q,T) - 12. * np.sqrt(np.absolute(cum_2(params_dict,T)))
+    up_bnd = cum_1(params_dict,r,q,T) + 12. * np.sqrt(np.absolute(cum_2(params_dict,T)))
+    sum_weights = np.ones(N)
+    sum_weights[0] = 0.5
+    nodes = np.arange(N)
+    summands = np.real(PhiCaratt_Fang(params_dict, r, q, T, nodes * np.pi / (up_bnd - low_bnd)) * np.exp(
+        1j * np.pi * nodes * ((x - low_bnd) / (up_bnd - low_bnd))))
+    summands *= V(K, nodes, low_bnd, up_bnd, option_type)
+    price = np.sum(sum_weights * summands)
+    price *= np.exp(-r * T)
+
+    return price
+
+def compute_HES_prices(list_model_params, S0, curve, dividends, market_data, settings):
+
+    parameters = {}
+    parameters['kappa'] = list_model_params[0]
+    parameters['theta'] = list_model_params[1]
+    parameters['v0'] = list_model_params[2]
+    parameters['sigma'] = list_model_params[3]
+    parameters['rho'] = list_model_params[4]
+
+    HES_prices = []
+    for i in range(len(market_data)):
+        type = market_data['type'][i].strip()
+        strike = market_data['strike'][i]
+        maturity = market_data['maturity'][i]
+        rate = -np.interp(maturity,curve['TIME'],-curve['VALUE']*curve['TIME'])/maturity # forward costante a tratti
+        dividend = np.interp(maturity, dividends['TIME'],dividends['VALUE'])
+        HES_prices.append(Option_Heston_cos(parameters,S0,strike,rate,dividend,maturity,settings['CsN'],type))
+
+    return HES_prices
+
+# ---------- Funzione di calcolo norma da ottimizzare ------------------------------------
+# power=1 metrica di Manhattan
+# power=2 metrica euclidea
+# se absrel='rel' viene calcolata la norma delle differenze relative
+# mkt_data e' un DataFrame contenente tre series 'maturity', 'strike' e 'market price'
+# curve e' un DataFrame contenente due series: 'time' e 'rate'
+def loss_Call_HES(list_model_params, S0, mkt_data, curve, dividends, settings, power, absrel):
+
+    model_price_tmp = np.array(compute_HES_prices(list_model_params, S0, curve, dividends, mkt_data, settings))
+    diff = np.absolute(model_price_tmp - mkt_data['market price'])
+    if absrel == 'rel':
+        diff = diff /np.absolute(mkt_data['market price'])
+
+    diff = np.power(diff,power)
+
+    return diff.sum()
+
+# Trovo la volatilita' Black-Scholes associata a strike e maturita' date in input tale che il prezzo
+# Black-Scholes e quello Heston coincidano
+def fromPriceHEStoVolBS(parameters_list,S0,strike,maturity,curve,dividends,settings):
+
+    parameters = {'kappa' : parameters_list[0],
+                    'theta' : parameters_list[1],
+                    'v0' : parameters_list[2],
+                    'sigma' : parameters_list[3],
+                    'rho' : parameters_list[4]}
+    r = -np.interp(maturity,curve['TIME'],-curve['VALUE']*curve['TIME'])/maturity # forward costante a tratti
+    q = np.interp(maturity, dividends['TIME'], dividends['VALUE']) # interpolazione lineare sui tassi
+    # dividends['VALUE'] = np.exp(-dividends['TIME'] * dividends['VALUE'])
+    # q = P_0t(maturity, dividends['TIME'], dividends['VALUE']) # interpolazione con il forward costante a tratti
+    # q = -np.log(q) / maturity
+    priceHes = Option_Heston_cos(parameters, S0, strike, r, q, maturity, settings['CsN'], option_type=u'CALL')
+    vol = fromPriceBSToVol(priceHes, S0, strike, maturity, r, q)
+    priceBS = Call_BS(S0, strike, maturity, r, q, vol)
+    if np.abs(priceHes-priceBS) > 2.*priceHes/100. :
+        root = Tk()
+        tkMessageBox.showwarning(title='Attenzione',message='Inversione del prezzo non riuscita, BS volatility non attendibile')
+        root.mainloop()
+
+    return vol
