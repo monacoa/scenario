@@ -65,10 +65,8 @@ def load_swap_curve_from_db(control):
     if curve_type == "CDS":
         cc.ratingProvider = app.new_window.new_window.new_window.rating.get()
         cc.sectorProvider = app.new_window.new_window.new_window.sector.get()
-
     cc.loadDataFromDB()
     if curve_type == "SWP": cc.init_finalize()
-
     writeCurveOnXls(cc, nameSheet, xla, curve_type)
 
 #=======================================================================================================================

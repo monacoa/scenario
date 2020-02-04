@@ -172,18 +172,16 @@ class Curve(object):
     def fillAnagSegm(self):
 
         con = Connection()
-        cn = con.db_anag()
+        #cn = con.db_anag()
+        cn = con.db_data()
 
         for k in self.segms.keys():
-
             seg = self.segms[k]
             seg.name = k
             if (k == 'GSwp1M') or (k == 'GSwp3M') or (k == 'GSwpOIS'):
                 ts = 'LIBOR'
-
             else:
                 ts = ((revDict(dict_segm)[k][1:])+" libor") if ((revDict(dict_segm)[k][1:]) == "Future") else  (revDict(dict_segm)[k][1:])
-
             qry = '''
                 SELECT NOME_ATTRIBUTO, VALORE_ATTRIBUTO FROM MKT_Segmentazione_D_N WHERE CODICE_SEGMENTAZIONE IN
                 (
@@ -206,8 +204,10 @@ class Curve(object):
     def addWorkingDays(self, ds, days, adj):
         calendar = holy.get_calendar(self.cal)
         tmp = int(days)
+        #modifica fatta per rendere coerente il calcolo del fixing nella procedura bootstap con la determinazione delle date
+        if tmp == 2:
+            tmp = tmp +1
         while tmp > 0:
-
             ds = ds + datetime.timedelta(days=1)
             ds = busD.rolldate_from_db(ds, calendar, adj)
             tmp = tmp - 1
@@ -262,7 +262,6 @@ class Curve(object):
                     self.segms[s].dates.append(date)
 
 
-
     def init_finalize(self):
         #compute output strings
         self.computeTags()
@@ -284,7 +283,7 @@ class Curve(object):
         #----------------------------------------
 
 
-        qry = "SELECT distinct BloombergTicker FROM DProCurve where (TipoDato = 'CLibor' or  TipoDato = 'CSwap' or TipoDato = 'CDepositi' or TipoDato = 'CDeopositi' or TipoDato = 'CFuture' or TipoDato= 'CSwapOis' or TipoDato= 'CSwap3M') and  (Descrizione = '%s')"%self.description
+        qry = "SELECT distinct BloombergTicker FROM DProCurve where (TipoDato = 'CLibor' or  TipoDato = 'CSwap' or TipoDato = 'CDepositi' or TipoDato = 'CDeopositi' or TipoDato = 'CFuture' or TipoDato= 'CSwapOis' or TipoDato= 'CSwap3M' or TipoDato = 'CSwap1m') and  (Descrizione = '%s')"%self.description
 
 
 
@@ -484,8 +483,10 @@ class Curve(object):
 
             else:
                 #CSwap1M, CSwap3M, CSwap6M
-                #print "segmento:", segm
-                self.floater_tenor = segm[-2:]
+                if segm == 'CSwapOIS':
+                    self.floater_tenor = '1Y'
+                else:
+                    self.floater_tenor = segm[-2:]
                 #print "floater tenor:", self.floater_tenor
 
                 qry = '''
@@ -539,11 +540,13 @@ class Curve(object):
                     s1.values.append(val)
                     self.segms[s1.name] = s1
 
-            ##### PROCEDURA DA INDAGARE IN QUANTO SEMBRA NON PERMETTA POI L ELABORAZIONE DEL BOOTSTRAP
+            ##### PROCEDURA DA INDAGARE
             else:
-                #spezzo i segmenti in due, gli swap a breve e gli altri
+                #spezzo i segmenti in due, a breve e gli swap
                 s1= Segm()
-                s1.name = dict_segm[segm]
+                #s1.name = dict_segm[segm]
+                #'s1.name ,', s1.name
+                s1.name = 'Libor'
                 s2 = Segm()
                 s2.name = 'Swp'
                 for record in res:
@@ -564,7 +567,6 @@ class Curve(object):
         data_opt['Basis'  ]    = {}
         data_opt['BusConv']    = {}
         data_opt['RegimeRate'] = {}
-
         for sn in self.segms.keys():
             name = sn
             code = revDict(dict_segm2) [name]
