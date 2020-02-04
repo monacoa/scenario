@@ -20,6 +20,17 @@ def model_parameters(value):
         names = ['r0', 'k', 'theta', 'sigma']
         attribute = ['sv', 'min', 'max', 'fix']
 
+    elif value == 'CIR++':
+        dict = {'kappa'     :{'sv':'0.5' ,'min':'0.001'   , 'max':'10.0','fix':0},
+                'theta' :{'sv':'0.03','min':'0.001'   , 'max':'0.3' ,'fix':0},
+                'x0': {'sv': '0.03', 'min': '0.000001', 'max': '0.5', 'fix': 0},
+                'sigma' :{'sv':'0.05','min':'0.005'   , 'max':'1.0' ,'fix':0}
+                }
+
+        # mi servono ordinati
+        names = ['kappa', 'theta', 'x0', 'sigma']
+        attribute = ['sv', 'min', 'max', 'fix']
+
     elif value == 'VSCK':
         dict = {'r0'    :{'sv':'0.03', 'min': '-0.5'  , 'max':'0.5'  ,'fix':0},
                 'k'     :{'sv':'0.03', 'min': '0.0001', 'max':'10.0' ,'fix':0},
@@ -100,6 +111,7 @@ class W_calib_models(Frame):
         Label(self,text="""Choose your calibrator :""",justify=LEFT,padx=20).pack()
 
         self.calib_avaible = ['CIR',
+                              'CIR++',
                          'VSCK',
                          'Jarrow Yildirim',
                          'G2++',
@@ -206,7 +218,7 @@ class W_calib_menu(LabelFrame):
         self.rb_type2.grid(row = 1, column = 2, rowspan = 1, columnspan = 1, pady = 5, sticky = W+E+N+S)
         self.set_mkt_ts.set('MKT')
 
-        if model in ['Jarrow Yildirim','G2++','Variance Gamma','Heston']:
+        if model in ['CIR++','Jarrow Yildirim','G2++','Variance Gamma','Heston']:
             self.rb_type2.config(state = 'disabled')
 
         #########################################################################
@@ -225,7 +237,7 @@ class W_calib_menu(LabelFrame):
         self.nb_t2 = Frame(self.nb)
         self.nb.add(self.nb_t2, text="PARAMS",compound="left")
 
-        if model in ['Jarrow Yildirim','Heston','Variance Gamma']:
+        if model in ['CIR++','Jarrow Yildirim','Heston','Variance Gamma']:
             self.nb_t3 = Frame(self.nb)
             self.nb.add(self.nb_t3, text='SETTINGS', compound='left')
 
@@ -257,7 +269,7 @@ class W_calib_menu(LabelFrame):
             self.rb_calib1.config(state = 'disabled')
             self.rb_calib3.config(state = 'disabled')
             self.mkt_calibration_type.set('CURVE')
-        elif model in ['G2++','Variance Gamma','Jarrow Yildirim','Heston']:
+        elif model in ['CIR++','G2++','Variance Gamma','Jarrow Yildirim','Heston']:
             self.rb_calib1.config(state = 'disabled')
             self.rb_calib2.config(state = 'disabled')
             self.mkt_calibration_type.set('CURVE_OPT')
@@ -413,7 +425,7 @@ class W_calib_menu(LabelFrame):
         if model == 'Heston':
 
             self.setting_Fcm = StringVar() # Feller condition margin
-            self.setting_Fcm.set('0.1')
+            self.setting_Fcm.set('0.01')
             Fcm_label = Label(self.nb_t3, text = 'Feller condition margin')
             Fcm_label.grid(row=1,column=1,rowspan=1,columnspan=1,pady=2,sticky=E+N+S)
             Fcm_entry = Entry(self.nb_t3, textvariable=self.setting_Fcm)
@@ -425,6 +437,15 @@ class W_calib_menu(LabelFrame):
             CsN_label.grid(row=2,column=1,rowspan=1,columnspan=1,pady=2,sticky=E+N+S)
             CsN_entry = Entry(self.nb_t3,textvariable=self.setting_CsN)
             CsN_entry.grid(row=2,column=2,rowspan=1,columnspan=1,pady=2,sticky=W+N+S)
+
+        if model == 'CIR++':
+
+            self.setting_Fcm = StringVar() # Feller condition margin
+            self.setting_Fcm.set('0.01')
+            Fcm_label = Label(self.nb_t3, text = 'Feller condition margin')
+            Fcm_label.grid(row=1,column=1,rowspan=1,columnspan=1,pady=2,sticky=E+N+S)
+            Fcm_entry = Entry(self.nb_t3, textvariable=self.setting_Fcm)
+            Fcm_entry.grid(row=1,column=2,rowspan=1,columnspan=1,pady=2,sticky=W+N+S)
 
         if model == 'Variance Gamma':
 

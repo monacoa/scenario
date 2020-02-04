@@ -981,7 +981,7 @@ def calibration_from_xls(control):
                         x0_m.append(float(W1.param_dict[p_name]['sv']))
                         x_bnd.append([float(W1.param_dict[p_name]['min']), float(W1.param_dict[p_name]['max'])])
 
-                    if model in ['G2++','VSCK']:
+                    if model in ['CIR++','G2++','VSCK']:
 
                         option_type = W1.OptionChosen.loc[(W1.OptionChosen.loc[:, 0] == 'OptionType'), 1].values[0]
 
@@ -1015,68 +1015,8 @@ def calibration_from_xls(control):
                                                                                tenr, swp_atm_d, curve_times,
                                                                                curve_values, call_flag, n_max=50)
 
-                        elif model=='G2++' and option_type in ['Vol Caplets','Caplets']:
 
-                            # leggo la curva dei tassi risk free
-                            orig_curve, curve, type_cap = preProcessingCurve(W1.CurveChosen, rate_time_zero=True,
-                                                                             out_type='discount')
-                            # leggo e processo i dati sulle opzioni
-                            market_data = preProcessingOptions(W1,curve)
-
-                            root = Tk()
-                            root.grid()
-                            message = Label(root, text='Calibrazione in corso')
-                            message.grid(column=0, row=1)
-                            root.update()
-
-                            n_sample = W1.nTime.get()
-                            print 'numero di tentativi:', n_sample
-                            if n_sample == 1:
-                                ff = minimize(loss_G2pp,
-                                          args=(curve, market_data, loss_function_type_power, loss_function_type_absrel),
-                                          x0=x0_m, bounds=x_bnd, method='TNC')
-                                #  aggiungo al dataframe di dati i prezzi da modello
-                                market_data['model price'] = compute_G2pp_prices(ff.x, curve, market_data['time'],
-                                                                                 market_data['strike'])
-                                # Calcolo il chi quadro
-                                chi2 = computeCHI2(mkt=market_data['market price'], mdl=market_data['model price'],
-                                                   type_calib='CURVE_OPT')
-                                final_params = ff.x
-                            elif n_sample > 1:
-                                multiple_calib_dict = {}
-                                for i in range(n_sample):
-                                    starting_points_list = []
-                                    for p_name in W1.params_names:
-                                        starting_points_list.append(
-                                            np.random.uniform(low=float(W1.param_dict[p_name]['min']),
-                                                              high=float(W1.param_dict[p_name]['max'])))
-                                    print 'punti iniziali al passo %i:' % i, starting_points_list
-                                    ff = minimize(loss_G2pp,
-                                                  args=(curve, market_data, loss_function_type_power,
-                                                        loss_function_type_absrel),
-                                                  x0=starting_points_list, bounds=x_bnd, method='TNC')
-                                    print 'parametri calibrati al passo %i:' % i, ff.x
-                                    #  aggiungo al dataframe di dati i prezzi da modello
-                                    market_data['model price'] = compute_G2pp_prices(ff.x, curve, market_data['time'],
-                                                                                     market_data['strike'])
-                                    # Calcolo il chi quadro
-                                    chi2 = computeCHI2(mkt=market_data['market price'], mdl=market_data['model price'],
-                                                       type_calib='CURVE_OPT')
-                                    print 'chi2 al passo %i:' % i, chi2
-                                    multiple_calib_dict[chi2] = {'chi2': chi2, 'calib_params': ff.x,
-                                                                 'initial_guess': starting_points_list}
-                                valid_keys = [k for k in multiple_calib_dict.keys() if k > 0]
-                                print 'chiavi valide:', valid_keys
-                                chi2_min = min(valid_keys)
-                                print 'chi2_min al termine delle varie calibrazioni:', chi2_min
-                                market_data['model price'] = compute_G2pp_prices(multiple_calib_dict[chi2_min]['calib_params'], curve, market_data['time'],
-                                                                                 market_data['strike'])
-                                final_params = multiple_calib_dict[chi2_min]['calib_params']
-
-                            root.destroy()
-
-                        elif model == 'G2++' and option_type in ['Vol Caps', 'Caps']:
-
+                        elif model in ['CIR++','G2++'] and option_type in ['Vol Caplets','Caplets','Vol Caps','Caps']:
                             # leggo la curva dei tassi risk free
                             orig_curve, curve, type_cap = preProcessingCurve(W1.CurveChosen, rate_time_zero=True,
                                                                              out_type='discount')
@@ -1089,15 +1029,47 @@ def calibration_from_xls(control):
                             message.grid(column=0, row=1)
                             root.update()
 
+                            if model == 'G2++' and option_type in ['Vol Caps', 'Caps']:
+                                loss_function = loss_G2pp_caps
+                                price_function = compute_G2pp_cap_prices
+                            elif model == 'G2++' and option_type in ['Vol Caplets','Caplets']:
+                                loss_function = loss_G2pp
+                                price_function = compute_G2pp_prices
+                            elif model == 'CIR++':
+                                settings = {'Fcm': float(W1.setting_Fcm.get())}
+                                def fun_constr(param_list):
+                                    return 2. * param_list[0] * param_list[1] - np.power(param_list[3], 2) - settings['Fcm']
+                                constraints = [{'type': 'ineq', 'fun': fun_constr},
+                                               {'type': 'ineq', 'fun': lambda x: x[0] - x_bnd[0][0]},
+                                               {'type': 'ineq', 'fun': lambda x: x[0] - x_bnd[0][0]},
+                                               {'type': 'ineq', 'fun': lambda x: x[1] - x_bnd[1][0]},
+                                               {'type': 'ineq', 'fun': lambda x: x[2] - x_bnd[2][0]},
+                                               {'type': 'ineq', 'fun': lambda x: x[3] - x_bnd[3][0]},
+                                               {'type': 'ineq', 'fun': lambda x: x_bnd[0][1] - x[0]},
+                                               {'type': 'ineq', 'fun': lambda x: x_bnd[1][1] - x[1]},
+                                               {'type': 'ineq', 'fun': lambda x: x_bnd[2][1] - x[2]},
+                                               {'type': 'ineq', 'fun': lambda x: x_bnd[3][1] - x[3]}]
+                                if option_type in ['Vol Caps', 'Caps']:
+                                    loss_function = loss_CIRpp_caps
+                                    price_function = compute_CIRpp_cap_prices
+                                else:
+                                    loss_function = loss_CIRpp
+                                    price_function = compute_CIRpp_prices
+
                             n_sample = W1.nTime.get()
                             print 'numero di tentativi:', n_sample
+
                             if n_sample == 1:
-                                ff = minimize(loss_G2pp_caps,
-                                              args=(
-                                                  curve, market_data, loss_function_type_power, loss_function_type_absrel),
-                                              x0=x0_m, bounds=x_bnd, method='TNC')
+                                if model == 'G2++':
+                                    ff = minimize(loss_function,
+                                                  args=(
+                                                      curve, market_data, loss_function_type_power, loss_function_type_absrel),
+                                                  x0=x0_m, bounds=x_bnd, method='TNC')
+                                else:
+                                    ff = minimize(loss_function, args=(curve, market_data, loss_function_type_power, loss_function_type_absrel),
+                                              x0=x0_m, constraints=constraints, method='COBYLA')
                                 # aggiungo al dataframe di dati i prezzi da modello
-                                market_data['model price'] = compute_G2pp_cap_prices(ff.x, curve, market_data)
+                                market_data['model price'] = price_function(ff.x, curve, market_data)
                                 # Calcolo il chi quadro
                                 chi2 = computeCHI2(mkt=market_data['market price'], mdl=market_data['model price'],
                                                    type_calib='CURVE_OPT')
@@ -1110,15 +1082,23 @@ def calibration_from_xls(control):
                                         starting_points_list.append(
                                             np.random.uniform(low=float(W1.param_dict[p_name]['min']),
                                                               high=float(W1.param_dict[p_name]['max'])))
+                                    if model == 'CIR++':  # test Feller condition
+                                        if 2. * starting_points_list[0] * starting_points_list[1] - np.power(starting_points_list[2], 2) < settings['Fcm']:
+                                            continue
                                     print 'punti iniziali al passo %i:' % i, starting_points_list
-                                    ff = minimize(loss_G2pp_caps,
-                                                  args=(
-                                                      curve, market_data, loss_function_type_power,
-                                                      loss_function_type_absrel),
-                                                  x0=starting_points_list, bounds=x_bnd, method='TNC')
+                                    if model == 'G2++':
+                                        ff = minimize(loss_function,
+                                                      args=(
+                                                          curve, market_data, loss_function_type_power,
+                                                          loss_function_type_absrel),
+                                                      x0=starting_points_list, bounds=x_bnd, method='TNC')
+                                    else:
+                                        ff = minimize(loss_function, args=(
+                                        curve, market_data, loss_function_type_power, loss_function_type_absrel),
+                                                      x0=starting_points_list, constraints=constraints, method='COBYLA')
                                     print 'parametri calibrati al passo %i:' % i, ff.x
                                     #  aggiungo al dataframe di dati i prezzi da modello
-                                    market_data['model price'] = compute_G2pp_cap_prices(ff.x, curve, market_data)
+                                    market_data['model price'] = price_function(ff.x, curve, market_data)
                                     # Calcolo il chi quadro
                                     chi2 = computeCHI2(mkt=market_data['market price'], mdl=market_data['model price'],
                                                        type_calib='CURVE_OPT')
@@ -1129,7 +1109,7 @@ def calibration_from_xls(control):
                                 print 'chiavi valide:', valid_keys
                                 chi2_min = min(valid_keys)
                                 print 'chi2_min al termine delle varie calibrazioni:', chi2_min
-                                market_data['model price'] = compute_G2pp_cap_prices(
+                                market_data['model price'] = price_function(
                                     multiple_calib_dict[chi2_min]['calib_params'],  curve, market_data)
                                 final_params = multiple_calib_dict[chi2_min]['calib_params']
 
@@ -1291,8 +1271,6 @@ def calibration_from_xls(control):
                                            {'type': 'ineq', 'fun': lambda x: x_bnd[3][1] - x[3]},
                                            {'type': 'ineq', 'fun': lambda x: x_bnd[4][1] - x[4]}]
 
-                            # CsN = int(W1.setting_CsN.get())
-
                             if n_sample == 1:
                                 ff = minimize(loss_function, args=(
                                 S0, market_data, curve, dividends, settings, loss_function_type_power, loss_function_type_absrel)
@@ -1312,7 +1290,7 @@ def calibration_from_xls(control):
                                             np.random.uniform(low=float(W1.param_dict[p_name]['min']),
                                                               high=float(W1.param_dict[p_name]['max'])))
                                     # test Feller condition
-                                    if 2. * starting_points_list[0] * starting_points_list[1] - np.power(starting_points_list[3], 2) < 0.1:
+                                    if 2. * starting_points_list[0] * starting_points_list[1] - np.power(starting_points_list[3], 2) < settings['Fcm']:
                                         continue
                                     print 'punti iniziali al passo %i:' % i, starting_points_list
                                     ff = minimize(loss_function, args=(
@@ -1375,7 +1353,7 @@ def calibration_from_xls(control):
                             plt.tight_layout()
                             plt.show()
 
-                        # Inverto i prezzi VG relativi a strike e maturity date per ottenere delle volatilita' BS
+                        # Inverto i prezzi relativi a strike e maturity date per ottenere delle volatilita' BS
                         if len(vol_coord_df) > 0:
                             print vol_coord_df
                             vol_coord_list = []

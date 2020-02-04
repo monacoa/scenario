@@ -3,7 +3,7 @@ import tkMessageBox
 import numpy as np
 import pandas as pd
 from scipy.special import ive
-from scipy.stats import norm
+from scipy.stats import norm, ncx2
 from scipy import optimize
 import datetime
 from anagrafica_dati import *
@@ -358,6 +358,198 @@ def generate_cir_perc(params, data_to_fit):
 
     return model_value
 
+############################################################
+#       CIR ++
+############################################################
+
+#======= Utility modello =====================================
+
+def f_cir(parameters,t):
+    kappa = float(parameters['kappa'])
+    theta = float(parameters['theta'])
+    sigma = float(parameters['sigma'])
+    x0 = float(parameters['x0'])
+
+    h = np.sqrt(np.power(kappa, 2) + 2. * np.power(sigma, 2))
+    f_ = 2.*kappa * theta * (np.exp(t * h) - 1.) / (
+                2. * h + (kappa + h) * (np.exp(t * h) - 1.))
+    f_ += (x0 * 4. * h * h * np.exp(t * h) / np.power(
+        (2. * h + (kappa + h) * (np.exp(t * h) - 1.)), 2))
+    return f_
+
+def phi_cir(curve,parameters,t):
+    if t == 0.: return 0.
+    mkt_rate = -np.log(P_0t(t,curve['TIME'],curve['VALUE']))/t
+    return mkt_rate - f_cir(parameters,t)
+
+def _A_TS_CIR(parameters,t_i,t_f):
+    kappa = float(parameters['kappa'])
+    theta = float(parameters['theta'])
+    sigma = float(parameters['sigma'])
+    x0 = float(parameters['x0'])
+    h = np.sqrt(np.power(kappa, 2) + 2 * np.power(sigma, 2))
+    A_num = 2 * h * np.exp((kappa + h) * (t_f-t_i) / 2.)
+    A_den = 2 * h + (kappa + h) * (np.exp((t_f-t_i) * h) - 1)
+    return np.power(A_num / A_den, 2 * kappa * theta / np.power(sigma, 2))
+
+def _B_TS_CIR(parameters, t_i, t_f):
+    kappa = float(parameters['kappa'])
+    theta = float(parameters['theta'])
+    sigma = float(parameters['sigma'])
+    x0 = float(parameters['x0'])
+    h = np.sqrt(np.power(kappa, 2) + 2 * np.power(sigma, 2))
+    B_num = 2 * (np.exp((t_f-t_i) * h) - 1)
+    B_den = 2 * h + (kappa + h) * (np.exp((t_f-t_i) * h) - 1)
+    return B_num / B_den
+
+def _A_TS_CIRpp(curve,parameters,T,S):
+
+    kappa = float(parameters['kappa'])
+    theta = float(parameters['theta'])
+    sigma = float(parameters['sigma'])
+    x0 = float(parameters['x0'])
+
+    P0T = P_0t(T, curve['TIME'], curve['VALUE'])
+    P0S = P_0t(S, curve['TIME'], curve['VALUE'])
+
+    numer = P0S*_A_TS_CIR(parameters,0.,T)*np.exp(-_B_TS_CIR(parameters,0,T)*x0)
+    denom = P0T*_A_TS_CIR(parameters,0.,S)*np.exp(-_B_TS_CIR(parameters,0,S)*x0)
+    return numer/denom*_A_TS_CIR(parameters,T,S)*np.exp(_B_TS_CIR(parameters,T,S)*phi_cir(curve,parameters,T))
+
+def P_TS_CIRpp(curve,parameters,r_T,T,S):
+    return _A_TS_CIRpp(curve,parameters,T,S)*np.exp(-_B_TS_CIR(parameters,T,S)*r_T)
+
+#======= Calibrazione sulle opzioni Cap Floor ================
+# -------------- opzioni ---- ( formule dal Brigo) ---------------------------------------
+def ZBC_CIRpp(curve,parameters,reset_time,excercise_time,strike):
+
+    kappa = float(parameters['kappa'])
+    theta = float(parameters['theta'])
+    sigma = float(parameters['sigma'])
+    x0 = float(parameters['x0'])
+
+    T = float(reset_time)
+    S = float(excercise_time)
+    P0T = P_0t(T,curve['TIME'],curve['VALUE'])
+    P0S = P_0t(S, curve['TIME'], curve['VALUE'])
+
+    h = np.sqrt(np.power(kappa, 2) + 2 * np.power(sigma, 2))
+    rho = 2.*h/(np.power(sigma,2)*(np.exp(h*S)-1.))
+    psi = (kappa + h)/np.power(sigma,2)
+    arg_num = P0T*_A_TS_CIR(parameters,0.,S)*np.exp(-_B_TS_CIR(parameters,0.,S)*x0)
+    arg_den = P0S*_A_TS_CIR(parameters,0.,T)*np.exp(-_B_TS_CIR(parameters,0.,T)*x0)
+    r_hat = (1./_B_TS_CIR(parameters,T,S))*(np.log(_A_TS_CIR(parameters,T,S)/strike)-np.log(arg_num/arg_den))
+    df = 4.*kappa*theta/(sigma*sigma)
+    nc_1 = 2.*rho*rho*x0*np.exp(h*T)/(rho+psi+_B_TS_CIR(parameters,T,S))
+    prob_1 = ncx2.cdf(2.*r_hat*(rho+psi+_B_TS_CIR(parameters,T,S)),df,nc_1)
+    nc_2 = 2.*rho*rho*x0*np.exp(h*T)/(rho+psi)
+    prob_2 = ncx2.cdf(2.*r_hat*(rho+psi),df,nc_2)
+
+    return P0S*prob_1 - strike*P0T*prob_2
+
+def ZBP_CIRpp(curve,parameters,reset_time,excercise_time,strike):
+    # calcolata tramite la Put-Call parity
+    T = float(reset_time)
+    S = float(excercise_time)
+    P0T = P_0t(T,curve['TIME'],curve['VALUE'])
+    P0S = P_0t(S, curve['TIME'], curve['VALUE'])
+    return ZBC_CIRpp(curve,parameters,T,S,strike) - P0S + strike*P0T
+
+# Calcolo del singolo Caplet
+# I parametri del CIR++ vanno passati come un dizionario {kappa, theta, sigma, x0}
+# Va passata la curva dei fattori di sconto come dataframe {TIME, VALUE}
+def Caplet_CIRpp(curve,parameters,reset_time,exercise_time,nominal_amount,strike):
+    kappa = float(parameters['kappa'])
+    theta = float(parameters['theta'])
+    sigma = float(parameters['sigma'])
+    x0 = float(parameters['x0'])
+
+    T = float(reset_time)
+    S = float(exercise_time)
+    P0T = P_0t(T,curve['TIME'],curve['VALUE'])
+    P0S = P_0t(S, curve['TIME'], curve['VALUE'])
+    N = float(nominal_amount)
+    tau = S - T
+    X_bar = 1. + strike * tau
+
+    if T == 0.:
+        forward_rate = (1. / (S - T)) * (P0T / P0S - 1.)
+        return P0S * N * (S - T) * np.maximum(forward_rate - strike, 0.)
+
+    return N * X_bar * ZBP_CIRpp(curve, parameters, T, S, 1. / X_bar)
+
+
+# ---- Lista prezzi dei Caplet da modello CIR++ -----------------------------
+# i parametri del modello vengono passati tramite una lista [kappa, theta, sigma, x0]
+def compute_CIRpp_prices(parameters_list, curve, mkt_data):
+    parameters_dict={}
+    parameters_dict['kappa']=parameters_list[0]
+    parameters_dict['theta'] = parameters_list[1]
+    parameters_dict['x0'] = parameters_list[2]
+    parameters_dict['sigma'] = parameters_list[3]
+
+    caplet_prices=[]
+
+    for i in range(0,len(mkt_data)):
+        time_tmp   = mkt_data['time'][i]
+        strike_tmp = mkt_data['strike'][i]
+        caplet_tmp = Caplet_CIRpp(curve, parameters_dict, time_tmp - 0.5, time_tmp, 1.0, strike_tmp)
+        caplet_prices.append(caplet_tmp)
+
+    return caplet_prices
+
+# ---------- Lista prezzi dei Cap ATM da modello CIR++ -----------------------------
+# i parametri del modello vengono passati tramite una lista [kappa, theta, sigma, x0]
+def compute_CIRpp_cap_prices(parameters_list, curve, mkt_data):
+    parameters_dict={}
+    parameters_dict['kappa']=parameters_list[0]
+    parameters_dict['theta'] = parameters_list[1]
+    parameters_dict['x0'] = parameters_list[2]
+    parameters_dict['sigma'] = parameters_list[3]
+
+    cap_prices=[]
+
+    for i in range(0, len(mkt_data['time'])):
+        time = mkt_data['time'][i]
+        strike = mkt_data['strike'][i]
+        cap_tmp=0.
+        for t in np.arange(0,time,step=0.5):
+            cap_tmp += Caplet_CIRpp(curve,parameters_dict,t,t+0.5,1.,strike)
+        cap_prices.append(cap_tmp)
+
+    return cap_prices
+
+# ---------- Funzione di calcolo norma da ottimizzare nel caso ATM ------------------------------------
+# power=1 metrica di Manhattan
+# power=2 metrica euclidea
+# se absrel='rel' viene calcolata la norma delle differenze relative
+# mkt_data e' un DataFrame contenente tre series 'time', 'strike' e 'market price'
+def loss_CIRpp_caps(list_model_params, curve, mkt_prices, power, absrel):
+
+    model_price_tmp = np.array(compute_CIRpp_cap_prices(list_model_params, curve, mkt_prices))
+    diff = np.absolute(model_price_tmp - mkt_prices['market price'])
+    if absrel == 'rel':
+        diff = diff /np.absolute(mkt_prices['market price'])
+
+    diff = np.power(diff,power)
+
+    return diff.sum()
+
+# ---------- Funzione di calcolo norma da ottimizzare ------------------------------------
+# power=1 metrica di Manhattan
+# power=2 metrica euclidea
+# se absrel='rel' viene calcolata la norma delle differenze relative
+# mkt_data e' un DataFrame contenente tre series 'time', 'strike' e 'market price'
+def loss_CIRpp(list_model_params, curve, mkt_prices, power, absrel):
+
+    model_price_tmp = np.array(compute_CIRpp_prices(list_model_params, curve, mkt_prices))
+    diff = np.absolute(model_price_tmp - mkt_prices['market price'])
+    if absrel == 'rel':
+        diff = diff /np.absolute(mkt_prices['market price'])
+
+    diff = np.power(diff,power)
+
+    return diff.sum()
 
 ############################################################
 #       VSCK
@@ -660,7 +852,7 @@ def Caplet_G2pp(curve,parameters,reset_time,exercise_time,nominal_amount,strike)
 
 # ---- Lista prezzi dei Caplet da modello G2++ -----------------------------
 # i parametri del modello vengono passati tramite una lista [a,b,sigma,eta,rho]
-def compute_G2pp_prices(parameters_list, curve, times, strikes):
+def compute_G2pp_prices(parameters_list, curve, market_data):
     parameters_dict={}
     parameters_dict['a']=parameters_list[0]
     parameters_dict['sigma'] = parameters_list[1]
@@ -669,13 +861,10 @@ def compute_G2pp_prices(parameters_list, curve, times, strikes):
     parameters_dict['rho'] = parameters_list[4]
 
     caplet_prices=[]
-    # for elem in strikes_and_times:
-    #     caplet_tmp=Caplet_G2pp(curve,parameters_dict,0.0,elem[1]-0.5,elem[1],1.0,elem[0])
-    #     caplet_prices.append(caplet_tmp)
 
-    for i in range(0,len(times)):
-        time_tmp   = times[i]
-        strike_tmp = strikes[i]
+    for i in range(0,len(market_data)):
+        time_tmp   = market_data['time'][i]
+        strike_tmp = market_data['strike'][i]
         caplet_tmp = Caplet_G2pp(curve, parameters_dict, time_tmp - 0.5, time_tmp, 1.0, strike_tmp)
         caplet_prices.append(caplet_tmp)
 
@@ -726,7 +915,7 @@ def loss_G2pp_caps(list_model_params, curve, mkt_prices, power, absrel):
 # mkt_data e' un DataFrame contenente tre series 'time', 'strike' e 'market price'
 def loss_G2pp(list_model_params, curve, mkt_prices, power, absrel):
 
-    model_price_tmp = np.array(compute_G2pp_prices(list_model_params, curve, mkt_prices['time'], mkt_prices['strike']))
+    model_price_tmp = np.array(compute_G2pp_prices(list_model_params, curve, mkt_prices))
     diff = np.absolute(model_price_tmp - mkt_prices['market price'])
     if absrel == 'rel':
         diff = diff /np.absolute(mkt_prices['market price'])
