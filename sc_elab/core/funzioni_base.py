@@ -1296,6 +1296,7 @@ def convertNodeToMnth(nodeRef):
     dict_N2T['1M'] = 1 
     dict_N2T['3M'] = 3
     dict_N2T['6M'] = 6
+    dict_N2T['12M'] = 12
     dict_N2T['1Y'] = 12
     
     timeNode = dict_N2T[nodeRef]
@@ -2435,7 +2436,6 @@ def boot3s_elab_v2(data_opt, data_raw):
     s1 = list(set(dict1s['TipoSegmento']))
     s2 = list(set(dict_f['TipoSegmento']))
     s3 = list(set(dict_s['TipoSegmento']))
-    
 
     codeCurve = s1[0]
     if (len(s2)>0): codeCurve = codeCurve + s2[0] 
@@ -2490,7 +2490,6 @@ def boot3s_elab_v2(data_opt, data_raw):
         day_conv_s = data_opt['BusConv']['D']
         basis_s = data_opt['Basis']['D']
         basis_s = convert_basis(basis_s)
-
 
     #%--------------------------------------------------------------------------
     #%-------------- RETRIEVE OPTIONS SETUP ------------------------------------
@@ -2613,8 +2612,8 @@ def boot3s_elab_v2(data_opt, data_raw):
     fix_date1      = tn_date
     fix_time1      = daycount.yearfrac(ref_date, fix_date1, basis_fix)
 
-    on_date_n2     = on_date + datetime.timedelta(days = 2)    
-    fix_swap_date  = busdayrule.rolldate(on_date_n2,  mkt_ref, day_conv_s) 
+    on_date_n2     = on_date + datetime.timedelta(days = 2)
+    fix_swap_date  = busdayrule.rolldate(on_date_n2,  mkt_ref, day_conv_s)
     fix_swap_time  = daycount.yearfrac(ref_date, fix_swap_date, basis_s)
     yy_fix = fix_swap_date.year
     mm_fix = fix_swap_date.month
@@ -2622,7 +2621,6 @@ def boot3s_elab_v2(data_opt, data_raw):
     
     fix_swap_date = datetime.date(yy_fix, mm_fix, dd_fix)
 
-    
     #%--------------------------------------------------------------------------
     #%-------------- ELABORAZIONE 1mo SEGMENTO: DEPOSITI, LIBOR ----------------
     #%--------------------------------------------------------------------------
@@ -2859,8 +2857,7 @@ def boot3s_elab_v2(data_opt, data_raw):
     
         for j in range(0, n_new_swap + 1):
         
-            swap_dates_tmp = add_months(fix_swap_date, tenor_swap*j)            
-
+            swap_dates_tmp = add_months(fix_swap_date, tenor_swap*j)
             swap_dates_tmp = busdayrule.rolldate(swap_dates_tmp, mkt_ref, day_conv_s) #% genero vettore delle date corrette DAY CONVENTION
             swap_dates_new.append(swap_dates_tmp.date())
             
@@ -2915,10 +2912,6 @@ def boot3s_elab_v2(data_opt, data_raw):
         #%------------------------------------------------------------------------------------------
         #%----------------------- Generazione fattori di sconto alle date dei pagamenti "Swap"
         #%--------------------------------------------------------------------------------------------
-        
-        #print'merge_times: ', merge_times[len(merge_times)-1]
-        #print'merge_times: ', merge_times
-       
 
         for i in range(0, nsw1s):
             
@@ -2934,7 +2927,6 @@ def boot3s_elab_v2(data_opt, data_raw):
 
                     fwd         = -np.log(merge_df[len(merge_df)-1]/merge_df[len(merge_df)-2])/(merge_times[len(merge_times)-1] - merge_times[len(merge_times)-2])
                     df_tmp1s[i] = np.exp(-fwd*(times_swap_tmp1s[i]- merge_times[len(merge_times)-1]))
-    
             else: #%--- INTERPOLAZIONE --------------------------
     
                 overlap_flag = (dates_swap_tmp1s[i] in merge_dates)
@@ -2954,7 +2946,6 @@ def boot3s_elab_v2(data_opt, data_raw):
                     t_target = times_swap_tmp1s[i]
 
                     df_tmp1s[i] = df_from_interp_df_exp(t_target, df_n, df_o, t_n, t_o)
-
                     
 
                 else:

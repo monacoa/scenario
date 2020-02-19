@@ -123,6 +123,7 @@ class W_bondSelection (LabelFrame):
         # -----------
         # cretae button
         self.btn2 = Button(self, text="Cancel", command=self.close_window)
+        #self.btn2 = Button(self, text="Cancel", command=self.close_window(type))
         self.btn2.pack(side=BOTTOM, fill='x')
         # cretae button
         self.btn1 = Button(self, text="Select", command=lambda:self.selected_bond(type))
@@ -131,6 +132,11 @@ class W_bondSelection (LabelFrame):
     def close_window(self, type):
         self.destroy()
         if (type == "BOND") : self.master.destroy()
+
+
+    # def close_window(self):
+    #     self.destroy()
+    #     self.master.destroy()
 
     def selected_bond(self, type):
         #recupero la data selezionata

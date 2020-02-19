@@ -20,6 +20,17 @@ def model_parameters(value):
         names = ['r0', 'k', 'theta', 'sigma']
         attribute = ['sv', 'min', 'max', 'fix']
 
+    elif value == 'CIR++':
+        dict = {'kappa'     :{'sv':'0.5' ,'min':'0.001'   , 'max':'10.0','fix':0},
+                'theta' :{'sv':'0.03','min':'0.001'   , 'max':'0.3' ,'fix':0},
+                'x0': {'sv': '0.03', 'min': '0.000001', 'max': '0.5', 'fix': 0},
+                'sigma' :{'sv':'0.05','min':'0.005'   , 'max':'1.0' ,'fix':0}
+                }
+
+        # mi servono ordinati
+        names = ['kappa', 'theta', 'x0', 'sigma']
+        attribute = ['sv', 'min', 'max', 'fix']
+
     elif value == 'VSCK':
         dict = {'r0'    :{'sv':'0.03', 'min': '-0.5'  , 'max':'0.5'  ,'fix':0},
                 'k'     :{'sv':'0.03', 'min': '0.0001', 'max':'10.0' ,'fix':0},
@@ -62,6 +73,16 @@ def model_parameters(value):
         names = ['sigma', 'nu', 'theta']
         attribute = ['sv', 'min', 'max', 'fix']
 
+    elif value == 'Heston':
+        dict ={'kappa' :{'sv':'0.5', 'min': '0.01', 'max': '5.0' , 'fix':0},
+               'theta': {'sv': '0.15', 'min': '0.01', 'max': '0.7', 'fix': 0},
+               'v0': {'sv': '0.1', 'min': '0.01', 'max': '0.7', 'fix': 0},
+               'sigma': {'sv': '0.1', 'min': '0.01', 'max': '1.0', 'fix': 0},
+               'rho': {'sv': '-0.1', 'min': '-0.9', 'max': '0.9', 'fix': 0},
+               }
+        names = ['kappa','theta','v0','sigma','rho']
+        attribute = ['sv', 'min', 'max', 'fix']
+
     else:
         dict ={}
         names = []
@@ -90,10 +111,12 @@ class W_calib_models(Frame):
         Label(self,text="""Choose your calibrator :""",justify=LEFT,padx=20).pack()
 
         self.calib_avaible = ['CIR',
+                              'CIR++',
                          'VSCK',
                          'Jarrow Yildirim',
                          'G2++',
-                         'Variance Gamma']
+                         'Variance Gamma',
+                              'Heston']
 
         for name_calib in self.calib_avaible:
             Radiobutton(self,
@@ -174,6 +197,7 @@ class W_calib_menu(LabelFrame):
             tmpInflCurve = objectOnSheet.loc[objectOnSheet.TypeObject == 'Inflation/Real Curve', 'Name'].tolist()
             tmpOptions = objectOnSheet.loc[objectOnSheet.TypeObject == 'Option', 'Name'].tolist()
             tmpTS = objectOnSheet.loc[objectOnSheet.TypeObject == 'TS', 'Name'].tolist()
+            tmpVolCoord = objectOnSheet.loc[objectOnSheet.TypeObject == 'Elaboration', 'Name'].tolist()
 
         #########################################################################
         # Titolo della form
@@ -194,7 +218,7 @@ class W_calib_menu(LabelFrame):
         self.rb_type2.grid(row = 1, column = 2, rowspan = 1, columnspan = 1, pady = 5, sticky = W+E+N+S)
         self.set_mkt_ts.set('MKT')
 
-        if model in ['Jarrow Yildirim','G2++','Variance Gamma']:
+        if model in ['CIR++','Jarrow Yildirim','G2++','Variance Gamma','Heston']:
             self.rb_type2.config(state = 'disabled')
 
         #########################################################################
@@ -213,7 +237,7 @@ class W_calib_menu(LabelFrame):
         self.nb_t2 = Frame(self.nb)
         self.nb.add(self.nb_t2, text="PARAMS",compound="left")
 
-        if model == 'Jarrow Yildirim':
+        if model in ['CIR++','Jarrow Yildirim','Heston','Variance Gamma']:
             self.nb_t3 = Frame(self.nb)
             self.nb.add(self.nb_t3, text='SETTINGS', compound='left')
 
@@ -245,7 +269,7 @@ class W_calib_menu(LabelFrame):
             self.rb_calib1.config(state = 'disabled')
             self.rb_calib3.config(state = 'disabled')
             self.mkt_calibration_type.set('CURVE')
-        elif model in ['G2++','Variance Gamma','Jarrow Yildirim']:
+        elif model in ['CIR++','G2++','Variance Gamma','Jarrow Yildirim','Heston']:
             self.rb_calib1.config(state = 'disabled')
             self.rb_calib2.config(state = 'disabled')
             self.mkt_calibration_type.set('CURVE_OPT')
@@ -308,6 +332,17 @@ class W_calib_menu(LabelFrame):
             self.NameInflation = StringVar()
             self.cb_inflcurve.config(textvariable=self.NameInflation, state="readonly", values=tmpInflCurve)
             self.cb_inflcurve.grid(row=8, column=2, rowspan=1, columnspan=3, pady=2, sticky=W + E + N + S)
+
+        #### Alimentazione delle coppie strike x maturity per l'estrazione delle volatilita' dalla superficie
+        # di volatilita' implicita nei prezzi delle opzioni Variance Gamma
+        if model in ['Variance Gamma','Heston']:
+            Label6 = Label(self.nb_t0, text='Vol Coordinates')
+            Label6.grid(row=8, column=1, rowspan=1, columnspan=1, pady=2, sticky=W + E + N + S)
+
+            self.cb_volcoord = ttk.Combobox(self.nb_t0)
+            self.NameVolCoord = StringVar()
+            self.cb_volcoord.config(textvariable=self.NameVolCoord, state='readonly', values=tmpVolCoord)
+            self.cb_volcoord.grid(row=8, column=2, rowspan=1, columnspan=3, pady=2, sticky=W + E + N + S)
 
         #########################################################################
         # Area TS
@@ -386,6 +421,53 @@ class W_calib_menu(LabelFrame):
             Noz_label.grid(row=4, column=1, rowspan=1, columnspan=1, pady=2, sticky=E + N + S)
             Noz_entry = Entry(self.nb_t3, textvariable=self.setting_Noz)
             Noz_entry.grid(row=4,column=2, rowspan=1, columnspan=1, pady=2, sticky=W + N + S)
+
+        if model == 'Heston':
+
+            self.setting_Fcm = StringVar() # Feller condition margin
+            self.setting_Fcm.set('0.01')
+            Fcm_label = Label(self.nb_t3, text = 'Feller condition margin')
+            Fcm_label.grid(row=1,column=1,rowspan=1,columnspan=1,pady=2,sticky=E+N+S)
+            Fcm_entry = Entry(self.nb_t3, textvariable=self.setting_Fcm)
+            Fcm_entry.grid(row=1,column=2,rowspan=1,columnspan=1,pady=2,sticky=W+N+S)
+
+            self.setting_CsN = StringVar() #Cos series N - number of addends in the cos expansion of the fourier transform
+            self.setting_CsN.set('48')
+            CsN_label = Label(self.nb_t3, text = 'Cos series N')
+            CsN_label.grid(row=2,column=1,rowspan=1,columnspan=1,pady=2,sticky=E+N+S)
+            CsN_entry = Entry(self.nb_t3,textvariable=self.setting_CsN)
+            CsN_entry.grid(row=2,column=2,rowspan=1,columnspan=1,pady=2,sticky=W+N+S)
+
+        if model == 'CIR++':
+
+            self.setting_Fcm = StringVar() # Feller condition margin
+            self.setting_Fcm.set('0.01')
+            Fcm_label = Label(self.nb_t3, text = 'Feller condition margin')
+            Fcm_label.grid(row=1,column=1,rowspan=1,columnspan=1,pady=2,sticky=E+N+S)
+            Fcm_entry = Entry(self.nb_t3, textvariable=self.setting_Fcm)
+            Fcm_entry.grid(row=1,column=2,rowspan=1,columnspan=1,pady=2,sticky=W+N+S)
+
+        if model == 'Variance Gamma':
+
+            self.setting_etaVG = StringVar() # Integration step
+            self.setting_etaVG.set('0.25')
+            etaVG_label = Label(self.nb_t3, text = 'eta: integration step')
+            etaVG_label.grid(row=1,column=1,rowspan=1,columnspan=1,pady=2,sticky=E+N+S)
+            etaVG_entry = Entry(self.nb_t3, textvariable=self.setting_etaVG)
+            etaVG_entry.grid(row=1,column=2,rowspan=1,columnspan=1,pady=2,sticky=W+N+S)
+
+            self.setting_Nesp = StringVar() # log_2(nodes) in the FFT of the VG Call price
+            self.setting_Nesp.set('12')
+            Nesp_label = Label(self.nb_t3, text='FFT log_2(nodes)')
+            Nesp_label.grid(row=2, column=1, rowspan=1, columnspan=1, pady=2, sticky=E + N + S)
+            Nesp_entry = Entry(self.nb_t3, textvariable=self.setting_Nesp)
+            Nesp_entry.grid(row=2, column=2, rowspan=1, columnspan=1, pady=2, sticky=W + N + S)
+
+            Nesp_explic_label = Label(self.nb_t3, text = 'Number of nodes generated by the FFT: N = 2^(FFT log_2(nodes)).\n'
+                                                         'Recall that the FFT computes simultaneusly several strikes,\n'
+                                                         'the log strike spacing being lambda = 2pi/(N*eta),\n'
+                                                         'and linearly interpolates to get the price for the desired strike.')
+            Nesp_explic_label.grid(row=3, column=1, rowspan=2, columnspan=2, pady=2)
 
         #########################################################################
         # Bottoni finali
@@ -529,6 +611,11 @@ class W_calib_menu(LabelFrame):
                     if model == 'Jarrow Yildirim':
                         tmp_inflation = tableObject.loc[tableObject.Name == self.NameInflation.get(), 'keys'].values[0]
                         self.InflationChosen = dictObject[tmp_inflation]
+                    if (model in ['Variance Gamma','Heston']) and (self.NameVolCoord.get() != ''):
+                        tmp_volcoord = tableObject.loc[tableObject.Name == self.NameVolCoord.get(), 'keys'].values[0]
+                        self.VolCoordChosen = dictObject[tmp_volcoord]
+                    elif (model in ['Variance Gamma','Heston']) and (self.NameVolCoord.get() == ''):
+                        self.VolCoordChosen = pd.DataFrame()
                     self.master.destroy()
 
 
@@ -707,6 +794,9 @@ def readFeaturesObject(input_dict):
                                                         'TypeObject': 'Matrix',
                                                         'Name': item.loc[0, 0]}, ignore_index=True)
 
-
+        elif u'ElabType' in item.loc[:,0].values:
+            element_on_sheet = element_on_sheet.append({'keys': k,
+                                                        'TypeObject': 'Elaboration',
+                                                        'Name': item.loc[0,0]}, ignore_index=True)
 
     return element_on_sheet

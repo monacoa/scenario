@@ -159,7 +159,7 @@ def writeCalibrationResOnXls(type_data, model, W_class, xla, chi2, opt_dict, res
 
 
 
-def writeDividendsResOnXls(title, W_class, xla, res, dividend_type = 'continuous'):
+def writeDividendsResOnXls(title, W_class, xla, res, dividend_type = 'CNT'):
 
     nameSheet = nameSheetCalibRes
     try:
@@ -191,7 +191,7 @@ def writeDividendsResOnXls(title, W_class, xla, res, dividend_type = 'continuous
     s = xla.Cells.Columns.AutoFit()
 
 
-def writeVolResOnXls(title, W_class, xla, strike, maturity, vol):
+def writeVolResOnXls(title, W_class, xla, res):
 
     nameSheet = nameSheetCalibRes
     try:
@@ -213,12 +213,10 @@ def writeVolResOnXls(title, W_class, xla, strike, maturity, vol):
     Attributi = \
         {     "1. Date ref"              : ref_date
             , "2. Type Volatility"       : 'Black-Scholes vol'
-            , "3. Strike"                : strike
-            , "4. Maturity"              : maturity
-            , "5. Volatility"            : vol
         }
 
     r = intestazioneCalibration(xla = xla, rng = r, attributi = Attributi , title = title)
+    r = writeResultPandas(xla=xla, rng=r, df=res, flagPrintColumns=True)
     s = xla.Cells.Columns.AutoFit()
 
 
@@ -300,6 +298,7 @@ def writeTemplateCalibration(xla, nameSheet):
     mat['Expiry']   = mat['Expiry'].map(MaturityFromIntToString)
     mat['Maturity'] = mat['Maturity'].map(MaturityFromIntToString)
     mat['Value (x100)'] = np.zeros(7)
+    mat['Shift'] = np.zeros(7)
     mat['Usage'] = 'Y'
 
     Attributi = {
@@ -380,5 +379,23 @@ def writeTemplateCalibration(xla, nameSheet):
     }
 
     r = intestazioneCalibration(xla=xla, rng=r, attributi=Attributi, title='Template Calibration Inflation Option')
+    r = writeResultPandas(xla=xla, rng=r, df=mat, flagPrintColumns=True)
+    xla.Cells.ColumnWidth = 18
+
+    ##########################
+    # Vol from surface
+    ##########################
+
+    mat = pd.DataFrame()
+    mat['Maturity'] = np.arange(1, 8, step=1)
+    mat['Strike'] = 9999*np.ones(7)
+    mat['Usage'] = 'Y'
+
+    Attributi = {
+        "0. Date Ref":  datetime.datetime.now().strftime("%m/%d/%Y")
+        , "1. ElabType": "Vol from Surface"
+    }
+
+    r = intestazioneCalibration(xla=xla, rng=r, attributi=Attributi, title='Template Vol from Surface')
     r = writeResultPandas(xla=xla, rng=r, df=mat, flagPrintColumns=True)
     xla.Cells.ColumnWidth = 18
