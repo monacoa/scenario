@@ -1,8 +1,13 @@
 from pyxll import xlcAlert
 from win32com.client import constants as const
+from W_calibration import readSheetObject, readSheetObject_clearColumns, readSheetObject_clearRows
+
+import pandas as pd
+import numpy as np
 from Tkinter import *
-
-
+import tkMessageBox
+import ttk
+from DEF_intef import nameSheetBootstrap
 
 
 def popup_messagebox(msg):
@@ -232,7 +237,6 @@ def findRigthPlaceBootCurveSeg(xla, r, distCurve, dir="O"):
     return rOut
 
 
-
 def findRigthPlaceBootCurveSeg_m(xla, r, distCurve, dir="O"):
     rOut = None
     if dir == "v" :
@@ -273,7 +277,6 @@ def allSheet(wb):
     return names
 
 
-
 def findCalibrationPos(xla, nameSheet):
     rangeInitial = "B2"
     distanza = 2
@@ -293,7 +296,6 @@ def findCalibrationPos(xla, nameSheet):
         rStart = sheet.Range(rangeInitial)
 
     return rStart
-
 
 
 def writeResultPandas( xla, rng , df, flagPrintColumns = True):
@@ -326,4 +328,157 @@ def writeResultPandas( xla, rng , df, flagPrintColumns = True):
 
     rangeStart = xla.Range(xla.Cells(topLeftRow + nRows + 1, topLeftCol),xla.Cells(topLeftRow + nRows + 1, topLeftCol))
     return rangeStart
+
+
+def readCurveDiscoutFitting(input_dict):
+   col = ['keys', 'TypeObject', 'Name']
+   element_on_sheet = pd.DataFrame(columns=col)
+
+   for k in input_dict.keys():
+      item = input_dict[k]
+      if u'Discount Factors' in item.loc[:,1].values:
+          element_on_sheet=element_on_sheet.append({'keys': k,
+                                                    'TypeObject': 'Discount Curve',
+                                                    'Name': item.loc[0,0]}, ignore_index=True)
+      if u'Interp. Model' in item.loc[:, 0].values:
+          element_on_sheet = element_on_sheet.append({'keys': k,
+                                                      'TypeObject': 'Fitting',
+                                                      'Name': item.loc[0, 0]}, ignore_index=True)
+
+   return element_on_sheet
+
+
+class ChooseAvaiableBootstrapCurve(Frame):
+
+    def close_window(self):
+        self.res_disc = self.curve_disc.get()
+        self.res_parm = self.curve_param.get()
+
+        self.master.destroy()
+
+    def close_without_selection(self):
+        self.res_disc = None
+        self.res_parm = None
+
+        self.master.destroy()
+
+    def __init__(self, master= None , discount_curves = None, prm = None):
+
+        Frame.__init__(self, master)
+
+        self.master = master
+        self.master.title('Curve data selection')
+
+        Label(self.master, text='Curve').grid(row=1, column=0, rowspan=1, columnspan=1, pady=2, sticky=W + E + N + S)
+
+        self.curve_disc = ttk.Combobox(self.master)
+        CurveDisc = StringVar()
+        self.curve_disc.config(textvariable=CurveDisc, state="readonly", values=discount_curves)
+        self.curve_disc.grid(row=1, column=1, rowspan=1, columnspan=1, pady=2, sticky=W + E + N + S)
+
+        Label(self.master, text='FittingParams').grid(row=2, column=0, rowspan=1, columnspan=1, pady=2, sticky=W + E + N + S)
+
+        self.curve_param = ttk.Combobox(self.master)
+        CurveParam = StringVar()
+        self.curve_param.config(textvariable=CurveParam, state="readonly", values=prm)
+        self.curve_param.grid(row=2, column=1, rowspan=1, columnspan=1, pady=2, sticky=W + E + N + S)
+
+        # Bottoni
+        SubmitButton = ttk.Button(self.master, text='Submit', command = self.close_window)
+        SubmitButton.grid(row=3, column=0, rowspan=1, columnspan=1, pady=2, sticky=W + E + N + S)
+
+        CancelButton = ttk.Button(self.master, text='Cancel', command = self.close_without_selection)
+        CancelButton.grid(row=3, column=1, rowspan=1, columnspan=1, pady=2, sticky=W + E + N + S)
+
+
+def CurveBootstrapedFromXls(book):
+
+    # leggo gli oggetti sul foglio in input
+    try:
+        avaiable_curve = readSheetObject(book, nameSheetBootstrap)
+    except:
+        root = Tk()
+        root.withdraw()
+        msg0 = "Non e' presente il foglio: {} !".format(nameSheetBootstrap)
+        tkMessageBox.showinfo("Attenzione!", msg0)
+        root.destroy()
+        return
+
+    # leggo i nomi degli oggeti Discout e Fitting
+    obj_curve = readCurveDiscoutFitting(avaiable_curve)
+
+    # lista delle possibili scelte
+    disc_curves_choices = obj_curve.loc[obj_curve.loc[:,'TypeObject'] == 'Discount Curve','Name'].tolist()
+    params_choices      = obj_curve.loc[obj_curve.loc[:,'TypeObject'] == 'Fitting','Name'].tolist()
+
+
+    # scelta dell'utente tra la lista dei fattori di sconto e dei paramentri
+    root=Tk()
+    choices = ChooseAvaiableBootstrapCurve(master = root, discount_curves = disc_curves_choices, prm = params_choices)
+    root.mainloop()
+
+    if choices.res_disc == None:
+        root=Tk()
+        tkMessageBox.showinfo('Salutation', 'Au revoir')
+        root.destroy()
+        return
+
+    # lettura della curva selezionata
+    sel_df  = int(obj_curve.loc[obj_curve.loc[:,'Name'] == choices.res_disc,'keys'])
+
+    # lettura della data della curva
+    df_date_ref = avaiable_curve[sel_df].loc[(avaiable_curve[sel_df].loc[:,0]=='Date Ref'),1].values[0]
+
+    # selezione dei nodi solo con la Y
+    curve = avaiable_curve[sel_df].loc[(avaiable_curve[sel_df].loc[:, 2] == 'Y'), [0, 1]]
+
+    # dizionario di output dei valori di interesse
+    output = {}
+    output['curve_dates'] = curve.loc[:, 0].dt.date.tolist()
+    output['curve_df_val'] = curve.loc[:, 1].astype(float).tolist()
+
+    if choices.res_parm != '':
+
+        # lettura dei parametri
+        sel_prm = int(obj_curve.loc[obj_curve.loc[:, 'Name'] == choices.res_parm, 'keys'])
+        obj_param = avaiable_curve[sel_prm]
+
+        # lettura della data della curva
+        prm_date_ref = obj_param.loc[(obj_param.loc[:, 0] == 'Date Ref'), 1].values[0]
+
+        # verifica che la data di riferimento sia uguale tra i parametri e i fattori di sconto
+        if prm_date_ref != df_date_ref:
+            root = Tk()
+            tkMessageBox.showinfo('Warning', "La data di riferimento della curva dei fattori di sconto e' diversa rispetto a quella dei parametri.")
+            root.destroy()
+            return
+
+        # elimino le intestazioni: in base alle date o ai tempi
+        row_sep = obj_param.loc[obj_param.loc[:, 0] == 'Date',].index[0]
+        colnames = obj_param.iloc[row_sep, :].tolist()
+
+        # elimino anche il primo valore che corrisponde alla data di riferimento # caso solo del modello LINEARE ?!
+        obj_param = obj_param.loc[(row_sep + 2):obj_param.shape[0], :]
+        obj_param.columns = colnames
+
+        out_param ={}
+        out_param['Dates'] = obj_param.loc[:,'Date'].dt.date.tolist()
+        out_param['a']     = []
+        out_param['b']     = []
+
+        a = obj_param.loc[:,'a'].values
+        b = obj_param.loc[:,'b'].values
+
+        # metto nello stesso formato del Database
+        # il formato di questi due vettori e' veramente ORRIBILE
+
+        for i in xrange(obj_param.shape[0]):
+            out_param['a'].append(np.array([a[i]]))
+            out_param['b'].append(np.array([b[i]]))
+
+        output['date_ref']     = prm_date_ref.date()
+        output['params_model'] = 'LIN'
+        output['params']       = out_param
+
+    return output
 

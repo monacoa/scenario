@@ -667,6 +667,8 @@ def save_from_xls(control):
 # punto d'ingresso per bootstrap CDS
 # ==========================================
 
+from xls_utils import CurveBootstrapedFromXls
+
 @xl_func
 def bootstrap_cds_from_xls(control):
     nameSheet = nameSheetCDS
@@ -735,40 +737,65 @@ def bootstrap_cds_from_xls(control):
         opt_download = {}
         
         interp_rf_model = curve_xl.mapCodeModelInv(opt_rf_interp)
-        
-        
-    
     
         opt_download['refDate'] = curve_xl.ref_date
         opt_download['valuta'] = curve_xl.curr
         opt_download['rating'] = curve_xl.rating
         opt_download['seniority'] = curve_xl.seniority
         opt_download['tipo_modello'] = interp_rf_model
-    
-    
-        codeBenchList = ['%LS', '%DS', '%LFS', '%DFS']
-    
-        for codeTmp in codeBenchList:
-    
-            opt_download['codeSeg'] = codeTmp
-            flag_loaded = curve_xl.loadBenchDataFromDB(opt_download)
-            if (flag_loaded == 1):
-                break
-        
-        
-        
-        if flag_loaded == 0:
-            # significa che ho intercettato un errore!
+
+
+        readRFCurve = W.new_window.variable8.get()#'Excel'  # 'Database'
+
+        if readRFCurve == 'Database':
+
+            codeBenchList = ['%LS', '%DS', '%LFS', '%DFS']
+
+            for codeTmp in codeBenchList:
+
+                opt_download['codeSeg'] = codeTmp
+                flag_loaded = curve_xl.loadBenchDataFromDB(opt_download)
+                if (flag_loaded == 1):
+                    break
+
+            if flag_loaded == 0:
+                # significa che ho intercettato un errore!
+                root = Tk()
+                root.withdraw()
+                msg0 = "Curva benchmark associata al modello %s non presente alla data del %s, cambia modello o data!!" % (
+                interp_rf_model, curve_xl.ref_date)
+                tkMessageBox.showinfo("Attenzione!!", msg0)
+
+                root.destroy()
+                return
+
+        elif readRFCurve == 'Excel':
+            if i == 0:
+                xls_curve = CurveBootstrapedFromXls(book = str(book.FullName))
+
+            curve_xl.bench_dates = xls_curve['curve_dates']
+            curve_xl.bench_df_val = xls_curve['curve_df_val']
+            curve_xl.bench_prms = xls_curve['params']
+            curve_xl.bench_model = xls_curve['params_model']
+
+
+            if curve_xl.ref_date != xls_curve['date_ref']:
+                root = Tk()
+                root.withdraw()
+                msg0 = "La data riferimento della curva risk free e dei CDS sono diverse!"
+                tkMessageBox.showinfo("Attenzione!!", msg0)
+                root.destroy()
+                return
+
+        else:
             root = Tk()
             root.withdraw()
-            msg0 = "Curva benchmark associata al modello %s non presente alla data del %s, cambia modello o data!!" %(interp_rf_model, curve_xl.ref_date)
+            msg0 = "Fonte della curva risk-free errata!"
             tkMessageBox.showinfo("Attenzione!!", msg0)
-    
             root.destroy()
             return
-    
-        
-    
+
+
         data_opt['DataRef']        = curve_xl.ref_date
         data_opt['RecoveryRate'] = float(curve_xl.recovery)/100.0
         data_opt['opt_path_graph']  =  'C:\\'

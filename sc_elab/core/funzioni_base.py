@@ -2616,7 +2616,6 @@ def boot3s_elab_v2(data_opt, data_raw):
     on_date_n2     = on_date + datetime.timedelta(days = 2)    
     fix_swap_date  = busdayrule.rolldate(on_date_n2,  mkt_ref, day_conv_s) 
     fix_swap_time  = daycount.yearfrac(ref_date, fix_swap_date, basis_s)
-    
     yy_fix = fix_swap_date.year
     mm_fix = fix_swap_date.month
     dd_fix = fix_swap_date.day

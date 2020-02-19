@@ -227,6 +227,16 @@ class  W_boot_opt(LabelFrame):
             w7.config(width=30)
             # ---
 
+            # ---
+            T8 = Label(self, height=1, width=30, text="Read risk-free curve:").grid(row=3, sticky="e")
+            self.variable8 = StringVar(self)
+            self.variable8.set("Excel")  # default value
+            w8 = OptionMenu(self, self.variable8, "Excel", "Database")
+            w8.grid(row=3, column=1)
+            w8.config(width=30)
+            # ---
+
+
         elif type == "BOND":
             
             T1 = Label(self,height=1, width=30, text = "Hazard Rate interpolation model:").grid(row=0, sticky = "e")

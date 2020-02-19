@@ -132,6 +132,7 @@ def preProcessingOptions(W_calib, curve):
 
         curve_times = curve['TIME'].values
         curve_values = curve['VALUE'].values
+
         # calcolo i prezzi delle Swaptions
         market_data.reset_index(drop=True, inplace=True)
         for i in xrange(0, int(market_data.shape[0])):
