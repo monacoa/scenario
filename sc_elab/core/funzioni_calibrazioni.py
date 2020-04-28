@@ -80,7 +80,6 @@ def fromContinuousToCompost(r):
     return rate
 
 
-
 def preProcessignTimeSeries(df,dt_min,dt_max):
 
     # elimino le intestazioni
@@ -106,7 +105,7 @@ def preProcessignTimeSeries(df,dt_min,dt_max):
     return out_to_fit
 
 
-def preProcessingOptions(W_calib, curve):
+def preProcessingOptions(W_calib, curve, type_curve='rate'):
 
     optiontype = W_calib.OptionChosen.loc[(W_calib.OptionChosen[0] == 'OptionType'), 1].values[0]
 
@@ -139,11 +138,12 @@ def preProcessingOptions(W_calib, curve):
         for i in xrange(0, int(market_data.shape[0])):
             t = market_data.at[i, "expiry"]
             T = market_data.at[i, "maturity"]
-            srate, annuity = forwardSwap(tenr, curve_times, curve_values, 0, t, T)
+            #srate, annuity = forwardSwap(tenr, curve_times, curve_values, 0, t, T)
+            srate, annuity = SwapRate(tenr, curve_times, curve_values, t, T, type_curve = type_curve)
             market_data.at[i, "swap"] = srate
             if market_data.at[i, "swap"] + market_data.at[i,"shift"] > 0:
                 market_data.at[i, "market price"] = fromVolaATMToPrice(t, T, tenr, market_data.at[i, "value"], curve_times,
-                                                                    curve_values, market_data.at[i, "shift"], call_flag)
+                                                                    curve_values, market_data.at[i, "shift"], call_flag, type_curve=type_curve)
 
         # per calibrare seleziono i dati con (swap + shift) positivo
         market_data = market_data.loc[market_data['swap'] + market_data['shift'] >= 0]
@@ -160,13 +160,14 @@ def preProcessingOptions(W_calib, curve):
         market_data['time'] = volsdata_noint.loc[:, 0].values.astype(float)
         market_data['strike'] = np.divide(volsdata_noint.loc[:, 1].values.astype(float), 100.)
 
+        tenor = MaturityFromStringToYear[W_calib.OptionChosen.loc[W_calib.OptionChosen[0] == 'Tenor', 1].values[0]]
         shift = float(W_calib.OptionChosen.loc[W_calib.OptionChosen[0] == 'Shift', 1])
         market_data['vols_data'] = np.divide(volsdata_noint.loc[:, 2].values.astype(float), 100.)
 
         # Calcolo i prezzi di mercato dei Caplet
         market_data['market price'] = np.array(compute_Black_prices(curve, market_data, 1., shift))
 
-        return market_data
+        return market_data, shift, tenor
 
     elif optiontype == 'Vol Caps':
 
@@ -176,13 +177,14 @@ def preProcessingOptions(W_calib, curve):
         market_data['time'] = volsdata_noint.loc[:, 0].values.astype(float)
         market_data['strike'] = np.divide(volsdata_noint.loc[:, 1].values.astype(float), 100.)
 
+        tenor = MaturityFromStringToYear[W_calib.OptionChosen.loc[W_calib.OptionChosen[0] == 'Tenor', 1].values[0]]
         shift = float(W_calib.OptionChosen.loc[W_calib.OptionChosen[0] == 'Shift', 1])
         market_data['vols_data'] = np.divide(volsdata_noint.loc[:, 2].values.astype(float), 100.)
 
         # Calcolo i prezzi di mercato dei Cap
         market_data['market price'] = np.array(compute_black_cap_list(curve, market_data, 1., shift))
 
-        return market_data
+        return market_data, shift, tenor
 
     elif optiontype in ['Caplets','Caps']:
 
@@ -482,7 +484,7 @@ def Caplet_CIRpp(curve,parameters,reset_time,exercise_time,nominal_amount,strike
 
 # ---- Lista prezzi dei Caplet da modello CIR++ -----------------------------
 # i parametri del modello vengono passati tramite una lista [kappa, theta, sigma, x0]
-def compute_CIRpp_prices(parameters_list, curve, mkt_data):
+def compute_CIRpp_prices(parameters_list, curve, mkt_data,tenor, shift):
     parameters_dict={}
     parameters_dict['kappa']=parameters_list[0]
     parameters_dict['theta'] = parameters_list[1]
@@ -494,14 +496,14 @@ def compute_CIRpp_prices(parameters_list, curve, mkt_data):
     for i in range(0,len(mkt_data)):
         time_tmp   = mkt_data['time'][i]
         strike_tmp = mkt_data['strike'][i]
-        caplet_tmp = Caplet_CIRpp(curve, parameters_dict, time_tmp - 0.5, time_tmp, 1.0, strike_tmp)
+        caplet_tmp = Caplet_CIRpp(curve, parameters_dict, time_tmp - tenor, time_tmp, 1.0, strike_tmp)
         caplet_prices.append(caplet_tmp)
 
     return caplet_prices
 
 # ---------- Lista prezzi dei Cap ATM da modello CIR++ -----------------------------
 # i parametri del modello vengono passati tramite una lista [kappa, theta, sigma, x0]
-def compute_CIRpp_cap_prices(parameters_list, curve, mkt_data):
+def compute_CIRpp_cap_prices(parameters_list, curve, mkt_data,tenor, shift):
     parameters_dict={}
     parameters_dict['kappa']=parameters_list[0]
     parameters_dict['theta'] = parameters_list[1]
@@ -514,8 +516,8 @@ def compute_CIRpp_cap_prices(parameters_list, curve, mkt_data):
         time = mkt_data['time'][i]
         strike = mkt_data['strike'][i]
         cap_tmp=0.
-        for t in np.arange(0,time,step=0.5):
-            cap_tmp += Caplet_CIRpp(curve,parameters_dict,t,t+0.5,1.,strike)
+        for t in np.arange(0,time,step=tenor):
+            cap_tmp += Caplet_CIRpp(curve,parameters_dict,t,t+tenor,1.,strike)
         cap_prices.append(cap_tmp)
 
     return cap_prices
@@ -525,7 +527,7 @@ def compute_CIRpp_cap_prices(parameters_list, curve, mkt_data):
 # power=2 metrica euclidea
 # se absrel='rel' viene calcolata la norma delle differenze relative
 # mkt_data e' un DataFrame contenente tre series 'time', 'strike' e 'market price'
-def loss_CIRpp_caps(list_model_params, curve, mkt_prices, power, absrel):
+def loss_CIRpp_caps(list_model_params, curve, mkt_prices,tenor, shift, power, absrel):
 
     model_price_tmp = np.array(compute_CIRpp_cap_prices(list_model_params, curve, mkt_prices))
     diff = np.absolute(model_price_tmp - mkt_prices['market price'])
@@ -541,7 +543,7 @@ def loss_CIRpp_caps(list_model_params, curve, mkt_prices, power, absrel):
 # power=2 metrica euclidea
 # se absrel='rel' viene calcolata la norma delle differenze relative
 # mkt_data e' un DataFrame contenente tre series 'time', 'strike' e 'market price'
-def loss_CIRpp(list_model_params, curve, mkt_prices, power, absrel):
+def loss_CIRpp(list_model_params, curve, mkt_prices,tenor, shift, power, absrel):
 
     model_price_tmp = np.array(compute_CIRpp_prices(list_model_params, curve, mkt_prices))
     diff = np.absolute(model_price_tmp - mkt_prices['market price'])
@@ -853,7 +855,7 @@ def Caplet_G2pp(curve,parameters,reset_time,exercise_time,nominal_amount,strike)
 
 # ---- Lista prezzi dei Caplet da modello G2++ -----------------------------
 # i parametri del modello vengono passati tramite una lista [a,b,sigma,eta,rho]
-def compute_G2pp_prices(parameters_list, curve, market_data):
+def compute_G2pp_prices(parameters_list, curve, market_data,tenor, shift):
     parameters_dict={}
     parameters_dict['a']=parameters_list[0]
     parameters_dict['sigma'] = parameters_list[1]
@@ -866,14 +868,14 @@ def compute_G2pp_prices(parameters_list, curve, market_data):
     for i in range(0,len(market_data)):
         time_tmp   = market_data['time'][i]
         strike_tmp = market_data['strike'][i]
-        caplet_tmp = Caplet_G2pp(curve, parameters_dict, time_tmp - 0.5, time_tmp, 1.0, strike_tmp)
+        caplet_tmp = Caplet_G2pp(curve, parameters_dict, time_tmp - tenor, time_tmp, 1.0, strike_tmp)
         caplet_prices.append(caplet_tmp)
 
     return caplet_prices
 
 # ---------- Lista prezzi dei Cap ATM da modello G2++ -----------------------------
 # i parametri del modello vengono passati tramite una lista [a,b,sigma,eta,rho]
-def compute_G2pp_cap_prices(parameters_list, curve, mkt_data):
+def compute_G2pp_cap_prices(parameters_list, curve, mkt_data,tenor, shift):
     parameters_dict={}
     parameters_dict['a']=parameters_list[0]
     parameters_dict['sigma'] = parameters_list[1]
@@ -887,8 +889,8 @@ def compute_G2pp_cap_prices(parameters_list, curve, mkt_data):
         time = mkt_data['time'][i]
         strike = mkt_data['strike'][i]
         cap_tmp=0.
-        for t in np.arange(0,time,step=0.5):
-            cap_tmp += Caplet_G2pp(curve,parameters_dict,t,t+0.5,1.,strike)
+        for t in np.arange(0,time,step=tenor):
+            cap_tmp += Caplet_G2pp(curve,parameters_dict,t,t+tenor,1.,strike)
         cap_prices.append(cap_tmp)
 
     return cap_prices
@@ -898,9 +900,9 @@ def compute_G2pp_cap_prices(parameters_list, curve, mkt_data):
 # power=2 metrica euclidea
 # se absrel='rel' viene calcolata la norma delle differenze relative
 # mkt_data e' un DataFrame contenente tre series 'time', 'strike' e 'market price'
-def loss_G2pp_caps(list_model_params, curve, mkt_prices, power, absrel):
+def loss_G2pp_caps(list_model_params, curve, mkt_prices,tenor, shift, power, absrel):
 
-    model_price_tmp = np.array(compute_G2pp_cap_prices(list_model_params, curve, mkt_prices))
+    model_price_tmp = np.array(compute_G2pp_cap_prices(list_model_params, curve, mkt_prices,tenor, shift))
     diff = np.absolute(model_price_tmp - mkt_prices['market price'])
     if absrel == 'rel':
         diff = diff /np.absolute(mkt_prices['market price'])
@@ -914,9 +916,9 @@ def loss_G2pp_caps(list_model_params, curve, mkt_prices, power, absrel):
 # power=2 metrica euclidea
 # se absrel='rel' viene calcolata la norma delle differenze relative
 # mkt_data e' un DataFrame contenente tre series 'time', 'strike' e 'market price'
-def loss_G2pp(list_model_params, curve, mkt_prices, power, absrel):
+def loss_G2pp(list_model_params, curve, mkt_prices, tenor, shift, power, absrel):
 
-    model_price_tmp = np.array(compute_G2pp_prices(list_model_params, curve, mkt_prices))
+    model_price_tmp = np.array(compute_G2pp_prices(list_model_params, curve, mkt_prices,tenor, shift))
     diff = np.absolute(model_price_tmp - mkt_prices['market price'])
     if absrel == 'rel':
         diff = diff /np.absolute(mkt_prices['market price'])
@@ -929,28 +931,53 @@ def loss_G2pp(list_model_params, curve, mkt_prices, power, absrel):
 #   G2++ su Swaptions
 #################################################
 from utils_g2pp_newton import Pt_MKT,found_opt,price_swaption
+# Pt_MKT calcola il fattore di sconto utilizzando i tassi nel regime di interesse continuo
 
-def forwardSwap(tenor, rf_times,rf_values, t, t_exp, t_mat):
-    T = t_exp + t_mat
-    P_0_t = Pt_MKT(t, rf_times,rf_values)
-    P_0_exp = Pt_MKT(t_exp, rf_times,rf_values)
-    P_0_T = Pt_MKT(T, rf_times,rf_values)
+#def forwardSwap(tenor, rf_times,rf_values, t, t_exp, t_mat):
+#    T = t_exp + t_mat
+#    P_0_t = Pt_MKT(t, rf_times,rf_values)
+#    P_0_exp = Pt_MKT(t_exp, rf_times,rf_values)
+#    P_0_T = Pt_MKT(T, rf_times,rf_values)
+#
+#    P_t_exp = P_0_exp / P_0_t
+#    P_t_T = P_0_T / P_0_t
+#
+#    n = int(t_mat / tenor)
+#
+#    ForwardAnnuityPrice = 0.0
+#
+#    for i in range(1, n + 1):
+#        ti = t_exp + i * tenor
+#        P_0_ti = Pt_MKT(ti, rf_times,rf_values)
+#        ForwardAnnuityPrice = ForwardAnnuityPrice + (P_0_ti / P_0_t) * tenor
+#
+#    swap = (P_t_exp - P_t_T) / ForwardAnnuityPrice
+#    return swap, ForwardAnnuityPrice
 
-    P_t_exp = P_0_exp / P_0_t
-    P_t_T = P_0_T / P_0_t
+def SwapRate(tenor, rf_times, rf_values, t_exp, maturity, type_curve = 'rate'):
 
-    n = int(t_mat / tenor)
+    tmp_time = np.arange(0., maturity, tenor) + tenor + t_exp
+    tmp_time = np.append(t_exp,tmp_time)
 
-    ForwardAnnuityPrice = 0.0
+    if type_curve == 'rate':
+        df_annuity = []
+        for t in tmp_time:
+            df_annuity.append(Pt_MKT(t, rf_times,rf_values))
+        df_annuity = np.asarray(df_annuity)
+        #df_annuity = np.exp(-rf_time * np.interp(tmp_time,rf_times, rf_values))
+    elif type_curve == 'discount':
+        df_annuity = np.exp(np.interp(tmp_time,rf_times, np.log(rf_values)))
+    else:
+        raise Exception('error: valore tipologia curva non corretto')
 
-    for i in range(1, n + 1):
-        ti = t_exp + i * tenor
-        P_0_ti = Pt_MKT(ti, rf_times,rf_values)
-        ForwardAnnuityPrice = ForwardAnnuityPrice + (P_0_ti / P_0_t) * tenor
+    df_exp = df_annuity[0]
+    df_mat = df_annuity[-1]
 
-    swap = (P_t_exp - P_t_T) / ForwardAnnuityPrice
-    return swap, ForwardAnnuityPrice
+    ForwardAnnuityPrice = np.diff(tmp_time) * df_annuity[1:]
 
+    swap = (df_exp - df_mat) / ForwardAnnuityPrice.sum()
+
+    return swap.copy(), ForwardAnnuityPrice.sum()
 
 def CurveFromDictToList(rf_Curve):
     rf_times = rf_Curve.keys()
@@ -973,27 +1000,255 @@ def CurveFromDictToList(rf_Curve):
 #
 #     return price
 
-def fromVolaATMToPrice(t_exp, t_mat, tenor, vol, rf_times,rf_values, shift, call_type):
+def fromVolaATMToPrice(t_exp, maturity, tenor, vol, rf_times,rf_values, shift, call_type, type_curve='rate'):
     if (vol <= 0.0) or (vol >= 2.0):
         print "in swaption: it takes 0 < vol < 2; found ", vol
 
-    srate, ForwardAnnuityPrice = forwardSwap(tenor, rf_times,rf_values, 0, t_exp, t_mat)
+    srate, ForwardAnnuityPrice = SwapRate(tenor, rf_times, rf_values, t_exp, maturity,type_curve)
+
     call = (srate+shift) * call_type * (2.0 * norm.cdf(call_type * 0.5 * vol * np.sqrt(t_exp)) - 1.0)
 
     price = ForwardAnnuityPrice * call
 
     return price
 
-def fromPriceToVola(t_exp, t_mat, tenor,price, curve_dict,call_type):
+#def fromPriceToVola(t_exp, t_mat, tenor,price, curve_dict,call_type):
+#
+#    srate, ForwardAnnuityPrice = forwardSwap(tenor, curve_dict, 0, t_exp, t_mat)
+#
+#    z = 0.5* ( price / (srate * call_type * ForwardAnnuityPrice) + 1)
+#    p = norm.ppf(z)
+#    v = 2*p/call_type
+#    vol = v / np.sqrt(t_exp)
+#
+#    return vol
 
-    srate, ForwardAnnuityPrice = forwardSwap(tenor, curve_dict, 0, t_exp, t_mat)
 
-    z = 0.5* ( price / (srate * call_type * ForwardAnnuityPrice) + 1)
-    p = norm.ppf(z)
-    v = 2*p/call_type
-    vol = v / np.sqrt(t_exp)
+#################################################
+#   LMM su Swaptions
+#################################################
 
-    return vol
+def LMM_correlation_matrix(param, times):
+    beta = float(param[4])
+    rho  = float(param[5])
+
+    T_t = times[:, None] - times
+
+    return rho + (1. - rho) * np.exp(- beta * np.absolute(T_t))
+
+def LMM_IntVol_jk_dt(param, t0, t1, t_k, t_j):
+    # integrale in forma analitica della volatilita'
+
+    # il metodo ha senso solo per t_j e t_k maggiore uguale di t_exp
+    #if np.any(np.logical_or(t_j < t_exp, t_k < t_exp)):
+    #    raise Exception("I tempi nell'integrale in forma chiusa sono errati")
+
+    a = float(param[0])
+    b = float(param[1])
+    c = float(param[2])
+    d = float(param[3])
+
+
+    tmp00 = 1. / (4. * np.power(c, 3))
+    tmp01 = np.exp(-c * (t_j + t_k))
+
+    tmp101 = - np.exp(2. * c * t0) * (1. + c * (t_j + t_k - 2. * t0) + 2. * np.power(c,2.) * (t_j - t0) *(t_k - t0))
+    tmp102 = np.exp(2. * c * t1) * (1. + c * (t_j + t_k - 2. * t1) + 2. * np.power(c,2.) * (t_j - t1) *(t_k - t1))
+
+    tmp1 = np.power(b, 2) * (tmp101 + tmp102)
+
+    tmp20 = 2. * a * d * (np.exp(c * t_j) + np.exp(c * t_k)) * \
+            (np.exp(c * t0) - np.exp(c * t1))
+    tmp21 = np.power(a, 2) * (np.exp(2. * c * t0) - np.exp(2. * c * t1))
+    tmp22 = 2. * c * np.power(d, 2) * np.exp(c * (t_j + t_k)) * (t0 - t1)
+
+    tmp2 = - 2. * np.power(c, 2) * (tmp20 + tmp21 + tmp22)
+
+    tmp310 = np.exp(2.*c * t0) * (-1. - c * (t_j + t_k - 2. * t0))
+    tmp311 = np.exp(2.*c * t1) * (1. + c * (t_j + t_k - 2. * t1))
+
+    tmp31 = a * ( tmp310 + tmp311 )
+
+    tmp320 = np.exp(c * (t_k + t0)) * (-1. - c * t_j + c * t0)
+    tmp321 = np.exp(c * (t_j + t0)) * (-1. - c * t_k + c * t0)
+    tmp322 = np.exp(c * (t_k + t1)) * ( 1. + c * t_j - c * t1)
+    tmp323 = np.exp(c * (t_j + t1)) * ( 1. + c * t_k - c * t1)
+
+    tmp32 = 2. * d * (tmp320 + tmp321 + tmp322 + tmp323)
+
+    tmp3 = 2. * b * c * (tmp31 + tmp32)
+
+    res = tmp00 * tmp01 * (tmp1 + tmp2 + tmp3)
+
+    if type(res) == np.ndarray:
+        res[np.logical_or((t_k - t0) < 0., (t_j - t0) < 0.)] = 0.
+    else:
+        if (t_k - t0) < 0. or (t_j - t0) < 0.:
+            res = 0.
+
+    return res
+
+def LMM_vola_swaptions_Rebonato(param, curve, shift, swap_rate, t_exp, maturity_swap, tenor_swap):
+
+    # tempi di riferimento dello swap
+    # t_exp + tenor_swap, .... , t_maturity compresi gli estremi
+    # non e' incluso t_exp
+    tmp_time = np.arange(0., maturity_swap, tenor_swap) + tenor_swap + t_exp
+    # sigma_k si riferisce a T_{k-1}
+    tmp_time_vola = tmp_time - tenor_swap
+
+    # Calcolo i fattori di sconto
+    #df = np.exp(- tmp_time * np.interp(tmp_time, curve['TIME'], np.log(curve['VALUE'])))
+    #df_prec = np.exp( - tmp_time_vola * np.interp(tmp_time_vola, curve['TIME'], np.log(curve['VALUE'])))
+
+    df = np.exp(np.interp(tmp_time, curve['TIME'], np.log(curve['VALUE'])))
+    df_prec = np.exp(np.interp(tmp_time_vola, curve['TIME'], np.log(curve['VALUE'])))
+
+    # tassi Libor iniziali
+    Forward0 = (df_prec/df - 1.) / tenor_swap
+
+    #idx_exp = 0
+    #idx_mat = self.idx_tenors[t_maturity] - 1
+
+    # dal successivo di t_exp al t_maturity compreso
+    #idx = np.arange((idx_exp+1), (idx_mat + 1), 1)
+    w_denom = (tenor_swap * df)
+    w_0 = (tenor_swap * df) / w_denom.sum()
+
+    #idx_vola = idx - 1
+    # formula di Rebonato
+    s_t_jk = LMM_IntVol_jk_dt(param = param, t0 = 0., t1=t_exp, t_k=tmp_time_vola[:, None], t_j=tmp_time_vola)
+    cov = LMM_correlation_matrix(param= param, times=tmp_time) * s_t_jk
+
+    tmp = (w_0 * (Forward0 + shift))
+
+    swap = swap_rate + shift
+
+    var_estimated = np.dot(tmp, np.dot(cov, tmp.transpose())) / (swap * swap * t_exp)
+
+    return np.sqrt(var_estimated)
+
+def loss_LMM_swaptions(list_model_params, curve, mkt_prices, tenor_data,call_type, power, absrel):
+
+    model_tmp = compute_LMM_prices_swaptions(list_model_params, curve, mkt_prices, tenor_data, call_type)
+
+    diff = np.absolute(model_tmp['model price'] - mkt_prices['market price'])
+    if absrel == 'rel':
+        diff = diff /np.absolute(mkt_prices['market price'])
+
+    diff = np.power(diff,power)
+
+    return diff.sum()
+
+def compute_LMM_prices_swaptions(parameters_list, curve, mkt_data, tenor_data, call_type):
+
+    shift = parameters_list[6]
+
+    model_res = pd.DataFrame(index=mkt_data.index, columns=['model vola','model price'])
+
+    for i in mkt_data.index:
+        model_res.at[i,'model vola'] = LMM_vola_swaptions_Rebonato(param = parameters_list,
+                                                                    curve = curve,
+                                                                    shift = shift,
+                                                                    swap_rate = mkt_data.at[i,'swap'] ,
+                                                                    t_exp = mkt_data.at[i,'expiry'],
+                                                                    maturity_swap = mkt_data.at[i,'maturity'],
+                                                                    tenor_swap = tenor_data)
+
+        model_res.at[i,'model price'] = fromVolaATMToPrice(t_exp = mkt_data.at[i,'expiry'],
+                                                           maturity = mkt_data.at[i, 'maturity'],
+                                                           tenor = tenor_data,
+                                                           vol   = model_res.at[i,'model vola'],
+                                                           rf_times  = curve['TIME'].values,
+                                                           rf_values = curve['VALUE'].values,
+                                                           shift = shift,
+                                                           call_type = call_type,
+                                                           type_curve='discount')
+
+    return model_res.copy()
+
+
+# ---------- Funzione di calcolo norma da ottimizzare nel caso ATM ------------------------------------
+# power=1 metrica di Manhattan
+# power=2 metrica euclidea
+# se absrel='rel' viene calcolata la norma delle differenze relative
+# mkt_data e' un DataFrame contenente tre series 'time', 'strike' e 'market price'
+def loss_LMM_caps(list_model_params, curve, mkt_prices, tenor_cap, shift, power, absrel):
+    model_price_tmp = np.array(compute_LMM_caps_prices(list_model_params, curve, mkt_prices, tenor_cap, shift))
+    diff = np.absolute(model_price_tmp - mkt_prices['market price'])
+    if absrel == 'rel':
+        diff = diff / np.absolute(mkt_prices['market price'])
+
+    diff = np.power(diff, power)
+
+    return diff.sum()
+
+
+# ---------- Lista prezzi dei Cap ATM da modello LMM -----------------------------
+# i parametri del modello vengono passati tramite una lista [a,b,c,d,beta,rho]
+def compute_LMM_caps_prices(parameters_list, curve, mkt_data, tenor_cap, shift):
+    cap_prices = []
+
+    for i in range(0, len(mkt_data['time'])):
+        time = mkt_data['time'][i]
+        strike = mkt_data['strike'][i]
+        cap_tmp = 0.
+        for t in np.arange(0, time, step=tenor_cap):
+            cap_tmp += LMM_Caplet(parameters_list, curve, t, t + tenor_cap, strike, shift)
+
+        cap_prices.append(cap_tmp)
+
+    return cap_prices
+
+def LMM_Caplet(param, curve, reset_time, exercise_time, strike, shift):
+
+    '''
+    The Black implied volatility at time 0 of a caplet expiring at time Ti-1 and paying at time Ti
+    hence, whose underlying is Li
+
+    Return the caplet volatility at time t=0,
+    computed in terms of the the instantaneous
+    volatility function form proposed by Rebonato.
+    '''
+
+    s_t = LMM_IntVol_jk_dt(param=param, t0=0., t1=reset_time, t_k=reset_time, t_j=reset_time)
+    vol = np.sqrt(s_t / reset_time)
+
+    price_cap = Black_shifted_Caplet(curve, reset_time, exercise_time, 1., strike, shift, vol)
+
+    return price_cap
+
+
+# ---------- Funzione di calcolo norma da ottimizzare nel caso ATM ------------------------------------
+# power=1 metrica di Manhattan
+# power=2 metrica euclidea
+# se absrel='rel' viene calcolata la norma delle differenze relative
+# mkt_data e' un DataFrame contenente tre series 'time', 'strike' e 'market price'
+def loss_LMM_caplets(list_model_params, curve, mkt_prices, tenor_cap, shift, power, absrel):
+    model_price_tmp = np.array(compute_LMM_caplets_prices(list_model_params, curve, mkt_prices, tenor_cap, shift))
+    diff = np.absolute(model_price_tmp - mkt_prices['market price'])
+    if absrel == 'rel':
+        diff = diff / np.absolute(mkt_prices['market price'])
+
+    diff = np.power(diff, power)
+
+    return diff.sum()
+
+
+# ---- Lista prezzi dei Caplet da modello LMM -----------------------------
+# i parametri del modello vengono passati tramite una lista [a,b,sigma,eta,rho]
+def compute_LMM_caplets_prices(parameters_list, curve, market_data, tenor_caplet, shift):
+    caplet_prices = []
+
+    for i in range(0, len(market_data)):
+        time_tmp = market_data['time'][i]
+        strike_tmp = market_data['strike'][i]
+        caplet_tmp = LMM_Caplet(parameters_list, curve, time_tmp - tenor_caplet, time_tmp, strike_tmp, shift)
+
+        caplet_prices.append(caplet_tmp)
+
+    return caplet_prices
+
 
 #################################################
 #              Variance Gamma

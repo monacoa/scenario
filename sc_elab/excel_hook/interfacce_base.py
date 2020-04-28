@@ -929,7 +929,7 @@ def calibration_from_xls(control):
                 loss_function_type_absrel = 'rel'
 
 
-            model_dict = W1.param_dict
+            #model_dict = W1.param_dict
 
             model = W.model.get()
             type_data = W1.set_mkt_ts.get()
@@ -1006,7 +1006,7 @@ def calibration_from_xls(control):
                         x0_m.append(float(W1.param_dict[p_name]['sv']))
                         x_bnd.append([float(W1.param_dict[p_name]['min']), float(W1.param_dict[p_name]['max'])])
 
-                    if model in ['CIR++','G2++','VSCK']:
+                    if model in ['CIR++','G2++','LMM','VSCK']:
 
                         option_type = W1.OptionChosen.loc[(W1.OptionChosen.loc[:, 0] == 'OptionType'), 1].values[0]
 
@@ -1040,13 +1040,101 @@ def calibration_from_xls(control):
                                                                                tenr, swp_atm_d, curve_times,
                                                                                curve_values, call_flag, n_max=50)
 
+                        elif model=='LMM' and option_type=='Swaption':
 
-                        elif model in ['CIR++','G2++'] and option_type in ['Vol Caplets','Caplets','Vol Caps','Caps']:
+                            orig_curve, curve, type_cap = preProcessingCurve(W1.CurveChosen, rate_time_zero=True,out_type='discount')
+                                                                             #out_type='rate')
+                            # leggo e processo i dati sulle opzioni
+                            market_data, tenr, call_flag = preProcessingOptions(W_calib=W1, curve=curve, type_curve='discount')
+
+                            root = Tk()
+                            root.grid()
+                            message = Label(root, text='Calibrazione in corso, potrebbe richiedere qualche minuto.')
+                            message.grid(column=0, row=1)
+                            root.update()
+
+                            n_sample = W1.nTime.get()
+
+                            shift = np.max(market_data['shift'])
+
+                            # aggiungo lo shift ai parametri del modello
+                            p_name = 'shift'
+                            # aggiungo il parametro alla lista del modello
+                            W1.params_names.append(p_name)
+                            W1.param_dict[p_name] = {}
+                            W1.param_dict[p_name]['sv'] = shift
+                            W1.param_dict[p_name]['min'] = shift
+                            W1.param_dict[p_name]['max'] = shift
+
+                            x0_m.append(float(W1.param_dict[p_name]['sv']))
+                            x_bnd.append([float(W1.param_dict[p_name]['min']), float(W1.param_dict[p_name]['max'])])
+
+                            if n_sample == 1:
+                                ff = minimize(loss_LMM_swaptions,
+                                                  args=(curve, market_data, tenr, call_flag, loss_function_type_power, loss_function_type_absrel),
+                                              x0=x0_m, bounds=x_bnd, method='TNC')
+
+                                # aggiungo al dataframe di dati i prezzi da modello
+                                tmp = compute_LMM_prices_swaptions(ff.x, curve, market_data, tenr, call_flag)
+
+                                market_data['model vola'] = tmp['model vola']
+                                market_data['model price'] = tmp['model price']
+
+                                # Calcolo il chi quadro
+                                chi2 = computeCHI2(mkt=market_data['market price'], mdl=market_data['model price'],
+                                                   type_calib='CURVE_OPT')
+                                final_params = ff.x
+
+                            elif n_sample > 1:
+                                multiple_calib_dict = {}
+                                for i in range(n_sample):
+                                    starting_points_list = []
+                                    for p_name in W1.params_names:
+                                        starting_points_list.append(
+                                            np.random.uniform(low=float(W1.param_dict[p_name]['min']),
+                                                              high=float(W1.param_dict[p_name]['max'])))
+                                    print 'punti iniziali al passo %i:' % i, starting_points_list
+                                    ff = minimize(loss_LMM_swaptions,
+                                                  args=(curve, market_data, tenr, call_flag, loss_function_type_power,
+                                                        loss_function_type_absrel),
+                                                  x0=starting_points_list, bounds=x_bnd, method='TNC')
+
+                                    print 'parametri calibrati al passo %i:' % i, ff.x
+                                    # aggiungo al dataframe di dati i prezzi da modello
+                                    tmp = compute_LMM_prices_swaptions(ff.x, curve, market_data, tenr, call_flag)
+
+                                    market_data['model vola'] = tmp['model vola']
+                                    market_data['model price'] = tmp['model price']
+
+                                    # Calcolo il chi quadro
+                                    chi2 = computeCHI2(mkt=market_data['market price'], mdl=market_data['model price'],
+                                                       type_calib='CURVE_OPT')
+                                    print 'chi2 al passo %i:' % i, chi2
+                                    multiple_calib_dict[chi2] = {'chi2': chi2, 'calib_params': ff.x,
+                                                                 'initial_guess': starting_points_list}
+
+                                valid_keys = [k for k in multiple_calib_dict.keys() if k > 0]
+                                print 'chiavi valide:', valid_keys
+                                chi2_min = min(valid_keys)
+                                print 'chi2_min al termine delle varie calibrazioni:', chi2_min
+
+                                # aggiungo al dataframe di dati i prezzi da modello
+                                tmp = compute_LMM_prices_swaptions(multiple_calib_dict[chi2_min]['calib_params'],
+                                                                   curve, market_data, tenr, call_flag)
+
+                                market_data['model vola'] = tmp['model vola']
+                                market_data['model price'] = tmp['model price']
+
+                                final_params = multiple_calib_dict[chi2_min]['calib_params']
+
+                            root.destroy()
+
+                        elif model in ['CIR++','G2++','LMM'] and option_type in ['Vol Caplets','Caplets','Vol Caps','Caps']:
                             # leggo la curva dei tassi risk free
                             orig_curve, curve, type_cap = preProcessingCurve(W1.CurveChosen, rate_time_zero=True,
                                                                              out_type='discount')
                             # leggo e processo i dati sulle opzioni
-                            market_data = preProcessingOptions(W1, curve)
+                            market_data, shift, tenor = preProcessingOptions(W1, curve)
 
                             root = Tk()
                             root.grid()
@@ -1060,6 +1148,27 @@ def calibration_from_xls(control):
                             elif model == 'G2++' and option_type in ['Vol Caplets','Caplets']:
                                 loss_function = loss_G2pp
                                 price_function = compute_G2pp_prices
+                            elif model == 'LMM':
+
+                                # aggiungo lo shift ai parametri del modello
+                                p_name = 'shift'
+                                # aggiungo il parametro alla lista del modello
+                                W1.params_names.append(p_name)
+                                W1.param_dict[p_name] = {}
+                                W1.param_dict[p_name]['sv'] = shift
+                                W1.param_dict[p_name]['min'] = shift
+                                W1.param_dict[p_name]['max'] = shift
+
+                                x0_m.append(float(W1.param_dict[p_name]['sv']))
+                                x_bnd.append([float(W1.param_dict[p_name]['min']), float(W1.param_dict[p_name]['max'])])
+
+                                if option_type in ['Vol Caps', 'Caps']:
+                                    loss_function = loss_LMM_caps
+                                    price_function = compute_LMM_caps_prices
+                                else:
+                                    loss_function = loss_LMM_caplets
+                                    price_function = compute_LMM_caplets_prices
+
                             elif model == 'CIR++':
                                 settings = {'Fcm': float(W1.setting_Fcm.get())}
                                 def fun_constr(param_list):
@@ -1085,16 +1194,16 @@ def calibration_from_xls(control):
                             print 'numero di tentativi:', n_sample
 
                             if n_sample == 1:
-                                if model == 'G2++':
+                                if model in ['G2++','LMM']:
                                     ff = minimize(loss_function,
                                                   args=(
-                                                      curve, market_data, loss_function_type_power, loss_function_type_absrel),
+                                                      curve, market_data, tenor, shift, loss_function_type_power, loss_function_type_absrel),
                                                   x0=x0_m, bounds=x_bnd, method='TNC')
                                 else:
-                                    ff = minimize(loss_function, args=(curve, market_data, loss_function_type_power, loss_function_type_absrel),
+                                    ff = minimize(loss_function, args=(curve, market_data,tenor, shift, loss_function_type_power, loss_function_type_absrel),
                                               x0=x0_m, constraints=constraints, method='COBYLA')
                                 # aggiungo al dataframe di dati i prezzi da modello
-                                market_data['model price'] = price_function(ff.x, curve, market_data)
+                                market_data['model price'] = price_function(ff.x, curve, market_data, tenor, shift)
                                 # Calcolo il chi quadro
                                 chi2 = computeCHI2(mkt=market_data['market price'], mdl=market_data['model price'],
                                                    type_calib='CURVE_OPT')
@@ -1114,16 +1223,16 @@ def calibration_from_xls(control):
                                     if model == 'G2++':
                                         ff = minimize(loss_function,
                                                       args=(
-                                                          curve, market_data, loss_function_type_power,
+                                                          curve, market_data,tenor, shift, loss_function_type_power,
                                                           loss_function_type_absrel),
                                                       x0=starting_points_list, bounds=x_bnd, method='TNC')
                                     else:
                                         ff = minimize(loss_function, args=(
-                                        curve, market_data, loss_function_type_power, loss_function_type_absrel),
+                                        curve, market_data, tenor, shift, loss_function_type_power, loss_function_type_absrel),
                                                       x0=starting_points_list, constraints=constraints, method='COBYLA')
                                     print 'parametri calibrati al passo %i:' % i, ff.x
                                     #  aggiungo al dataframe di dati i prezzi da modello
-                                    market_data['model price'] = price_function(ff.x, curve, market_data)
+                                    market_data['model price'] = price_function(ff.x, curve, market_data, tenor, shift)
                                     # Calcolo il chi quadro
                                     chi2 = computeCHI2(mkt=market_data['market price'], mdl=market_data['model price'],
                                                        type_calib='CURVE_OPT')
@@ -1135,11 +1244,10 @@ def calibration_from_xls(control):
                                 chi2_min = min(valid_keys)
                                 print 'chi2_min al termine delle varie calibrazioni:', chi2_min
                                 market_data['model price'] = price_function(
-                                    multiple_calib_dict[chi2_min]['calib_params'],  curve, market_data)
+                                    multiple_calib_dict[chi2_min]['calib_params'], curve, market_data, tenor, shift)
                                 final_params = multiple_calib_dict[chi2_min]['calib_params']
 
                             root.destroy()
-
 
                         elif model=='VSCK':
 
@@ -1163,13 +1271,14 @@ def calibration_from_xls(control):
 
                             market_data['model price'] = compute_Vasicek_prices(final_params, market_data['time'],
                                                                              market_data['strike'])
+
                         else :
                             root = Tk()
                             tkMessageBox.showwarning(title='Errore', message='Campo OptionType compilato male')
                             root.destroy()
                             return
 
-                        if model=='G2++' and option_type=='Swaption':
+                        if model in ['LMM','G2++'] and option_type=='Swaption':
                             # Produco il grafico della calibrazione
                             plt.plot(market_data['expiry'], market_data['market price'], 'b^', label='Market Prices')
                             plt.plot(market_data['expiry'], market_data['model price'], 'ro', label='Model Prices')
@@ -1185,6 +1294,15 @@ def calibration_from_xls(control):
                             # market_data['maturity'] = market_data['maturity'].map(MaturityFromIntToString)
 
                         else:
+                            if model == 'LMM':
+                                root = Tk()
+                                tkMessageBox.showwarning(title='Warning',
+                                                         message='La calibrazione del Libor Market Model su caps/caplets'
+                                                                 ' non ottimizza i parametri della correlazione:\n'
+                                                                 '- beta \n'
+                                                                 '- rho ')
+                                root.destroy()
+
                             # Produco il grafico della calibrazione
                             plt.plot(market_data['time'], market_data['market price'], 'b^', label='Market Prices')
                             plt.plot(market_data['time'], market_data['model price'], 'ro', label='Model Prices')

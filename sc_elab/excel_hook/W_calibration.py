@@ -1,4 +1,5 @@
 from Tkinter import *
+import ttk
 import tkMessageBox
 import numpy as np
 import pandas as pd
@@ -65,6 +66,19 @@ def model_parameters(value):
         names = ['a', 'sigma', 'b', 'eta', 'rho']
         attribute = ['sv', 'min', 'max', 'fix']
 
+    elif value == 'LMM':
+        dict ={'a'    :{'sv': '0.01', 'min': '0.0' , 'max': '1.0' ,'fix':0},
+                'b'   :{'sv': '0.01', 'min': '-1.0', 'max': '1.0' ,'fix':0},
+                'c'   :{'sv': '0.5' , 'min': '0.1' , 'max': '10.0','fix':0},
+                'd'   :{'sv': '0.01', 'min': '0.0' , 'max': '0.7' ,'fix':0},
+                'beta':{'sv': '1.0' , 'min': '0.0' , 'max': '10.0','fix':0},
+                'rho' :{'sv': '0.5' , 'min': '0.0' , 'max': '1.0' ,'fix':0}
+                #'shift':{'sv': '0.0' , 'min': '0.0'  , 'max': '1.0' ,'fix': 1}
+               }
+        names = ['a', 'b', 'c', 'd', 'beta', 'rho']#,'shift']
+        attribute = ['sv', 'min', 'max', 'fix']
+        # lo shift viene fissato in automatico come il maggiore degli shift in input in calibrazione
+
     elif value == 'Variance Gamma':
         dict ={'sigma'   :{'sv':'0.1', 'min': '0.01', 'max': '2.0' , 'fix':0},
                'nu': {'sv': '0.1', 'min': '0.001', 'max': '2.0', 'fix': 0},
@@ -110,13 +124,14 @@ class W_calib_models(Frame):
 
         Label(self,text="""Choose your calibrator :""",justify=LEFT,padx=20).pack()
 
-        self.calib_avaible = ['CIR',
-                              'CIR++',
-                         'VSCK',
-                         'Jarrow Yildirim',
-                         'G2++',
-                         'Variance Gamma',
-                              'Heston']
+        self.calib_avaible = [  'CIR',
+                                'CIR++',
+                                'VSCK',
+                                'Jarrow Yildirim',
+                                'G2++',
+                                'LMM',
+                                'Variance Gamma',
+                                'Heston']
 
         for name_calib in self.calib_avaible:
             Radiobutton(self,
@@ -145,7 +160,6 @@ class W_calib_models(Frame):
             self.close_window()
 
 
-import ttk
 class W_calib_menu(LabelFrame):
 
     def close_window(self):
@@ -218,7 +232,7 @@ class W_calib_menu(LabelFrame):
         self.rb_type2.grid(row = 1, column = 2, rowspan = 1, columnspan = 1, pady = 5, sticky = W+E+N+S)
         self.set_mkt_ts.set('MKT')
 
-        if model in ['CIR++','Jarrow Yildirim','G2++','Variance Gamma','Heston']:
+        if model in ['CIR++','Jarrow Yildirim','G2++','LMM','Variance Gamma','Heston']:
             self.rb_type2.config(state = 'disabled')
 
         #########################################################################
@@ -269,7 +283,7 @@ class W_calib_menu(LabelFrame):
             self.rb_calib1.config(state = 'disabled')
             self.rb_calib3.config(state = 'disabled')
             self.mkt_calibration_type.set('CURVE')
-        elif model in ['CIR++','G2++','Variance Gamma','Jarrow Yildirim','Heston']:
+        elif model in ['CIR++','G2++','LMM','Variance Gamma','Jarrow Yildirim','Heston']:
             self.rb_calib1.config(state = 'disabled')
             self.rb_calib2.config(state = 'disabled')
             self.mkt_calibration_type.set('CURVE_OPT')
